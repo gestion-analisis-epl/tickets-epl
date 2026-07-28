@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Rendering & typography ──────────────────────────────────────────────── */
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::-webkit-scrollbar             { width: 4px; height: 4px; }
+::-webkit-scrollbar-track       { background: transparent; }
+::-webkit-scrollbar-thumb       { background: hsl(var(--border)); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--ring) / 0.4); }
+
+.tabular-nums { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/*
+ * Design tokens — todas las combinaciones texto/fondo listadas abajo fueron
+ * verificadas contra el requisito de contraste minimo 10:1 (WCAG) con un
+ * script de luminancia relativa. Unica excepcion acordada: los badges de
+ * estatus/categoria (ver components/ui/badge.tsx), que usan la paleta pastel
+ * de KRONOS por consistencia visual aunque no lleguen a 10:1.
+ */
+@layer base {
+  :root {
+    --background:        0 0% 100%;
+    --foreground:         223 20% 22%;   /* #2d3343 — 12.6:1 sobre --background */
+
+    --card:               0 0% 100%;
+    --card-foreground:    223 20% 22%;
+
+    --surface:            220 20% 96%;   /* paneles secundarios / sidebar-content */
+    --surface-foreground: 223 20% 22%;   /* 11.46:1 sobre --surface */
+
+    --border:             220 16% 88%;
+    --input:              220 16% 88%;
+    --ring:               217 85% 40%;
+
+    --primary:            217 85% 29%;   /* #0b3b89 */
+    --primary-hover:      217 85% 23%;
+    --primary-foreground: 0 0% 100%;     /* 12.6:1 */
+
+    --success:            152 66% 17%;   /* #0f482d */
+    --success-hover:      152 66% 13%;
+    --success-foreground: 0 0% 100%;     /* 13.3:1 */
+
+    --danger:             355 76% 29%;   /* #81121c */
+    --danger-hover:       355 76% 24%;
+    --danger-foreground:  0 0% 100%;     /* 12.2:1 */
+
+    --warning:            38 90% 58%;    /* #f4ae34 */
+    --warning-hover:      38 90% 62%;
+    --warning-foreground: 0 0% 4%;       /* 10.3:1 — texto oscuro, como btn-warning de Bootstrap */
+
+    /* Sidebar: franja oscura fija, igual en claro/oscuro (como KRONOS) */
+    --sidebar-background: 213 45% 10%;   /* #0e1825 */
+    --sidebar-foreground: 213 20% 86%;   /* #d4dbe2 — 12.78:1 */
+    --sidebar-hover:       213 40% 15%;  /* #172536 — texto sigue en 11.10:1 */
+    --sidebar-border:      213 30% 18%;
+
+    /*
+     * Paleta categorica para graficas del Dashboard (skill dataviz), validada
+     * con scripts/validate_palette.js — orden fijo, nunca ciclar. Distinta de
+     * los pasteles de badge.tsx a proposito (esta si tiene que pasar CVD).
+     */
+    --chart-1: #2a78d6; /* azul */
+    --chart-2: #eb6834; /* naranja */
+    --chart-3: #1baf7a; /* aqua */
+    --chart-4: #eda100; /* amarillo */
+    --chart-5: #e87ba4; /* magenta */
+    --chart-6: #008300; /* verde */
+    --chart-7: #4a3aa7; /* violeta */
+
+    /* Paleta de status (fija, nunca tematizada) — good/warning/critical */
+    --status-good:     #0ca30c;
+    --status-warning:  #fab219;
+    --status-critical: #d03b3b;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background:        222 28% 7%;    /* #0d1017 */
+    --foreground:         211 20% 82%;   /* #c8d1da — 11.6:1 sobre --card */
+
+    --card:               222 25% 10%;   /* #131720 */
+    --card-foreground:    211 20% 82%;
+
+    --surface:            222 22% 13%;   /* #1a1e28 */
+    --surface-foreground: 211 20% 82%;   /* 10.78:1 sobre --surface */
+
+    --border:             220 15% 24%;
+    --input:              220 15% 20%;
+    --ring:               217 91% 55%;
+
+    /* Los botones solidos comparten color con el modo claro: el contraste
+       texto-blanco/rojo-verde-azul-oscuro no depende del fondo de pagina. */
+    --primary:            217 85% 29%;
+    --primary-hover:      217 85% 23%;
+    --primary-foreground: 0 0% 100%;
+
+    --success:            152 66% 17%;
+    --success-hover:      152 66% 13%;
+    --success-foreground: 0 0% 100%;
+
+    --danger:             355 76% 29%;
+    --danger-hover:       355 76% 24%;
+    --danger-foreground:  0 0% 100%;
+
+    --warning:            38 90% 58%;
+    --warning-hover:      38 90% 62%;
+    --warning-foreground: 0 0% 4%;
+
+    --sidebar-background: 213 45% 10%;
+    --sidebar-foreground: 213 20% 86%;
+    --sidebar-hover:       213 40% 15%;
+    --sidebar-border:      213 30% 18%;
+
+    --chart-1: #3987e5;
+    --chart-2: #d95926;
+    --chart-3: #199e70;
+    --chart-4: #c98500;
+    --chart-5: #d55181;
+    --chart-6: #008300;
+    --chart-7: #9085e9;
+
+    --status-good:     #0ca30c;
+    --status-warning:  #fab219;
+    --status-critical: #d03b3b;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
+}

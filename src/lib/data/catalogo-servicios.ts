@@ -1,0 +1,92 @@
+import type { CatalogoServicio, Categoria } from "@/types/catalogo";
+
+/*
+ * Datos REALES, transcritos directamente de la hoja "Catalogo" del Excel
+ * original (Sistema_Tickets_Legal_EPL.xlsx) — no son un ejemplo ni estan
+ * inventados. Fuente temporal mientras se migra a Firestore; cuando el
+ * catalogo cambie alla, hay que actualizarlo aqui tambien (o mover esto a
+ * una coleccion real y quitar este archivo).
+ */
+export const CATALOGO_SERVICIOS: CatalogoServicio[] = [
+  { id: "JUR-C001", puestoResponsable: "Gerente Juridico", servicio: "Tramite legal ante el SAT", solicitanteTipico: "Finanzas", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C002", puestoResponsable: "Gerente Juridico", servicio: "Asunto legal especial (Direccion)", solicitanteTipico: "Direccion General", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C003", puestoResponsable: "Gerente Juridico", servicio: "Integracion de expediente bancario", solicitanteTipico: "Finanzas / Tesoreria", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C004", puestoResponsable: "Gerente Juridico", servicio: "Validacion legal de seguro / fianza", solicitanteTipico: "Finanzas / areas operativas", categoria: "Contratos", slaInterno: 7, slaDespachoRef: 12 },
+  { id: "JUR-C005", puestoResponsable: "Mesa de Control", servicio: "Alta / renovacion de proveeduria (gobierno)", solicitanteTipico: "Comercial / Operaciones", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C006", puestoResponsable: "Mesa de Control", servicio: "Alta de proveeduria comercial (IP)", solicitanteTipico: "Comercial", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C007", puestoResponsable: "Mesa de Control", servicio: "Carta de devolucion de prima de seguro", solicitanteTipico: "Finanzas / Comercial", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C008", puestoResponsable: "Mesa de Control", servicio: "Validacion de carta de cambio / firmas", solicitanteTipico: "Areas internas", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C009", puestoResponsable: "Mesa de Control", servicio: "Alta de cliente / KYC", solicitanteTipico: "Comercial", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C010", puestoResponsable: "Mesa de Control", servicio: "Consulta SIGER / SEGURE", solicitanteTipico: "Areas internas", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C011", puestoResponsable: "Mesa de Control", servicio: "Revision de contrato interno", solicitanteTipico: "Areas internas", categoria: "Contratos", slaInterno: 7, slaDespachoRef: 12 },
+  { id: "JUR-C012", puestoResponsable: "Mesa de Control", servicio: "Resguardo / digitalizacion de documento", solicitanteTipico: "Areas internas", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C013", puestoResponsable: "Mesa de Control", servicio: "Integracion de expediente legal", solicitanteTipico: "Areas internas", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C014", puestoResponsable: "Abogado Corporativo", servicio: "Alta / gestion de proveeduria federal", solicitanteTipico: "Comercial / Operaciones", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C015", puestoResponsable: "Abogado Corporativo", servicio: "Tramite / atencion ante el INE", solicitanteTipico: "Comercial", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C016", puestoResponsable: "Abogado Corporativo", servicio: "Gestion notarial / fedatario", solicitanteTipico: "Areas internas", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C017", puestoResponsable: "Abogado Corporativo", servicio: "Acto corporativo (sociedad / asamblea)", solicitanteTipico: "Direccion / Finanzas", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C018", puestoResponsable: "Abogado Corporativo", servicio: "Aviso de privacidad / atencion ARCO", solicitanteTipico: "RH / Comercial", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C019", puestoResponsable: "Abogado Corporativo", servicio: "Registro / declaracion de marca (IMPI)", solicitanteTipico: "Marketing / Comercial", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C020", puestoResponsable: "Abogado Corporativo", servicio: "Elaboracion de contrato corporativo", solicitanteTipico: "Areas internas", categoria: "Contratos", slaInterno: 7, slaDespachoRef: 12 },
+  { id: "JUR-C021", puestoResponsable: "Abogado Corporativo", servicio: "Soporte legal KRONOS", solicitanteTipico: "KRONOS", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C022", puestoResponsable: "Abogado Corporativo", servicio: "Asesoria legal inmobiliaria", solicitanteTipico: "Areas / Gerencia", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C023", puestoResponsable: "Abogado Corporativo", servicio: "Atencion a tramite / inspeccion IMSS", solicitanteTipico: "RH", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C024", puestoResponsable: "Abogado Corporativo", servicio: "Soporte legal dictamen cuentas 63", solicitanteTipico: "Finanzas", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C025", puestoResponsable: "Abogado Corporativo", servicio: "Movimiento de Registro Patronal", solicitanteTipico: "RH", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C026", puestoResponsable: "Abogado Corporativo", servicio: "Estructuracion de intercambio inmobiliario", solicitanteTipico: "Comercial", categoria: "Contratos", slaInterno: 7, slaDespachoRef: 12 },
+  { id: "JUR-C027", puestoResponsable: "Abogado Corporativo", servicio: "Soporte legal a empresa del grupo", solicitanteTipico: "Empresas del grupo", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C028", puestoResponsable: "Abogado Comercial", servicio: "Soporte legal al area comercial", solicitanteTipico: "Comercial", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C029", puestoResponsable: "Abogado Comercial", servicio: "Contrato de exhibicion de publicidad (IP)", solicitanteTipico: "Comercial", categoria: "Contratos", slaInterno: 7, slaDespachoRef: 12 },
+  { id: "JUR-C030", puestoResponsable: "Abogado Comercial", servicio: "Contrato de exhibicion de publicidad (Gobierno)", solicitanteTipico: "Comercial", categoria: "Contratos", slaInterno: 7, slaDespachoRef: 12 },
+  { id: "JUR-C031", puestoResponsable: "Abogado Comercial", servicio: "Gestion de garantia contractual", solicitanteTipico: "Comercial / Finanzas", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C032", puestoResponsable: "Abogado Comercial", servicio: "Estructuracion de intercambio comercial", solicitanteTipico: "Comercial", categoria: "Contratos", slaInterno: 7, slaDespachoRef: 12 },
+  { id: "JUR-C033", puestoResponsable: "Abogado Comercial", servicio: "Atencion a notificacion de autoridad", solicitanteTipico: "Recepcion / Comercial", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C034", puestoResponsable: "Abogado Comercial", servicio: "Soporte legal (LUMINA / SICMART / MSC)", solicitanteTipico: "Empresas del grupo", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C035", puestoResponsable: "Abogado Comercial", servicio: "Obtencion de certificacion comercial", solicitanteTipico: "Comercial", categoria: "Licencias y permisos", slaInterno: 10, slaDespachoRef: 18 },
+  { id: "JUR-C036", puestoResponsable: "Abogado Comercial", servicio: "Carta poder / contrato CFE", solicitanteTipico: "Comercial / Operaciones", categoria: "Contratos", slaInterno: 7, slaDespachoRef: 12 },
+  { id: "JUR-C037", puestoResponsable: "Abogado Comercial", servicio: "Certificacion estatal (Marca Guanajuato)", solicitanteTipico: "Comercial", categoria: "Licencias y permisos", slaInterno: 10, slaDespachoRef: 18 },
+  { id: "JUR-C038", puestoResponsable: "Abogado Comercial", servicio: "Revision legal de formato ST7", solicitanteTipico: "Comercial", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C039", puestoResponsable: "Abogado Comercial", servicio: "Revision de arrendamiento / poliza RC", solicitanteTipico: "Administracion", categoria: "Contratos", slaInterno: 7, slaDespachoRef: 12 },
+  { id: "JUR-C040", puestoResponsable: "Abogado Comercial", servicio: "Atencion a tramite / inspeccion ICSOE", solicitanteTipico: "Operaciones", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C041", puestoResponsable: "Abogado Comercial", servicio: "Asesoria preventiva comercial", solicitanteTipico: "Comercial", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C042", puestoResponsable: "Abogado Regional", servicio: "Licencia / refrendo municipal-estatal de sitio", solicitanteTipico: "Operaciones / Comercial", categoria: "Licencias y permisos", slaInterno: 10, slaDespachoRef: 18 },
+  { id: "JUR-C043", puestoResponsable: "Abogado Regional", servicio: "Permiso para instalacion / retiro de sitio", solicitanteTipico: "Operaciones", categoria: "Licencias y permisos", slaInterno: 10, slaDespachoRef: 18 },
+  { id: "JUR-C044", puestoResponsable: "Abogado Regional", servicio: "Recuperacion de sitio / bien", solicitanteTipico: "Operaciones", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C045", puestoResponsable: "Abogado Regional", servicio: "Atencion a clausura (levantamiento)", solicitanteTipico: "Operaciones", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C046", puestoResponsable: "Abogado Regional", servicio: "Denuncia penal", solicitanteTipico: "Areas internas", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C047", puestoResponsable: "Abogado Regional", servicio: "Negociacion con arrendador / autoridad", solicitanteTipico: "Operaciones", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C048", puestoResponsable: "Abogado Regional", servicio: "Contrato de arrendamiento de sitio", solicitanteTipico: "Operaciones", categoria: "Contratos", slaInterno: 7, slaDespachoRef: 12 },
+  { id: "JUR-C049", puestoResponsable: "Abogado Regional", servicio: "Dictamen legal de sitio", solicitanteTipico: "Comercial / Operaciones", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C050", puestoResponsable: "Abogado Regional", servicio: "Atencion legal instalacion / retiro de sitio", solicitanteTipico: "Operaciones", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C051", puestoResponsable: "Abogado Regional", servicio: "Contrato de compraventa de sitio", solicitanteTipico: "Operaciones", categoria: "Contratos", slaInterno: 7, slaDespachoRef: 12 },
+  { id: "JUR-C052", puestoResponsable: "Abogado Regional", servicio: "Atencion legal en zona", solicitanteTipico: "Areas en zona", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C053", puestoResponsable: "Abogado Regional", servicio: "Cierre / conciliacion laboral regional", solicitanteTipico: "RH", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C054", puestoResponsable: "Abogado Regional", servicio: "Atencion legal a asunto vehicular", solicitanteTipico: "Operaciones", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C055", puestoResponsable: "Abogado Regional", servicio: "Seguimiento judicial / amparo", solicitanteTipico: "Areas internas", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C056", puestoResponsable: "Abogado Regional", servicio: "Cobranza judicial (demanda mercantil)", solicitanteTipico: "Credito y Cobranza", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C057", puestoResponsable: "Abogado Regional", servicio: "Validacion de expediente de arrendador", solicitanteTipico: "Operaciones", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C058", puestoResponsable: "Abogado Regional", servicio: "Atencion a concesion", solicitanteTipico: "Gerencia / Operaciones", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
+  { id: "JUR-C059", puestoResponsable: "Aux. Gestion Documental y Pagos", servicio: "Orden de compra (ODC)", solicitanteTipico: "Areas internas", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C060", puestoResponsable: "Aux. Gestion Documental y Pagos", servicio: "Comprobacion de egreso", solicitanteTipico: "Finanzas", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C061", puestoResponsable: "Aux. Gestion Documental y Pagos", servicio: "Pago a proveedor", solicitanteTipico: "Proveedores / areas", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C062", puestoResponsable: "Aux. Gestion Documental y Pagos", servicio: "Requisicion de insumos / papeleria", solicitanteTipico: "Area legal", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C063", puestoResponsable: "Aux. Gestion Documental y Pagos", servicio: "Digitalizacion de expediente (proyecto)", solicitanteTipico: "Areas internas", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C064", puestoResponsable: "Aux. Gestion Documental y Pagos", servicio: "Carta responsiva de licenciamiento", solicitanteTipico: "Comercial / Operaciones", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C065", puestoResponsable: "Aux. Gestion Documental y Pagos", servicio: "Carga documental D32", solicitanteTipico: "Areas internas", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C066", puestoResponsable: "Aux. Gestion Documental y Pagos", servicio: "Carga de estados bancarios", solicitanteTipico: "Finanzas", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C067", puestoResponsable: "Aux. Gestion Documental y Pagos", servicio: "Carga D32 (frentes comerciales)", solicitanteTipico: "Comercial", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C068", puestoResponsable: "Aux. Gestion Documental y Pagos", servicio: "Carga de comprobante de domicilio", solicitanteTipico: "Areas internas", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
+  { id: "JUR-C069", puestoResponsable: "Aux. Gestion Documental y Pagos", servicio: "Gestion de licenciamiento", solicitanteTipico: "Abogados / Gerencia", categoria: "Licencias y permisos", slaInterno: 10, slaDespachoRef: 18 },
+  { id: "JUR-C070", puestoResponsable: "Aux. Gestion Documental y Pagos", servicio: "Gestion en modulo de Licencias", solicitanteTipico: "Abogados / Gerencia", categoria: "Licencias y permisos", slaInterno: 10, slaDespachoRef: 18 },
+];
+
+export function findServicio(servicioId: string) {
+  return CATALOGO_SERVICIOS.find((s) => s.id === servicioId);
+}
+
+// Compartido entre el formulario de Nuevo Ticket y la edicion de un ticket
+// existente, para no duplicar el agrupamiento.
+export const SERVICIOS_POR_CATEGORIA = CATALOGO_SERVICIOS.reduce((acc, s) => {
+  (acc[s.categoria] ??= []).push(s);
+  return acc;
+}, {} as Record<Categoria, typeof CATALOGO_SERVICIOS>);

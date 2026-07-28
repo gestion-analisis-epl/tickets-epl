@@ -1,0 +1,14 @@
+{
+  "firestore": [
+    {
+      "database": "epl-tickets",
+      "rules": "firestore.rules"
+    }
+  ],
+  "storage": [
+    {
+      "bucket": "tickets-epl-legal",
+      "rules": "storage.rules"
+    }
+  ]
+}
