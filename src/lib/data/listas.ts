@@ -1,6 +1,7 @@
 /*
  * Datos REALES, transcritos de la hoja "Listas" del Excel original — alimentan
  * los menus desplegables tal como lo hacian en el Excel (Datos > Validacion).
+ * El catalogo de abogados vive aparte, en data/abogados.ts.
  */
 
 export const AREAS_EMPRESA = [
@@ -16,18 +17,18 @@ export const AREAS_EMPRESA = [
   "EPL - Administracion",
   "EPL - Credito y Cobranza",
   "EPL - Sistemas / IT",
-  "LUMINA",
+  "LUMINA - Comercial",
+  "LUMINA - Corporativo",
   "KRONOS",
-] as const;
-
-export const ABOGADOS = [
-  "Alejandra Ramirez - Gerente Juridico",
-  "Andres Medina - Mesa de Control",
-  "Karina Valenzuela - Abogado Corporativo",
-  "Jessica Valadez - Abogado Comercial",
-  "Alberto Gonzalez - Regional - Puebla-Sur",
-  "Beatriz Gonzalez - Regional",
-  "Alejandro Villanueva - Regional - Bajio N/S",
-  "Alfredo Gonzalez - Regional - Norte Pacifico-Occidente",
-  "Concepcion Madrigal - Aux. Gestion Documental y Pagos",
+  "SICMART",
+  "MSC",
+  "BEST MARKETING",
+  "MKT QRO - Comercial",
+  "MKT QRO - Corporativo",
+  "DRAUBEN - Comercial",
+  "DRAUBEN - Corporativo",
+  "MAO - Comercial",
+  "BRILLANTA - Comercial",
+  "SEBEN BR",
+  "SEBEN CAPITAL",
 ] as const;

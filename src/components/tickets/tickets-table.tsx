@@ -232,6 +232,7 @@ function getExportValue(columnId: string, t: Ticket): string | number {
     case "slaInterno":                return t.slaInterno;
     case "diasHabilesTranscurridos":  return t.diasHabilesTranscurridos ?? "";
     case "nivelServicio":             return t.nivelServicio ?? "";
+    case "diasPipeline":              return t.diasPipeline ?? "";
     case "fechaCierre":               return t.fechaCierre ?? "";
     default:                          return "";
   }
@@ -341,6 +342,15 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
             {v > 0 ? `+${v}` : v}
           </span>
         );
+      },
+    }),
+    columnHelper.accessor("diasPipeline", {
+      header: "Dias en pipeline",
+      size: 130, minSize: 110,
+      enableColumnFilter: false,
+      cell: (info) => {
+        const v = info.getValue();
+        return <span className="tabular-nums">{v ?? "—"}</span>;
       },
     }),
     columnHelper.accessor("fechaCierre", {

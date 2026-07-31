@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { label: "Usuarios", href: "/configuracion" },
   { label: "Estilos", href: "/configuracion/estilos" },
+  { label: "Mantenimiento", href: "/configuracion/mantenimiento" },
 ];
 
 export default function ConfiguracionLayout({ children }: { children: React.ReactNode }) {

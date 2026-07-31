@@ -36,9 +36,11 @@ export interface Ticket {
   categoria: Categoria;
   puestoResponsableSugerido: string;
   slaInterno: number;
-  fechaCompromiso: string | null; // ISO, WORKDAY(fechaSolicitud, slaInterno)
+  // SLA: arranca al asignar abogado (ver updateTicketAsignacion), null antes.
+  fechaCompromiso: string | null; // ISO, WORKDAY(fechaAsignacion, slaInterno)
   diasHabilesTranscurridos: number | null;
   nivelServicio: number | null; // slaInterno - diasHabilesTranscurridos
+  diasPipeline: number | null; // dias habiles fechaSolicitud→cierre, aparte del SLA
 
   // Ambar — llena Mesa de Control / abogado asignado
   estatus: Estatus;

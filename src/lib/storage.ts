@@ -53,3 +53,14 @@ export function uploadTicketFile(
 export async function deleteTicketDocument(path: string): Promise<void> {
   await deleteObject(ref(storage, path));
 }
+
+/*
+ * Se usa al borrar un ticket completo (ver lib/tickets.ts deleteTicket).
+ * `documentacion` solo guarda URLs de descarga, no el `path` del bucket, pero
+ * el SDK de Storage puede construir una referencia directo desde esa URL. Si
+ * un archivo ya no existe (o la URL quedo invalida en tickets viejos) se
+ * ignora — no debe bloquear el borrado del ticket.
+ */
+export async function deleteTicketDocuments(urls: string[]): Promise<void> {
+  await Promise.all(urls.map((url) => deleteObject(ref(storage, url)).catch(() => {})));
+}

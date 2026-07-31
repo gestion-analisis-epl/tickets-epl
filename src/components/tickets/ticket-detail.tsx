@@ -8,7 +8,8 @@ import { useAuthStore } from "@/stores/auth";
 import { useTicket } from "@/hooks/use-ticket";
 import { updateTicketAsignacion, updateTicketSolicitud, submitSatisfaccion, deleteTicket } from "@/lib/tickets";
 import { findServicio, SERVICIOS_POR_CATEGORIA } from "@/lib/data/catalogo-servicios";
-import { ABOGADOS, AREAS_EMPRESA } from "@/lib/data/listas";
+import { ABOGADOS } from "@/lib/data/abogados";
+import { AREAS_EMPRESA } from "@/lib/data/listas";
 import { uploadTicketFile, deleteTicketDocument } from "@/lib/storage";
 import { FileDropzone, type UploadingFile } from "@/components/ui/file-dropzone";
 import { ESTATUS_VALUES, type Estatus } from "@/types/ticket";
@@ -309,13 +310,18 @@ export function TicketDetail({ id }: { id: string }) {
               <div><dt className="opacity-60">Fecha de solicitud</dt><dd className="font-medium">{formatFecha(ticket.fechaSolicitud)}</dd></div>
               <div><dt className="opacity-60">Puesto responsable sugerido</dt><dd className="font-medium">{ticket.puestoResponsableSugerido}</dd></div>
               <div><dt className="opacity-60">SLA interno</dt><dd className="font-medium">{ticket.slaInterno} dias habiles</dd></div>
+              <div><dt className="opacity-60">Dias en pipeline</dt><dd className="font-medium tabular-nums">{ticket.diasPipeline ?? 0}</dd></div>
               <div><dt className="opacity-60">Fecha compromiso</dt><dd className="font-medium">{formatFecha(ticket.fechaCompromiso)}</dd></div>
               <div>
                 <dt className="opacity-60">Nivel de servicio</dt>
-                <dd className={cn("font-medium tabular-nums", (ticket.nivelServicio ?? 0) < 0 ? "text-danger" : "text-success")}>
-                  {ticket.nivelServicio == null ? "—" : ticket.nivelServicio > 0 ? `+${ticket.nivelServicio}` : ticket.nivelServicio}
-                  {" "}({ticket.diasHabilesTranscurridos ?? 0} dias transcurridos)
-                </dd>
+                {ticket.nivelServicio == null ? (
+                  <dd className="font-medium opacity-50">SLA aun no inicia (pendiente de asignar abogado)</dd>
+                ) : (
+                  <dd className={cn("font-medium tabular-nums", ticket.nivelServicio < 0 ? "text-danger" : "text-success")}>
+                    {ticket.nivelServicio > 0 ? `+${ticket.nivelServicio}` : ticket.nivelServicio}
+                    {" "}({ticket.diasHabilesTranscurridos} dias transcurridos)
+                  </dd>
+                )}
               </div>
             </dl>
 
@@ -373,7 +379,7 @@ export function TicketDetail({ id }: { id: string }) {
                   className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="">Sin asignar</option>
-                  {ABOGADOS.map((a) => <option key={a} value={a}>{a}</option>)}
+                  {ABOGADOS.map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
                 </select>
               </div>
             </div>
