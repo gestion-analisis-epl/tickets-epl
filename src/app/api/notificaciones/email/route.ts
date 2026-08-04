@@ -14,7 +14,7 @@ const TIPO_LABEL: Record<TipoNotificacion, string> = {
 
 // PRUEBA: todo correo se redirige aqui sin importar el destinatario real (ver
 // lib/notificaciones.ts) — quitar cuando se valide el flujo completo.
-const DESTINATARIOS_PRUEBA = ["aescalante@grupoepl.com.mx", "aramirez@grupoepl.com.mx"];
+const DESTINATARIOS_PRUEBA = ["aescalante@grupoepl.com.mx", "aramirez@grupoepl.com.mx", "ychavez@grupoepl.com.mx"];
 
 // Sin NEXT_PUBLIC_APP_URL en el entorno, cae a localhost — solo util para
 // quien prueba en su propia maquina. Configurarla con la URL real desplegada
