@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldAlert, Wrench } from "lucide-react";
+import { ShieldAlert, Wrench, Mail } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import { backfillSlaHistorico, type BackfillResultado } from "@/lib/tickets";
+import { enviarEmailPrueba } from "@/lib/notificaciones";
 import { Button } from "@/components/ui/button";
 
 export function MantenimientoPanel() {
@@ -12,6 +13,25 @@ export function MantenimientoPanel() {
   const [corriendo, setCorriendo] = useState(false);
   const [resultado, setResultado] = useState<BackfillResultado | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [enviandoPrueba, setEnviandoPrueba] = useState(false);
+  const [pruebaEnviada, setPruebaEnviada] = useState(false);
+
+  async function handleEnviarPrueba() {
+    setEnviandoPrueba(true);
+    setPruebaEnviada(false);
+    try {
+      await enviarEmailPrueba({
+        tipo: "nuevo_ticket",
+        mensaje: "Este es un correo de prueba disparado manualmente desde Mantenimiento, sin ticket real de por medio.",
+        ticketId: "test",
+        ticketFolio: "TEST-0000",
+      });
+      setPruebaEnviada(true);
+    } finally {
+      setEnviandoPrueba(false);
+    }
+  }
 
   async function handleCorrer() {
     setCorriendo(true);
@@ -90,6 +110,23 @@ export function MantenimientoPanel() {
               ))}
             </ul>
           </details>
+        )}
+      </section>
+
+      <section className="rounded-lg border border-border bg-card p-6 space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">Correo de prueba</h2>
+        <p className="text-sm opacity-80">
+          Dispara el mismo flujo de notificacion por correo que usan los tickets reales, sin necesidad de crear uno.
+          Va al destinatario de prueba configurado en <span className="font-mono text-xs">/api/notificaciones/email</span>.
+        </p>
+        <Button variant="outline" onClick={handleEnviarPrueba} disabled={enviandoPrueba}>
+          <Mail className="h-4 w-4" />
+          {enviandoPrueba ? "Enviando..." : "Enviar correo de prueba"}
+        </Button>
+        {pruebaEnviada && (
+          <div className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
+            Solicitud enviada. Revisa la bandeja del destinatario de prueba.
+          </div>
         )}
       </section>
     </div>

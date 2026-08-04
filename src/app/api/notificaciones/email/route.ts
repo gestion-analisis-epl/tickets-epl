@@ -14,7 +14,7 @@ const TIPO_LABEL: Record<TipoNotificacion, string> = {
 
 // PRUEBA: todo correo se redirige aqui sin importar el destinatario real (ver
 // lib/notificaciones.ts) — quitar cuando se valide el flujo completo.
-const DESTINATARIO_PRUEBA = "aescalante@grupoepl.com.mx";
+const DESTINATARIOS_PRUEBA = ["aescalante@grupoepl.com.mx", "aramirez@grupoepl.com.mx"];
 
 // Sin NEXT_PUBLIC_APP_URL en el entorno, cae a localhost — solo util para
 // quien prueba en su propia maquina. Configurarla con la URL real desplegada
@@ -38,10 +38,10 @@ export async function POST(request: Request) {
     const calificarUrl = tokenCalificacion ? `${APP_URL}/calificar/${ticketId}?token=${tokenCalificacion}` : null;
 
     await enviarEmail({
-      to: DESTINATARIO_PRUEBA,
+      to: DESTINATARIOS_PRUEBA.join(", "),
       subject: `[Prueba] ${TIPO_LABEL[tipo] ?? tipo} — ${ticketFolio}`,
       html: `
-        <p><strong>Modo de prueba:</strong> este correo se esta enviando solo a ${DESTINATARIO_PRUEBA}
+        <p><strong>Modo de prueba:</strong> este correo se esta enviando solo a ${DESTINATARIOS_PRUEBA.join(" y ")}
         mientras se valida el sistema de notificaciones.</p>
         <p>${mensaje}</p>
         <p style="color:#666;font-size:12px">Ticket: ${ticketFolio}</p>
