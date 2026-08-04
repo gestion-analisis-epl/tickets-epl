@@ -2,3 +2,9 @@ allowBuilds:
   '@firebase/util': true
   protobufjs: true
   unrs-resolver: true
+
+# jose v6 (dependencia de jwks-rsa, via firebase-admin) es ESM-only y rompe
+# con ERR_REQUIRE_ESM en el runtime de funciones de Vercel. jwks-rsa solo usa
+# jose.importJWK/exportSPKI, disponibles igual en la v4 (ultima con build CJS).
+overrides:
+  jose: 4.15.9
