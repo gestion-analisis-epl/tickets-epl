@@ -56,8 +56,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
     console.error("POST /api/notificaciones/email", err);
-    // DEBUG TEMPORAL: exponer el mensaje real para diagnosticar el 500 en
-    // produccion sin acceso a logs del servidor — revertir una vez resuelto.
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
+    return NextResponse.json({ error: "No se pudo enviar el correo." }, { status: 500 });
   }
 }
