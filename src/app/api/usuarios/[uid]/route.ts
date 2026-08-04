@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
-import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 import { requireAdmin, ApiAuthError } from "@/lib/api-auth";
 import { ABOGADOS } from "@/lib/data/abogados";
 import type { Role } from "@/types/user";
@@ -23,7 +23,7 @@ export async function PATCH(request: Request, { params }: Params) {
       return NextResponse.json({ error: "No puedes editar tu propia cuenta desde aqui." }, { status: 400 });
     }
 
-    const docRef = adminDb.collection("users").doc(uid);
+    const docRef = getAdminDb().collection("users").doc(uid);
     const current = await docRef.get();
     if (!current.exists) {
       return NextResponse.json({ error: "Usuario no encontrado." }, { status: 404 });
@@ -70,7 +70,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
     if (Object.keys(patchAuth).length > 0) {
       try {
-        await adminAuth.updateUser(uid, patchAuth);
+        await getAdminAuth().updateUser(uid, patchAuth);
       } catch (err) {
         const code = (err as { code?: string }).code;
         if (code === "auth/email-already-exists") {
@@ -106,14 +106,14 @@ export async function DELETE(request: Request, { params }: Params) {
     }
 
     try {
-      await adminAuth.deleteUser(uid);
+      await getAdminAuth().deleteUser(uid);
     } catch (err) {
       // Si la cuenta de Auth ya no existia (borrada a mano antes, etc.) no
       // bloqueamos el borrado del doc huerfano de Firestore por esto.
       if ((err as { code?: string }).code !== "auth/user-not-found") throw err;
     }
 
-    await adminDb.collection("users").doc(uid).delete();
+    await getAdminDb().collection("users").doc(uid).delete();
 
     return NextResponse.json({ ok: true });
   } catch (err) {

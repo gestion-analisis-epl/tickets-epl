@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { sendPasswordResetEmail } from "firebase/auth";
-import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 import { auth } from "@/lib/firebase";
 import { requireAdmin, ApiAuthError } from "@/lib/api-auth";
 import { STAFF_ROLES, type Role } from "@/types/user";
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
     let uid: string;
     try {
-      const userRecord = await adminAuth.createUser({
+      const userRecord = await getAdminAuth().createUser({
         email,
         password: passwordTemporal,
         displayName: nombre,
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       throw err;
     }
 
-    await adminDb.collection("users").doc(uid).set({
+    await getAdminDb().collection("users").doc(uid).set({
       nombre,
       email,
       role,

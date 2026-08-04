@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 
 export const runtime = "nodejs";
 
@@ -13,7 +13,7 @@ interface Params {
 // es lo que autoriza — por eso valida tambien que el ticket este en Cierre y
 // que no se haya calificado ya, para que el link no sirva mas de una vez.
 async function ticketConToken(ticketId: string, token: string) {
-  const ref = adminDb.collection("tickets").doc(ticketId);
+  const ref = getAdminDb().collection("tickets").doc(ticketId);
   const snap = await ref.get();
   if (!snap.exists) return { error: "Ticket no encontrado.", status: 404 } as const;
 
@@ -36,7 +36,7 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   const { ticket } = resultado;
-  const servicioSnap = await adminDb.collection("catalogoServicios").doc(ticket.servicioId).get();
+  const servicioSnap = await getAdminDb().collection("catalogoServicios").doc(ticket.servicioId).get();
   return NextResponse.json({
     folio: ticket.folio,
     servicio: servicioSnap.data()?.servicio ?? ticket.servicioId,

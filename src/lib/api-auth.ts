@@ -1,4 +1,4 @@
-import { adminAuth, adminDb } from "./firebase-admin";
+import { getAdminAuth, getAdminDb } from "./firebase-admin";
 
 // Status HTTP que debe devolver el route handler que la atrape.
 export class ApiAuthError extends Error {
@@ -13,7 +13,7 @@ export async function verifyCallerToken(request: Request): Promise<string> {
   if (!idToken) throw new ApiAuthError(401, "Falta el token de autenticacion.");
 
   try {
-    return (await adminAuth.verifyIdToken(idToken)).uid;
+    return (await getAdminAuth().verifyIdToken(idToken)).uid;
   } catch (err) {
     // Mensaje al cliente generico; el error real (que puede ser de
     // configuracion, no del token) se loguea aparte.
@@ -28,7 +28,7 @@ export async function verifyCallerToken(request: Request): Promise<string> {
 export async function requireAdmin(request: Request): Promise<string> {
   const callerUid = await verifyCallerToken(request);
 
-  const callerDoc = await adminDb.collection("users").doc(callerUid).get();
+  const callerDoc = await getAdminDb().collection("users").doc(callerUid).get();
   if (callerDoc.data()?.role !== "admin") {
     throw new ApiAuthError(403, "Solo una cuenta admin puede hacer esto.");
   }
