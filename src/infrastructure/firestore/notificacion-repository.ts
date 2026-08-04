@@ -1,5 +1,6 @@
 import { collection, addDoc, doc, updateDoc, arrayUnion, onSnapshot, query, where, getDocs, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { LEGAL_STAFF_ROLES } from "@/types/user";
 import type { NotificacionRepository } from "@/domain/notificaciones/notificacion-repository";
 import type { Notificacion } from "@/domain/notificaciones/notificacion";
 
@@ -25,6 +26,13 @@ export const firestoreNotificacionRepository: NotificacionRepository = {
       porUid = snap.docs.map((d) => ({ ...d.data(), id: d.id }) as Notificacion);
       emit();
     });
+
+    // admin no forma parte de LEGAL_STAFF_ROLES (no atiende tickets) — las
+    // reglas de Firestore solo autorizan este query para Legal staff, asi
+    // que ni se intenta para otros roles (evita un permission-denied).
+    if (!LEGAL_STAFF_ROLES.includes(role)) {
+      return unsubUid;
+    }
 
     const unsubRol = onSnapshot(query(collection(db, "notificaciones"), where("paraRoles", "array-contains", role)), (snap) => {
       porRol = snap.docs.map((d) => ({ ...d.data(), id: d.id }) as Notificacion);
