@@ -31,6 +31,7 @@ export interface Ticket {
   descripcion: string;
   documentacion: string[]; // URLs de Storage
   satisfaccion?: number; // 1-10, la llena el solicitante al cierre
+  comentarioSatisfaccion?: string; // opcional, junto con satisfaccion
 
   // Gris — calculado por Cloud Function, no editable desde el cliente
   categoria: Categoria;
@@ -48,6 +49,9 @@ export interface Ticket {
   fechaAsignacion: string | null;
   fechaCierre: string | null;
   notasCierre: string | null;
+  // Secreto de un solo uso para calificar sin login desde el correo de cierre
+  // (ver app/calificar/[ticketId], api/calificar/[ticketId]/route.ts).
+  tokenCalificacion: string | null;
 
   historialEstatus: HistorialEntry[];
 }

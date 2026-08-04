@@ -3,10 +3,12 @@
 import { ShieldAlert } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import { Button } from "@/components/ui/button";
-import { EstatusBadge, CategoriaBadge, ESTATUS_TONE, CATEGORIA_TONE } from "@/components/ui/badge";
+import { EstatusBadge, CategoriaBadge, ESTATUS_TONE } from "@/components/ui/badge";
+import { useCategoriasStore } from "@/stores/categorias";
 
 export default function EstilosPage() {
   const role = useAuthStore((s) => s.role);
+  const categorias = useCategoriasStore((s) => s.categorias);
 
   if (role !== "admin") {
     return (
@@ -48,8 +50,8 @@ export default function EstilosPage() {
       <section className="rounded-lg border border-border bg-card p-6 space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide opacity-80">Categoria de servicio</h2>
         <div className="flex flex-wrap gap-2">
-          {Object.keys(CATEGORIA_TONE).map((categoria) => (
-            <CategoriaBadge key={categoria} categoria={categoria} />
+          {categorias.map((c) => (
+            <CategoriaBadge key={c.id} categoria={c.nombre} />
           ))}
         </div>
       </section>

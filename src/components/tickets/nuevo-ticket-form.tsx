@@ -9,10 +9,10 @@ import { CategoriaBadge } from "@/components/ui/badge";
 import { FileDropzone, type UploadingFile } from "@/components/ui/file-dropzone";
 import { useAuthStore } from "@/stores/auth";
 import { AREAS_EMPRESA } from "@/lib/data/listas";
-import { findServicio, SERVICIOS_POR_CATEGORIA } from "@/lib/data/catalogo-servicios";
+import { findServicio } from "@/lib/catalogo";
+import { ServicioSelector } from "./servicio-selector";
 import { uploadTicketFile, deleteTicketDocument } from "@/lib/storage";
 import { createTicket } from "@/lib/tickets";
-import type { Categoria } from "@/types/catalogo";
 
 interface FormState {
   areaEmpresa: string;
@@ -112,7 +112,7 @@ export function NuevoTicketForm() {
 
   if (folioCreado) {
     return (
-      <div className="rounded-lg border border-border bg-card p-8 max-w-xl">
+      <div className="rounded-lg border border-border bg-card p-5 sm:p-8 max-w-xl">
         <div className="flex items-center gap-3">
           <CheckCircle2 className="h-8 w-8 text-success shrink-0" />
           <div>
@@ -160,24 +160,11 @@ export function NuevoTicketForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1.5">
-            Servicio solicitado <span className="text-danger">*</span>
-          </label>
-          <select
+          <ServicioSelector
             value={form.servicioId}
-            onChange={(e) => set("servicioId", e.target.value)}
-            className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            <option value="">Selecciona un servicio del catalogo...</option>
-            {(Object.keys(SERVICIOS_POR_CATEGORIA) as Categoria[]).map((categoria) => (
-              <optgroup key={categoria} label={categoria}>
-                {SERVICIOS_POR_CATEGORIA[categoria].map((s) => (
-                  <option key={s.id} value={s.id}>{s.servicio}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          {errors.servicioId && <p className="text-xs text-danger mt-1">{errors.servicioId}</p>}
+            onChange={(v) => set("servicioId", v)}
+            error={errors.servicioId}
+          />
 
           {servicioSeleccionado && (
             <div className="mt-3 flex flex-wrap items-center gap-3 rounded-md bg-surface px-3 py-2 text-sm">
@@ -214,7 +201,7 @@ export function NuevoTicketForm() {
         </div>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <Button type="submit" variant="success" disabled={filesUploading || creating}>
           {filesUploading ? "Esperando archivos..." : creating ? "Guardando..." : "Crear ticket"}
         </Button>

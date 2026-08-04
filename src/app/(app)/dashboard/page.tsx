@@ -5,6 +5,7 @@ import { StatTile } from "@/components/dashboard/stat-tile";
 import { BarList } from "@/components/dashboard/bar-list";
 import { useTickets } from "@/hooks/use-tickets";
 import { computeDashboardStats } from "@/lib/dashboard-stats";
+import { useCategoriasStore } from "@/stores/categorias";
 
 const CHART_VARS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)", "var(--chart-6)", "var(--chart-7)"];
 
@@ -17,13 +18,14 @@ function slaStatus(pct: number | null): { color: "good" | "warning" | "critical"
 
 export default function DashboardPage() {
   const { tickets, loading } = useTickets();
-  const stats = computeDashboardStats(tickets);
+  const categorias = useCategoriasStore((s) => s.categorias);
+  const stats = computeDashboardStats(tickets, categorias.map((c) => c.nombre));
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-sm mt-1 opacity-70">Datos en vivo desde Firestore.</p>
+        <p className="text-sm mt-1 opacity-70">Carga de trabajo y cumplimiento de SLA del area Legal, al momento.</p>
       </div>
 
       {loading ? (

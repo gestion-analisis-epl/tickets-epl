@@ -7,7 +7,8 @@ import {
   listUsers, crearUsuarioStaff, actualizarUsuario, eliminarUsuario,
   type UserRow, type ActualizarUsuarioInput,
 } from "@/lib/users";
-import { STAFF_ROLES, type Role } from "@/types/user";
+import { STAFF_ROLES, LEGAL_STAFF_ROLES, type Role } from "@/types/user";
+import { ABOGADOS, findAbogado } from "@/lib/data/abogados";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,7 @@ export function UsuariosPanel() {
   const [formEmail, setFormEmail] = useState("");
   const [formRole, setFormRole] = useState<Role>("mesa_control");
   const [formActivo, setFormActivo] = useState(true);
+  const [formAbogadoId, setFormAbogadoId] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -67,6 +69,7 @@ export function UsuariosPanel() {
     setFormEmail("");
     setFormRole("mesa_control");
     setFormActivo(true);
+    setFormAbogadoId("");
     setFormError(null);
     setInfoMsg(null);
     setPanel({ mode: "crear" });
@@ -77,6 +80,7 @@ export function UsuariosPanel() {
     setFormEmail(u.email);
     setFormRole(u.role);
     setFormActivo(u.activo);
+    setFormAbogadoId(u.abogadoId ?? "");
     setFormError(null);
     setInfoMsg(null);
     setPanel({ mode: "editar", user: u });
@@ -101,6 +105,7 @@ export function UsuariosPanel() {
       } else if (panel?.mode === "editar") {
         const patch: ActualizarUsuarioInput = { nombre: formNombre.trim(), role: formRole, activo: formActivo };
         if (panel.user.role !== "solicitante") patch.email = formEmail.trim();
+        patch.abogadoId = LEGAL_STAFF_ROLES.includes(formRole) ? (formAbogadoId || null) : null;
         await actualizarUsuario(panel.user.uid, patch);
         setInfoMsg("Cambios guardados.");
       }
@@ -228,11 +233,27 @@ export function UsuariosPanel() {
                 </label>
               </div>
             )}
+            {panel.mode === "editar" && LEGAL_STAFF_ROLES.includes(formRole) && (
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Abogado del catalogo</label>
+                <select
+                  value={formAbogadoId}
+                  onChange={(e) => setFormAbogadoId(e.target.value)}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Sin vincular</option>
+                  {ABOGADOS.map((a) => <option key={a.id} value={a.id}>{a.nombre} — {a.puesto}</option>)}
+                </select>
+                <p className="text-xs opacity-60 mt-1">
+                  Necesario para que le llegue la notificacion cuando le asignen un ticket.
+                </p>
+              </div>
+            )}
           </div>
 
           {formError && <p className="text-sm text-danger">{formError}</p>}
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <Button type="submit" variant="success" disabled={saving}>
               {saving ? "Guardando..." : "Guardar"}
             </Button>
@@ -249,7 +270,8 @@ export function UsuariosPanel() {
         </div>
       ) : (
         <div className="rounded-lg border border-border overflow-hidden bg-card">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="bg-surface border-b border-border">
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider opacity-70">Nombre</th>
@@ -264,7 +286,12 @@ export function UsuariosPanel() {
                 <tr key={u.uid} className={cn("border-b border-border last:border-0", i % 2 === 1 && "bg-surface/30")}>
                   <td className="px-4 py-2.5">{u.nombre}</td>
                   <td className="px-4 py-2.5 opacity-80">{u.email}</td>
-                  <td className="px-4 py-2.5"><Badge tone="blue">{ROLE_LABEL[u.role]}</Badge></td>
+                  <td className="px-4 py-2.5">
+                    <Badge tone="blue">{ROLE_LABEL[u.role]}</Badge>
+                    {u.abogadoId && (
+                      <div className="text-[11px] opacity-50 mt-1">{findAbogado(u.abogadoId)?.nombre}</div>
+                    )}
+                  </td>
                   <td className="px-4 py-2.5">
                     <Badge tone={u.activo ? "green" : "gray"}>{u.activo ? "Si" : "No"}</Badge>
                   </td>
@@ -272,7 +299,7 @@ export function UsuariosPanel() {
                     {u.uid === myUid ? (
                       <span className="text-xs opacity-50">Tu cuenta</span>
                     ) : confirmandoEliminarUid === u.uid ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="text-xs opacity-70">¿Seguro?</span>
                         <Button
                           variant="danger" size="sm"
@@ -312,6 +339,7 @@ export function UsuariosPanel() {
               )}
             </tbody>
           </table>
+        </div>
         </div>
       )}
     </div>

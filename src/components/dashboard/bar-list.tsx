@@ -19,7 +19,7 @@ export function BarList({ items }: { items: BarItem[] }) {
         const pct = Math.max((item.value / max) * 100, item.value > 0 ? 2 : 0);
         return (
           <div key={item.label} className="flex items-center gap-3">
-            <span className="w-44 shrink-0 text-sm truncate" title={item.label}>{item.label}</span>
+            <span className="w-20 sm:w-32 lg:w-44 shrink-0 text-sm truncate" title={item.label}>{item.label}</span>
             <div className="flex-1 h-5 rounded-sm bg-surface overflow-hidden">
               <div
                 className="h-full transition-[width] duration-300"

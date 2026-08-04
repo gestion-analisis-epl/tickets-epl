@@ -16,7 +16,7 @@ export default function InicioPage() {
   const accesibles = ACCIONES.filter((a) => !a.roles || a.roles.includes(role));
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Hola, {nombre?.split(" ")[0] ?? "bienvenido"}</h1>
         <p className="text-sm mt-1 opacity-70">Sistema de tickets del area Legal de EPL.</p>

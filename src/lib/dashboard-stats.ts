@@ -1,8 +1,6 @@
 import type { Ticket } from "@/types/ticket";
 import { ESTATUS_VALUES } from "@/types/ticket";
-import type { Categoria } from "@/types/catalogo";
-
-const CATEGORIAS: Categoria[] = ["Contratos", "Licencias y permisos", "Control documental", "Servicios extraordinarios"];
+import { findAbogado } from "@/lib/data/abogados";
 
 export interface DashboardStats {
   total: number;
@@ -15,7 +13,7 @@ export interface DashboardStats {
   porAbogado: { label: string; value: number }[];
 }
 
-export function computeDashboardStats(tickets: Ticket[]): DashboardStats {
+export function computeDashboardStats(tickets: Ticket[], categorias: string[]): DashboardStats {
   const cerrados = tickets.filter((t) => t.estatus === "Cierre");
   const activos = tickets.length - cerrados.length;
 
@@ -34,7 +32,7 @@ export function computeDashboardStats(tickets: Ticket[]): DashboardStats {
     value: tickets.filter((t) => t.estatus === estatus).length,
   }));
 
-  const porCategoria = CATEGORIAS.map((categoria) => ({
+  const porCategoria = categorias.map((categoria) => ({
     label: categoria,
     value: tickets.filter((t) => t.categoria === categoria).length,
   }));
@@ -45,7 +43,7 @@ export function computeDashboardStats(tickets: Ticket[]): DashboardStats {
     conteoAbogados.set(t.abogadoAsignadoId, (conteoAbogados.get(t.abogadoAsignadoId) ?? 0) + 1);
   });
   const porAbogado = Array.from(conteoAbogados.entries())
-    .map(([label, value]) => ({ label, value }))
+    .map(([abogadoId, value]) => ({ label: findAbogado(abogadoId)?.nombre ?? abogadoId, value }))
     .sort((a, b) => b.value - a.value);
 
   return {

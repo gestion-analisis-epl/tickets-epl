@@ -7,21 +7,17 @@ import { Loader2, ShieldAlert, FileText, Trash2, Pencil } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import { useTicket } from "@/hooks/use-ticket";
 import { updateTicketAsignacion, updateTicketSolicitud, submitSatisfaccion, deleteTicket } from "@/lib/tickets";
-import { findServicio, SERVICIOS_POR_CATEGORIA } from "@/lib/data/catalogo-servicios";
+import { findServicio } from "@/lib/catalogo";
+import { ServicioSelector } from "./servicio-selector";
 import { ABOGADOS } from "@/lib/data/abogados";
 import { AREAS_EMPRESA } from "@/lib/data/listas";
 import { uploadTicketFile, deleteTicketDocument } from "@/lib/storage";
 import { FileDropzone, type UploadingFile } from "@/components/ui/file-dropzone";
 import { ESTATUS_VALUES, type Estatus } from "@/types/ticket";
-import type { Categoria } from "@/types/catalogo";
 import { EstatusBadge, CategoriaBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-function formatFecha(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric" });
-}
+import { formatFecha } from "@/lib/format-fecha";
 
 function nombreArchivo(url: string): string {
   try {
@@ -47,6 +43,7 @@ export function TicketDetail({ id }: { id: string }) {
   const [saveOk, setSaveOk] = useState(false);
 
   const [satisfaccionSel, setSatisfaccionSel] = useState<number | null>(null);
+  const [comentarioSatisfaccion, setComentarioSatisfaccion] = useState("");
   const [enviandoSatisfaccion, setEnviandoSatisfaccion] = useState(false);
 
   const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
@@ -94,7 +91,11 @@ export function TicketDetail({ id }: { id: string }) {
   const servicio = findServicio(ticket.servicioId);
   const esDueno = ticket.solicitanteId === uid;
   const puedeCalificar = esDueno && ticket.estatus === "Cierre" && ticket.satisfaccion == null;
-  const puedeEditarSolicitud = esDueno && ticket.estatus !== "Cierre";
+  // Admin puede corregir la solicitud (campos verdes) ademas del dueno —
+  // util para arreglar un error antes de asignar el ticket a un abogado.
+  // Firestore ya lo permitia (isAdmin() sin restriccion de campos, ver
+  // firestore.rules); esto solo habilita el boton en la UI.
+  const puedeEditarSolicitud = (esDueno || role === "admin") && ticket.estatus !== "Cierre";
 
   async function handleGuardar() {
     setSaving(true);
@@ -118,7 +119,7 @@ export function TicketDetail({ id }: { id: string }) {
     if (satisfaccionSel == null) return;
     setEnviandoSatisfaccion(true);
     try {
-      await submitSatisfaccion(id, satisfaccionSel);
+      await submitSatisfaccion(id, satisfaccionSel, comentarioSatisfaccion.trim() || undefined);
     } finally {
       setEnviandoSatisfaccion(false);
     }
@@ -207,7 +208,7 @@ export function TicketDetail({ id }: { id: string }) {
         <CategoriaBadge categoria={ticket.categoria} />
       </div>
 
-      {/* Datos de la solicitud (verde) — el dueno puede corregirla mientras no este Cerrada */}
+      {/* Datos de la solicitud (verde) — el dueno o admin pueden corregirla mientras no este Cerrada */}
       <section className="rounded-lg border border-border bg-card p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">Solicitud</h2>
@@ -233,20 +234,7 @@ export function TicketDetail({ id }: { id: string }) {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Servicio</label>
-                <select
-                  value={servicioIdForm}
-                  onChange={(e) => setServicioIdForm(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {(Object.keys(SERVICIOS_POR_CATEGORIA) as Categoria[]).map((categoria) => (
-                    <optgroup key={categoria} label={categoria}>
-                      {SERVICIOS_POR_CATEGORIA[categoria].map((s) => (
-                        <option key={s.id} value={s.id}>{s.servicio}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
+                <ServicioSelector value={servicioIdForm} onChange={setServicioIdForm} />
               </div>
             </div>
 
@@ -288,7 +276,7 @@ export function TicketDetail({ id }: { id: string }) {
 
             {solicitudError && <p className="text-sm text-danger">{solicitudError}</p>}
 
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <Button
                 variant="success"
                 onClick={handleGuardarSolicitud}
@@ -396,10 +384,10 @@ export function TicketDetail({ id }: { id: string }) {
             </div>
 
             {ticket.fechaAsignacion && (
-              <p className="text-xs opacity-60">Asignado el {formatFecha(ticket.fechaAsignacion)}</p>
+              <p className="text-xs opacity-60">Asignado el {formatFecha(ticket.fechaAsignacion, { conHora: true })}</p>
             )}
             {ticket.fechaCierre && (
-              <p className="text-xs opacity-60">Cerrado el {formatFecha(ticket.fechaCierre)}</p>
+              <p className="text-xs opacity-60">Cerrado el {formatFecha(ticket.fechaCierre, { conHora: true })}</p>
             )}
 
             {saveError && <p className="text-sm text-danger">{saveError}</p>}
@@ -412,10 +400,10 @@ export function TicketDetail({ id }: { id: string }) {
         ) : (
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
             <div><dt className="opacity-60">Abogado asignado</dt><dd className="font-medium">{ticket.abogadoAsignadoId ?? "Sin asignar"}</dd></div>
-            <div><dt className="opacity-60">Fecha de asignacion</dt><dd className="font-medium">{formatFecha(ticket.fechaAsignacion)}</dd></div>
+            <div><dt className="opacity-60">Fecha de asignacion</dt><dd className="font-medium">{formatFecha(ticket.fechaAsignacion, { conHora: true })}</dd></div>
             {ticket.fechaCierre && (
               <>
-                <div><dt className="opacity-60">Fecha de cierre</dt><dd className="font-medium">{formatFecha(ticket.fechaCierre)}</dd></div>
+                <div><dt className="opacity-60">Fecha de cierre</dt><dd className="font-medium">{formatFecha(ticket.fechaCierre, { conHora: true })}</dd></div>
                 {ticket.notasCierre && <div className="sm:col-span-2"><dt className="opacity-60">Notas de cierre</dt><dd>{ticket.notasCierre}</dd></div>}
               </>
             )}
@@ -427,20 +415,30 @@ export function TicketDetail({ id }: { id: string }) {
       {puedeCalificar && (
         <section className="rounded-lg border border-border bg-card p-6 space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">Califica tu experiencia</h2>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="grid grid-cols-5 sm:grid-cols-10 gap-1 max-w-md">
             {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
               <button
                 key={n}
                 type="button"
                 onClick={() => setSatisfaccionSel(n)}
                 className={cn(
-                  "h-9 w-9 rounded-md border text-sm font-medium transition-colors",
+                  "h-9 rounded-md border text-sm font-medium transition-colors",
                   satisfaccionSel === n ? "bg-primary text-primary-foreground border-primary" : "border-input hover:bg-surface"
                 )}
               >
                 {n}
               </button>
             ))}
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Comentarios (opcional)</label>
+            <textarea
+              value={comentarioSatisfaccion}
+              onChange={(e) => setComentarioSatisfaccion(e.target.value)}
+              rows={3}
+              placeholder="Cuentanos mas sobre tu experiencia..."
+              className="w-full px-3 py-2 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+            />
           </div>
           <Button variant="success" onClick={handleCalificar} disabled={satisfaccionSel == null || enviandoSatisfaccion}>
             {enviandoSatisfaccion ? "Enviando..." : "Enviar calificacion"}
@@ -449,7 +447,12 @@ export function TicketDetail({ id }: { id: string }) {
       )}
 
       {ticket.satisfaccion != null && (
-        <p className="text-sm opacity-70">Satisfaccion registrada: <span className="font-medium opacity-100">{ticket.satisfaccion} / 10</span></p>
+        <div className="text-sm opacity-70 space-y-1">
+          <p>Satisfaccion registrada: <span className="font-medium opacity-100">{ticket.satisfaccion} / 10</span></p>
+          {ticket.comentarioSatisfaccion && (
+            <p className="opacity-100">&quot;{ticket.comentarioSatisfaccion}&quot;</p>
+          )}
+        </div>
       )}
 
       {/* Eliminar ticket — solo admin, accion destructiva y permanente */}
@@ -469,7 +472,7 @@ export function TicketDetail({ id }: { id: string }) {
                 incluyendo su historial. No se puede deshacer.
               </p>
               {deleteError && <p className="text-sm text-danger">{deleteError}</p>}
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 <Button variant="danger" onClick={handleEliminar} disabled={eliminando}>
                   {eliminando ? "Eliminando..." : "Si, eliminar definitivamente"}
                 </Button>

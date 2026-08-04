@@ -7,23 +7,26 @@ export class ApiAuthError extends Error {
   }
 }
 
-// Las rutas bajo app/api/usuarios/ usan Admin SDK (bypassa Firestore Rules)
-// porque gestionan cuentas ajenas — algo que Rules y el SDK de cliente no
-// permiten. El permiso se valida aqui a mano contra el doc del caller.
-export async function requireAdmin(request: Request): Promise<string> {
+export async function verifyCallerToken(request: Request): Promise<string> {
   const authHeader = request.headers.get("authorization");
   const idToken = authHeader?.match(/^Bearer (.+)$/)?.[1];
   if (!idToken) throw new ApiAuthError(401, "Falta el token de autenticacion.");
 
-  let callerUid: string;
   try {
-    callerUid = (await adminAuth.verifyIdToken(idToken)).uid;
+    return (await adminAuth.verifyIdToken(idToken)).uid;
   } catch (err) {
     // Mensaje al cliente generico; el error real (que puede ser de
     // configuracion, no del token) se loguea aparte.
     console.error("verifyIdToken fallo:", err);
     throw new ApiAuthError(401, "Token de autenticacion invalido o expirado.");
   }
+}
+
+// Las rutas bajo app/api/usuarios/ usan Admin SDK (bypassa Firestore Rules)
+// porque gestionan cuentas ajenas — algo que Rules y el SDK de cliente no
+// permiten. El permiso se valida aqui a mano contra el doc del caller.
+export async function requireAdmin(request: Request): Promise<string> {
+  const callerUid = await verifyCallerToken(request);
 
   const callerDoc = await adminDb.collection("users").doc(callerUid).get();
   if (callerDoc.data()?.role !== "admin") {

@@ -14,7 +14,7 @@ export default function ConfiguracionLayout({ children }: { children: React.Reac
   const pathname = usePathname();
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Configuracion</h1>
         <p className="text-sm mt-1 opacity-70">Gestion de usuarios, roles y del sistema en general.</p>

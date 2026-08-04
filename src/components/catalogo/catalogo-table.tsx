@@ -22,12 +22,19 @@ import {
 } from "@tanstack/react-table";
 import {
   ArrowUp, ArrowDown, ArrowUpDown, ListFilter, Search,
-  ChevronLeft, ChevronRight, Columns3, FileSpreadsheet,
+  ChevronLeft, ChevronRight, Columns3, FileSpreadsheet, Plus, Pencil, Trash2, Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useAuthStore } from "@/stores/auth";
+import {
+  crearServicio, actualizarServicio, eliminarServicio, importarCatalogoEstatico,
+  type ServicioInput,
+} from "@/lib/catalogo";
+import { useCategoriasStore } from "@/stores/categorias";
 import type { CatalogoServicio } from "@/types/catalogo";
 import { CategoriaBadge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 // ── Filters ───────────────────────────────────────────────────────────────────
 
@@ -64,7 +71,8 @@ function FilterDropdown({
     e.stopPropagation();
     if (!open && btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
-      setCoords({ top: r.bottom + 4, left: r.left });
+      const left = Math.min(r.left, window.innerWidth - 216);
+      setCoords({ top: r.bottom + 4, left: Math.max(8, left) });
     }
     setOpen((o) => !o);
   };
@@ -146,7 +154,8 @@ function ColumnVisibilityMenu({ columns }: { columns: Column<CatalogoServicio, u
   const toggle = () => {
     if (!open && btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
-      setCoords({ top: r.bottom + 4, left: r.left });
+      const left = Math.min(r.left, window.innerWidth - 226);
+      setCoords({ top: r.bottom + 4, left: Math.max(8, left) });
     }
     setOpen((o) => !o);
   };
@@ -232,12 +241,91 @@ function getExportValue(columnId: string, s: CatalogoServicio): string | number 
 const columnHelper = createColumnHelper<CatalogoServicio>();
 const PAGE_SIZES = [10, 25, 50, 100];
 
+type Panel = { mode: "crear" } | { mode: "editar"; servicio: CatalogoServicio } | null;
+
+const FORM_VACIO: ServicioInput = {
+  puestoResponsable: "", servicio: "", solicitanteTipico: "",
+  categoria: "", slaInterno: 1, slaDespachoRef: 1,
+};
+
 export function CatalogoTable({ data }: { data: CatalogoServicio[] }) {
+  const isAdmin = useAuthStore((s) => s.role === "admin");
+  const categorias = useCategoriasStore((s) => s.categorias);
   const [sorting, setSorting]             = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter]   = useState("");
   const [pagination, setPagination]       = useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
   const [columnVisibility, setColumnVisibility] = useLocalStorage<VisibilityState>("catalogo-table:visibility", {});
+
+  const [panel, setPanel]                       = useState<Panel>(null);
+  const [form, setForm]                         = useState<ServicioInput>(FORM_VACIO);
+  const [formError, setFormError]               = useState<string | null>(null);
+  const [saving, setSaving]                     = useState(false);
+  const [infoMsg, setInfoMsg]                   = useState<string | null>(null);
+  const [confirmandoEliminarId, setConfirmandoEliminarId] = useState<string | null>(null);
+  const [eliminandoId, setEliminandoId]         = useState<string | null>(null);
+  const [importando, setImportando]             = useState(false);
+
+  function abrirCrear() {
+    setForm(FORM_VACIO);
+    setFormError(null);
+    setInfoMsg(null);
+    setPanel({ mode: "crear" });
+  }
+
+  function abrirEditar(s: CatalogoServicio) {
+    setForm({
+      puestoResponsable: s.puestoResponsable, servicio: s.servicio, solicitanteTipico: s.solicitanteTipico,
+      categoria: s.categoria, slaInterno: s.slaInterno, slaDespachoRef: s.slaDespachoRef,
+    });
+    setFormError(null);
+    setInfoMsg(null);
+    setPanel({ mode: "editar", servicio: s });
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+    setSaving(true);
+    try {
+      if (panel?.mode === "crear") {
+        const id = await crearServicio(form);
+        setInfoMsg(`Servicio ${id} creado.`);
+      } else if (panel?.mode === "editar") {
+        await actualizarServicio(panel.servicio.id, form);
+        setInfoMsg("Cambios guardados.");
+      }
+      setPanel(null);
+    } catch {
+      setFormError("No se pudo guardar. Intenta de nuevo.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleEliminar(id: string) {
+    setEliminandoId(id);
+    try {
+      await eliminarServicio(id);
+      setConfirmandoEliminarId(null);
+    } catch {
+      setInfoMsg("No se pudo eliminar. Intenta de nuevo.");
+    } finally {
+      setEliminandoId(null);
+    }
+  }
+
+  async function handleImportar() {
+    setImportando(true);
+    try {
+      const { importados, omitidos } = await importarCatalogoEstatico();
+      setInfoMsg(`Importacion lista: ${importados} agregados, ${omitidos} ya existian.`);
+    } catch {
+      setInfoMsg("No se pudo importar el catalogo estatico.");
+    } finally {
+      setImportando(false);
+    }
+  }
 
   const columns = useMemo(() => [
     columnHelper.accessor("id", {
@@ -282,7 +370,43 @@ export function CatalogoTable({ data }: { data: CatalogoServicio[] }) {
       enableColumnFilter: false,
       cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
     }),
-  ], []);
+    ...(isAdmin ? [
+      columnHelper.display({
+        id: "acciones",
+        header: "Acciones",
+        size: 110, minSize: 100,
+        enableColumnFilter: false,
+        enableSorting: false,
+        cell: (info) => {
+          const s = info.row.original;
+          return confirmandoEliminarId === s.id ? (
+            <div className="flex items-center gap-1.5">
+              <Button variant="danger" size="sm" onClick={() => handleEliminar(s.id)} disabled={eliminandoId === s.id}>
+                {eliminandoId === s.id ? "..." : "Si"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setConfirmandoEliminarId(null)} disabled={eliminandoId === s.id}>
+                No
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <Button variant="ghost" size="sm" onClick={() => abrirEditar(s)} title="Editar">
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost" size="sm"
+                onClick={() => setConfirmandoEliminarId(s.id)}
+                title="Eliminar"
+                className="text-danger hover:bg-danger/10"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          );
+        },
+      }),
+    ] : []),
+  ], [isAdmin, confirmandoEliminarId, eliminandoId]);
 
   const table = useReactTable({
     data,
@@ -367,8 +491,108 @@ export function CatalogoTable({ data }: { data: CatalogoServicio[] }) {
             <FileSpreadsheet className="h-3.5 w-3.5" />
             Exportar Excel
           </button>
+          {isAdmin && (
+            <>
+              <button
+                type="button"
+                onClick={handleImportar}
+                disabled={importando}
+                className="flex items-center gap-1.5 h-8 rounded-lg border border-border bg-card px-3 text-sm hover:bg-surface transition-colors shrink-0 disabled:opacity-50"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                {importando ? "Importando..." : "Importar catalogo estatico"}
+              </button>
+              <Button variant="primary" size="sm" onClick={abrirCrear}>
+                <Plus className="h-4 w-4" />
+                Agregar servicio
+              </Button>
+            </>
+          )}
         </div>
       </div>
+
+      {infoMsg && (
+        <div className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">{infoMsg}</div>
+      )}
+
+      {panel && (
+        <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-card p-5 space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">
+            {panel.mode === "crear" ? "Agregar servicio" : `Editar servicio — ${panel.servicio.id}`}
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium mb-1.5">Servicio estandarizado</label>
+              <input
+                type="text" required
+                value={form.servicio}
+                onChange={(e) => setForm((f) => ({ ...f, servicio: e.target.value }))}
+                className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Puesto responsable</label>
+              <input
+                type="text" required
+                value={form.puestoResponsable}
+                onChange={(e) => setForm((f) => ({ ...f, puestoResponsable: e.target.value }))}
+                className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Solicitante tipico</label>
+              <input
+                type="text" required
+                value={form.solicitanteTipico}
+                onChange={(e) => setForm((f) => ({ ...f, solicitanteTipico: e.target.value }))}
+                className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Categoria</label>
+              <select
+                required
+                value={form.categoria}
+                onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))}
+                className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Selecciona una categoria...</option>
+                {categorias.map((c) => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">SLA interno (dias habiles)</label>
+              <input
+                type="number" required min={0} step={0.5}
+                value={form.slaInterno}
+                onChange={(e) => setForm((f) => ({ ...f, slaInterno: Number(e.target.value) }))}
+                className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">SLA despacho ref. (dias habiles)</label>
+              <input
+                type="number" required min={0} step={0.5}
+                value={form.slaDespachoRef}
+                onChange={(e) => setForm((f) => ({ ...f, slaDespachoRef: Number(e.target.value) }))}
+                className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
+
+          {formError && <p className="text-sm text-danger">{formError}</p>}
+
+          <div className="flex flex-wrap gap-3">
+            <Button type="submit" variant="success" disabled={saving}>
+              {saving ? "Guardando..." : "Guardar"}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setPanel(null)} disabled={saving}>
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      )}
 
       {filteredCount === 0 ? (
         <div className="flex flex-col items-center justify-center h-48 bg-card rounded-lg border border-border text-center">

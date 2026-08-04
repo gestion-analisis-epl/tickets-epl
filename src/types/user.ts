@@ -5,6 +5,11 @@ export type Role = "solicitante" | "mesa_control" | "abogado" | "gerente_juridic
 // lib/users.ts ensureSolicitanteDoc), crearlo a mano duplicaria la cuenta.
 export const STAFF_ROLES: Role[] = ["mesa_control", "abogado", "gerente_juridico", "admin"];
 
+// Roles del flujo operativo de tickets — reciben la notificacion de "nuevo
+// ticket" y pueden enlazarse a un abogado del catalogo (ver lib/notificaciones.ts).
+// admin queda fuera: no atiende tickets (ver firestore.rules isAdmin() vs isLegalStaff()).
+export const LEGAL_STAFF_ROLES: Role[] = ["mesa_control", "abogado", "gerente_juridico"];
+
 export interface AppUser {
   uid: string;
   nombre: string;

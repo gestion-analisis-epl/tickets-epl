@@ -1,13 +1,16 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import type { Categoria } from "@/types/catalogo";
+import { findCategoria } from "@/lib/categorias";
+import type { BadgeTone } from "@/types/badge";
+
+export type { BadgeTone };
 
 /*
  * Excepcion acordada al minimo de contraste 10:1: estos badges usan la
  * paleta pastel de KRONOS (fondo tenue + texto de color) por consistencia
  * visual entre ambos sistemas. El resto de la UI si cumple 10:1.
  */
-export type BadgeTone =
-  | "gray" | "blue" | "indigo" | "purple" | "teal" | "green" | "amber" | "orange" | "red";
 
 const TONE_CLASSES: Record<BadgeTone, string> = {
   gray:   "bg-gray-100 text-gray-600 ring-1 ring-gray-200 dark:bg-gray-500/15 dark:text-gray-300 dark:ring-gray-500/25",
@@ -60,15 +63,12 @@ export function EstatusBadge({ estatus }: { estatus: string }) {
   return <Badge tone={ESTATUS_TONE[estatus] ?? "gray"}>{estatus}</Badge>;
 }
 
-// ── Categoria del servicio (hoja Catalogo) ───────────────────────────────────
+// ── Categoria del servicio (coleccion "categorias" en Firestore) ────────────
 
-export const CATEGORIA_TONE: Record<string, BadgeTone> = {
-  "Contratos":                 "blue",
-  "Licencias y permisos":      "teal",
-  "Control documental":        "gray",
-  "Servicios extraordinarios": "orange",
-};
-
-export function CategoriaBadge({ categoria }: { categoria: string }) {
-  return <Badge tone={CATEGORIA_TONE[categoria] ?? "gray"}>{categoria}</Badge>;
+// El tono ya no es un mapa fijo: cada categoria trae su propio tono guardado
+// en Firestore (ver domain/catalogo/categoria.ts, editable desde /catalogo).
+// "gray" de respaldo cubre una categoria borrada que algun servicio/ticket
+// viejo todavia referencia por nombre.
+export function CategoriaBadge({ categoria }: { categoria: Categoria }) {
+  return <Badge tone={findCategoria(categoria)?.tono ?? "gray"}>{categoria}</Badge>;
 }

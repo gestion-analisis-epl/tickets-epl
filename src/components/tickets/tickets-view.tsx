@@ -4,14 +4,18 @@ import { useMemo, useState } from "react";
 import { LayoutGrid, Table2 } from "lucide-react";
 import { TicketsTable } from "@/components/tickets/tickets-table";
 import { TicketsKanban } from "@/components/tickets/tickets-kanban";
+import { ABOGADOS } from "@/lib/data/abogados";
 import { ESTATUS_VALUES, type Estatus, type Ticket } from "@/types/ticket";
 import { cn } from "@/lib/utils";
 
 type Vista = "tabla" | "kanban";
 
+const SIN_ASIGNAR = "__sin_asignar__";
+
 export function TicketsView({ tickets }: { tickets: Ticket[] }) {
   const [vista, setVista] = useState<Vista>("tabla");
   const [estatusFiltro, setEstatusFiltro] = useState<Estatus | null>(null);
+  const [abogadoFiltro, setAbogadoFiltro] = useState<string>("");
 
   const conteos = useMemo(() => {
     const map = new Map<Estatus, number>();
@@ -20,7 +24,13 @@ export function TicketsView({ tickets }: { tickets: Ticket[] }) {
     return map;
   }, [tickets]);
 
-  const ticketsFiltrados = estatusFiltro ? tickets.filter((t) => t.estatus === estatusFiltro) : tickets;
+  const ticketsFiltrados = tickets
+    .filter((t) => !estatusFiltro || t.estatus === estatusFiltro)
+    .filter((t) => {
+      if (!abogadoFiltro) return true;
+      if (abogadoFiltro === SIN_ASIGNAR) return !t.abogadoAsignadoId;
+      return t.abogadoAsignadoId === abogadoFiltro;
+    });
 
   return (
     <div className="space-y-4">
@@ -49,6 +59,20 @@ export function TicketsView({ tickets }: { tickets: Ticket[] }) {
             {estatus} ({conteos.get(estatus) ?? 0})
           </button>
         ))}
+      </div>
+
+      {/* Filtro por abogado asignado — misma idea, tambien aplica a ambas vistas */}
+      <div className="flex items-center gap-2">
+        <label className="text-xs font-medium opacity-60">Abogado:</label>
+        <select
+          value={abogadoFiltro}
+          onChange={(e) => setAbogadoFiltro(e.target.value)}
+          className="h-8 px-2.5 rounded-md border border-border bg-card text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          <option value="">Todos</option>
+          <option value={SIN_ASIGNAR}>Sin asignar</option>
+          {ABOGADOS.map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+        </select>
       </div>
 
       {/* Tabs de vista */}

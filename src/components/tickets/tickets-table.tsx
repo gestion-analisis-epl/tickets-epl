@@ -29,7 +29,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import type { Ticket } from "@/types/ticket";
-import { findServicio } from "@/lib/data/catalogo-servicios";
+import { findServicio } from "@/lib/catalogo";
+import { formatFecha } from "@/lib/format-fecha";
 import { EstatusBadge, CategoriaBadge } from "@/components/ui/badge";
 
 // ── Filters ───────────────────────────────────────────────────────────────────
@@ -67,7 +68,11 @@ function FilterDropdown({
     e.stopPropagation();
     if (!open && btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
-      setCoords({ top: r.bottom + 4, left: r.left });
+      // Clamp para que el panel (min-w 200px) no se salga por la derecha en
+      // pantallas angostas — sin esto, un filtro cerca del borde derecho de
+      // una tabla con scroll horizontal quedaba parcial o totalmente oculto.
+      const left = Math.min(r.left, window.innerWidth - 216);
+      setCoords({ top: r.bottom + 4, left: Math.max(8, left) });
     }
     setOpen((o) => !o);
   };
@@ -149,7 +154,8 @@ function ColumnVisibilityMenu({ columns }: { columns: Column<Ticket, unknown>[] 
   const toggle = () => {
     if (!open && btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
-      setCoords({ top: r.bottom + 4, left: r.left });
+      const left = Math.min(r.left, window.innerWidth - 226);
+      setCoords({ top: r.bottom + 4, left: Math.max(8, left) });
     }
     setOpen((o) => !o);
   };
@@ -264,7 +270,7 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
       header: "Fecha",
       size: 110, minSize: 90,
       enableColumnFilter: false,
-      cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
+      cell: (info) => <span className="tabular-nums">{formatFecha(info.getValue())}</span>,
     }),
     columnHelper.accessor("solicitanteNombre", {
       header: "Solicitante",
@@ -355,9 +361,9 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
     }),
     columnHelper.accessor("fechaCierre", {
       header: "Fecha de cierre",
-      size: 120, minSize: 100,
+      size: 150, minSize: 120,
       enableColumnFilter: false,
-      cell: (info) => <span className="tabular-nums">{info.getValue() ?? "—"}</span>,
+      cell: (info) => <span className="tabular-nums">{formatFecha(info.getValue(), { conHora: true })}</span>,
     }),
   ], []);
 
@@ -454,13 +460,16 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
         </div>
       ) : (
         <div className="rounded-lg border border-border overflow-hidden bg-card">
-          <div className="overflow-x-auto" style={{ cursor: isResizing ? "col-resize" : undefined }}>
+          <div
+            className="overflow-auto max-h-[max(320px,calc(100vh-320px))]"
+            style={{ cursor: isResizing ? "col-resize" : undefined }}
+          >
             <table className="w-full text-sm" style={{ minWidth: table.getCenterTotalSize(), tableLayout: "fixed" }}>
               <colgroup>
                 {table.getFlatHeaders().map((h) => <col key={h.id} style={{ width: h.getSize() }} />)}
               </colgroup>
 
-              <thead>
+              <thead className="sticky top-0 z-10">
                 <tr className="bg-surface border-b border-border">
                   {table.getFlatHeaders().map((header) => {
                     const canSort   = header.column.getCanSort();

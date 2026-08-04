@@ -1,13 +1,13 @@
-import type { CatalogoServicio, Categoria } from "@/types/catalogo";
+import type { CatalogoServicio } from "@/types/catalogo";
 
 /*
  * Datos REALES, transcritos directamente de la hoja "Catalogo" del Excel
- * original (Sistema_Tickets_Legal_EPL.xlsx) — no son un ejemplo ni estan
- * inventados. Fuente temporal mientras se migra a Firestore; cuando el
- * catalogo cambie alla, hay que actualizarlo aqui tambien (o mover esto a
- * una coleccion real y quitar este archivo).
+ * original (Sistema_Tickets_Legal_EPL.xlsx). El catalogo real ahora vive en
+ * Firestore (coleccion "catalogoServicios", ver lib/catalogo.ts) y se edita
+ * desde /catalogo — esto solo queda como semilla para el import de un solo
+ * uso (importarCatalogoEstatico()), no se lee en ningun otro lado.
  */
-export const CATALOGO_SERVICIOS: CatalogoServicio[] = [
+export const CATALOGO_SERVICIOS_SEED: CatalogoServicio[] = [
   { id: "JUR-C001", puestoResponsable: "Gerente Juridico", servicio: "Tramite legal ante el SAT", solicitanteTipico: "Finanzas", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
   { id: "JUR-C002", puestoResponsable: "Gerente Juridico", servicio: "Asunto legal especial (Direccion)", solicitanteTipico: "Direccion General", categoria: "Servicios extraordinarios", slaInterno: 10, slaDespachoRef: 20 },
   { id: "JUR-C003", puestoResponsable: "Gerente Juridico", servicio: "Integracion de expediente bancario", solicitanteTipico: "Finanzas / Tesoreria", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
@@ -78,15 +78,7 @@ export const CATALOGO_SERVICIOS: CatalogoServicio[] = [
   { id: "JUR-C068", puestoResponsable: "Aux. Gestion Documental y Pagos", servicio: "Carga de comprobante de domicilio", solicitanteTipico: "Areas internas", categoria: "Control documental", slaInterno: 0.5, slaDespachoRef: 3 },
   { id: "JUR-C069", puestoResponsable: "Aux. Gestion Documental y Pagos", servicio: "Gestion de licenciamiento", solicitanteTipico: "Abogados / Gerencia", categoria: "Licencias y permisos", slaInterno: 10, slaDespachoRef: 18 },
   { id: "JUR-C070", puestoResponsable: "Aux. Gestion Documental y Pagos", servicio: "Gestion en modulo de Licencias", solicitanteTipico: "Abogados / Gerencia", categoria: "Licencias y permisos", slaInterno: 10, slaDespachoRef: 18 },
+  { id: "JUR-C071", puestoResponsable: "Abogado Regional", servicio: "Alta de Arrendadores", solicitanteTipico: "Operaciones", categoria: "Arrendamientos", slaInterno: 2, slaDespachoRef: 4 },
+  { id: "JUR-C072", puestoResponsable: "Abogado Regional", servicio: "Cambio de Arrendador", solicitanteTipico: "Operaciones", categoria: "Arrendamientos", slaInterno: 2, slaDespachoRef: 4 },
+  { id: "JUR-C073", puestoResponsable: "Abogado Regional", servicio: "Contratos / Convenios de Arrendamiento", solicitanteTipico: "Operaciones", categoria: "Arrendamientos", slaInterno: 4, slaDespachoRef: 8 },
 ];
-
-export function findServicio(servicioId: string) {
-  return CATALOGO_SERVICIOS.find((s) => s.id === servicioId);
-}
-
-// Compartido entre el formulario de Nuevo Ticket y la edicion de un ticket
-// existente, para no duplicar el agrupamiento.
-export const SERVICIOS_POR_CATEGORIA = CATALOGO_SERVICIOS.reduce((acc, s) => {
-  (acc[s.categoria] ??= []).push(s);
-  return acc;
-}, {} as Record<Categoria, typeof CATALOGO_SERVICIOS>);

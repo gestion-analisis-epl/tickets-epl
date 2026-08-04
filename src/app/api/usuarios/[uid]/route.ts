@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { FieldValue } from "firebase-admin/firestore";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { requireAdmin, ApiAuthError } from "@/lib/api-auth";
+import { ABOGADOS } from "@/lib/data/abogados";
 import type { Role } from "@/types/user";
 
 export const runtime = "nodejs";
@@ -54,6 +56,16 @@ export async function PATCH(request: Request, { params }: Params) {
     if (typeof body.activo === "boolean") {
       patchFirestore.activo = body.activo;
       patchAuth.disabled = !body.activo;
+    }
+
+    if ("abogadoId" in body) {
+      if (body.abogadoId === null) {
+        patchFirestore.abogadoId = FieldValue.delete();
+      } else if (typeof body.abogadoId === "string" && ABOGADOS.some((a) => a.id === body.abogadoId)) {
+        patchFirestore.abogadoId = body.abogadoId;
+      } else {
+        return NextResponse.json({ error: "Abogado del catalogo invalido." }, { status: 400 });
+      }
     }
 
     if (Object.keys(patchAuth).length > 0) {

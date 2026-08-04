@@ -10,7 +10,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Loader2 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import { updateTicketAsignacion } from "@/lib/tickets";
-import { findServicio } from "@/lib/data/catalogo-servicios";
+import { findServicio } from "@/lib/catalogo";
 import { ESTATUS_VALUES, type Estatus, type Ticket } from "@/types/ticket";
 import { Badge, ESTATUS_TONE, TONE_SURFACE_CLASSES, CategoriaBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -79,6 +79,12 @@ function TicketCard({ ticket, canDrag, moving }: { ticket: Ticket; canDrag: bool
   );
 }
 
+// Tope de tarjetas visibles antes de que la columna haga scroll vertical, en
+// vez de crecer sin limite. ~112px por tarjeta (padding + contenido + el gap
+// de space-y-2) — si el alto real de las tarjetas cambia, ajustar aqui.
+const TARJETAS_VISIBLES_MAX = 6;
+const ALTURA_TARJETA_PX = 112;
+
 function Column({
   estatus, items, canDrag, movingIds,
 }: {
@@ -100,7 +106,10 @@ function Column({
         <Badge tone={tone}>{estatus}</Badge>
         <span className="text-xs tabular-nums opacity-50 shrink-0">{items.length}</span>
       </div>
-      <div className="flex-1 overflow-y-auto p-2 space-y-2 max-h-[65vh] min-h-[80px]">
+      <div
+        className="flex-1 overflow-y-auto p-2 space-y-2 min-h-[80px]"
+        style={{ maxHeight: TARJETAS_VISIBLES_MAX * ALTURA_TARJETA_PX }}
+      >
         {items.length === 0 ? (
           <p className="text-xs opacity-40 text-center py-6">Sin tickets</p>
         ) : (
