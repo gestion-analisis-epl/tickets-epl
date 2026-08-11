@@ -7,10 +7,7 @@ export function createNotificacionService(repo: NotificacionRepository) {
     await repo.crear(input);
   }
 
-  // abogadoAsignadoId es un id del catalogo estatico (data/abogados.ts), no un
-  // uid — busca la cuenta enlazada a ese abogado. Si todavia no hay ninguna
-  // cuenta enlazada, no falla: el ticket ya quedo asignado igual, solo no
-  // llega el aviso.
+  // abogadoAsignadoId es un id del catalogo, no un uid — se busca la cuenta enlazada.
   async function notificarAsignacion(ticketId: string, ticketFolio: string, abogadoId: string): Promise<void> {
     const uid = await repo.findUidPorAbogado(abogadoId);
     if (!uid) return;

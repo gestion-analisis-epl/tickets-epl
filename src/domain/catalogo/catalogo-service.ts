@@ -26,8 +26,7 @@ export function createCatalogoService(repo: CatalogoRepository) {
     await repo.delete(id);
   }
 
-  // Boton de un solo uso en /catalogo (solo admin): copia el catalogo estatico
-  // original a Firestore. Idempotente — salta los ids que ya existan alla.
+  // Idempotente: salta los ids que ya existan.
   async function importarCatalogoEstatico(seed: CatalogoServicio[]): Promise<ImportarResultado> {
     const ids = await repo.listIds();
     const pendientes = serviciosPendientesDeImportar(seed, new Set(ids));

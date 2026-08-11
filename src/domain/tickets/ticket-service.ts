@@ -49,8 +49,7 @@ export function createTicketService(repo: TicketRepository, notifier: TicketNoti
     const { patch, esNuevaAsignacion, esCambioEstatus } = calcularPatchAsignacion(current, input, actorUid, new Date());
     await repo.update(id, patch);
 
-    // Avisos best-effort: si fallan (ej. sin conexion un instante) no deben
-    // revertir ni bloquear el cambio de estatus/asignacion, que ya se guardo.
+    // Best-effort: si fallan no bloquean el cambio, que ya se guardo.
     const avisos: Promise<unknown>[] = [];
 
     if (esNuevaAsignacion && input.abogadoAsignadoId) {

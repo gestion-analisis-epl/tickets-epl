@@ -9,9 +9,7 @@ export interface SolicitudInput {
   documentacion: string[];
 }
 
-// fechaCompromiso solo existe una vez asignado el abogado; si cambia el
-// servicio antes de eso, el SLA nuevo se recalcula desde la fechaAsignacion
-// que ya estaba fija (no desde hoy).
+// fechaCompromiso solo existe una vez asignado el abogado.
 export function calcularPatchSolicitud(current: Ticket, input: SolicitudInput, servicio: CatalogoServicio): Partial<Ticket> {
   const fechaCompromiso = current.fechaAsignacion
     ? addBusinessDays(new Date(current.fechaAsignacion), servicio.slaInterno).toISOString()

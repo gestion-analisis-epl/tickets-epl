@@ -13,10 +13,7 @@ export interface AsignacionResultado {
   esCambioEstatus: boolean;
 }
 
-// El SLA (fechaCompromiso, diasHabilesTranscurridos, nivelServicio) arranca en
-// fechaAsignacion, no en fechaSolicitud; diasPipeline cuenta
-// fechaSolicitud→cierre aparte. Ambos se congelan al cerrar (ver
-// lib/ticket-derived.ts). Pura: nada de Firestore, solo fechas y aritmetica.
+// El SLA arranca en fechaAsignacion, no en fechaSolicitud; diasPipeline es aparte.
 export function calcularPatchAsignacion(
   current: Ticket,
   input: AsignacionInput,
@@ -49,11 +46,7 @@ export function calcularPatchAsignacion(
     }
   }
 
-  // Aparte del bloque de arriba (que solo congela el SLA la PRIMERA vez que se
-  // cierra): el token de calificacion se regenera cada vez que el ticket
-  // ENTRA a Cierre, incluso si ya se habia cerrado y reabierto antes — si no,
-  // un ticket reabierto y vuelto a cerrar manda el correo de cierre sin boton
-  // de calificar.
+  // El token se regenera cada vez que entra a Cierre, aunque ya se haya cerrado antes.
   if (input.estatus === "Cierre" && current.estatus !== "Cierre") {
     patch.tokenCalificacion = crypto.randomUUID();
   }

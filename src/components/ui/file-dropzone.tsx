@@ -9,7 +9,7 @@ export interface UploadingFile {
   name: string;
   size: number;
   progress: number; // 0-100
-  status: "uploading" | "done" | "error";
+  status: "uploading" | "validando" | "done" | "error";
   url?: string;
   path?: string;
   error?: string;
@@ -26,9 +26,10 @@ interface Props {
   onFilesSelected: (files: File[]) => void;
   onRemove: (id: string) => void;
   disabled?: boolean;
+  multiple?: boolean;
 }
 
-export function FileDropzone({ files, onFilesSelected, onRemove, disabled }: Props) {
+export function FileDropzone({ files, onFilesSelected, onRemove, disabled, multiple = true }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -42,7 +43,10 @@ export function FileDropzone({ files, onFilesSelected, onRemove, disabled }: Pro
           e.preventDefault();
           setDragOver(false);
           if (disabled) return;
-          if (e.dataTransfer.files.length) onFilesSelected(Array.from(e.dataTransfer.files));
+          if (e.dataTransfer.files.length) {
+            const dropped = Array.from(e.dataTransfer.files);
+            onFilesSelected(multiple ? dropped : [dropped[0]]);
+          }
         }}
         className={cn(
           "flex flex-col items-center justify-center gap-1.5 rounded-md border-2 border-dashed px-4 py-6 text-center cursor-pointer transition-colors",
@@ -58,11 +62,14 @@ export function FileDropzone({ files, onFilesSelected, onRemove, disabled }: Pro
         <input
           ref={inputRef}
           type="file"
-          multiple
+          multiple={multiple}
           disabled={disabled}
           className="hidden"
           onChange={(e) => {
-            if (e.target.files?.length) onFilesSelected(Array.from(e.target.files));
+            if (e.target.files?.length) {
+              const selected = Array.from(e.target.files);
+              onFilesSelected(multiple ? selected : [selected[0]]);
+            }
             e.target.value = "";
           }}
         />
@@ -72,7 +79,7 @@ export function FileDropzone({ files, onFilesSelected, onRemove, disabled }: Pro
         <ul className="space-y-1.5">
           {files.map((f) => (
             <li key={f.id} className="flex items-center gap-2.5 rounded-md border border-border bg-surface px-3 py-2 text-sm">
-              {f.status === "uploading" && <Loader2 className="h-4 w-4 shrink-0 animate-spin opacity-60" />}
+              {(f.status === "uploading" || f.status === "validando") && <Loader2 className="h-4 w-4 shrink-0 animate-spin opacity-60" />}
               {f.status === "done"      && <FileText className="h-4 w-4 shrink-0 text-success" />}
               {f.status === "error"     && <AlertCircle className="h-4 w-4 shrink-0 text-danger" />}
 
@@ -83,6 +90,7 @@ export function FileDropzone({ files, onFilesSelected, onRemove, disabled }: Pro
                     <div className="h-full bg-primary transition-all" style={{ width: `${f.progress}%` }} />
                   </div>
                 )}
+                {f.status === "validando" && <p className="text-xs opacity-60 mt-0.5">Validando archivo...</p>}
                 {f.status === "error" && <p className="text-xs text-danger mt-0.5">{f.error ?? "Error al subir el archivo."}</p>}
                 {f.status === "done" && <p className="text-xs opacity-50 mt-0.5">{formatSize(f.size)}</p>}
               </div>
@@ -90,8 +98,8 @@ export function FileDropzone({ files, onFilesSelected, onRemove, disabled }: Pro
               <button
                 type="button"
                 onClick={() => onRemove(f.id)}
-                disabled={f.status === "uploading"}
-                title={f.status === "uploading" ? "Espera a que termine de subir" : "Quitar"}
+                disabled={f.status === "uploading" || f.status === "validando"}
+                title={f.status === "uploading" || f.status === "validando" ? "Espera a que termine" : "Quitar"}
                 className="p-1 rounded hover:bg-danger/15 hover:text-danger disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
               >
                 <X className="h-3.5 w-3.5" />

@@ -16,8 +16,7 @@ export function ensureSolicitanteDoc(user: FirebaseUser): Promise<UserDoc> {
   return userService.ensureSolicitanteDoc(user);
 }
 
-// Agrega el ID token (el route handler exige role "admin", ver
-// lib/api-auth.ts) y propaga el mensaje de error del servidor.
+// Agrega el ID token y propaga el mensaje de error del servidor.
 async function apiFetch(path: string, init: RequestInit): Promise<unknown> {
   const idToken = await auth.currentUser?.getIdToken();
   if (!idToken) throw new Error("No hay sesion activa.");

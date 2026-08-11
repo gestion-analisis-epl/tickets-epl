@@ -12,11 +12,7 @@ export function createUserService(repo: UserRepository) {
     return repo.getById(uid);
   }
 
-  // Se llama despues de un login con Google exitoso. Si es la primera vez que
-  // esta persona entra (con ESTE uid), se le crea su doc con role
-  // "solicitante". Si borro su cuenta de Firebase Auth y volvio a entrar,
-  // Firebase le asigna un uid NUEVO (el doc anterior queda huerfano) — para no
-  // regresarla a "solicitante" se busca primero por correo y se hereda el rol.
+  // Un uid nuevo (cuenta borrada y recreada) puede tener un doc huerfano con el mismo correo — se hereda su rol.
   async function ensureSolicitanteDoc(user: AuthenticatedIdentity): Promise<UserDoc> {
     const existing = await repo.getById(user.uid);
     if (existing) return existing;

@@ -21,9 +21,7 @@ export interface EnviarEmailPruebaInput {
   tokenCalificacion?: string; // solo tipo "cierre" — habilita el link de calificar sin login
 }
 
-// PRUEBA: redirige todo correo a una direccion fija (ver
-// app/api/notificaciones/email/route.ts), sin importar el destinatario real.
-// Best-effort — nunca debe bloquear el flujo principal si falla.
+// PRUEBA: redirige todo correo a una direccion fija. Best-effort.
 export async function enviarEmailPrueba(input: EnviarEmailPruebaInput): Promise<void> {
   const idToken = await auth.currentUser?.getIdToken();
   if (!idToken) return;

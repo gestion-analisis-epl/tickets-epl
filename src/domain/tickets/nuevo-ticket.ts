@@ -1,4 +1,4 @@
-import type { Ticket } from "@/types/ticket";
+import type { ContratoArrendamientoInput, DocumentosArrendamientoInput, Ticket } from "@/types/ticket";
 import type { CatalogoServicio } from "@/types/catalogo";
 
 export interface NuevoTicketInput {
@@ -8,6 +8,9 @@ export interface NuevoTicketInput {
   servicioId: string;
   descripcion: string;
   documentacion: string[];
+  formatoArrendamientoUrl?: string;
+  documentosArrendamiento?: DocumentosArrendamientoInput;
+  contratoArrendamiento?: ContratoArrendamientoInput;
 }
 
 export function buildNuevoTicket(
@@ -28,6 +31,10 @@ export function buildNuevoTicket(
     servicioId: input.servicioId,
     descripcion: input.descripcion,
     documentacion: input.documentacion,
+    // Firestore rechaza `undefined` explicito.
+    ...(input.formatoArrendamientoUrl ? { formatoArrendamientoUrl: input.formatoArrendamientoUrl } : {}),
+    ...(input.documentosArrendamiento ? { documentosArrendamiento: input.documentosArrendamiento } : {}),
+    ...(input.contratoArrendamiento ? { contratoArrendamiento: input.contratoArrendamiento } : {}),
     categoria: servicio.categoria,
     puestoResponsableSugerido: servicio.puestoResponsable,
     slaInterno: servicio.slaInterno,

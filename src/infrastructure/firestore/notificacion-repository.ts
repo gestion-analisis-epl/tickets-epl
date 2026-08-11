@@ -9,9 +9,7 @@ export const firestoreNotificacionRepository: NotificacionRepository = {
     await addDoc(collection(db, "notificaciones"), { ...input, fecha: new Date().toISOString(), leidoPor: [] });
   },
 
-  // Dos listeners por separado (uno por paraUid, otro por paraRoles) en vez de
-  // un OR compuesto — evita depender de un indice compuesto; se combinan y
-  // ordenan en JS.
+  // Dos listeners (paraUid y paraRoles) en vez de un OR compuesto, se combinan en JS.
   subscribeMany({ uid, role }, callback) {
     let porUid: Notificacion[] = [];
     let porRol: Notificacion[] = [];
@@ -27,9 +25,7 @@ export const firestoreNotificacionRepository: NotificacionRepository = {
       emit();
     });
 
-    // admin no forma parte de LEGAL_STAFF_ROLES (no atiende tickets) — las
-    // reglas de Firestore solo autorizan este query para Legal staff, asi
-    // que ni se intenta para otros roles (evita un permission-denied).
+    // admin no atiende tickets: las rules rechazarian este query (permission-denied).
     if (!LEGAL_STAFF_ROLES.includes(role)) {
       return unsubUid;
     }

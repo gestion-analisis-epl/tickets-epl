@@ -17,7 +17,9 @@ import { ESTATUS_VALUES, type Estatus } from "@/types/ticket";
 import { EstatusBadge, CategoriaBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { formatFecha } from "@/lib/format-fecha";
+import { formatFecha, formatFechaSolo } from "@/lib/format-fecha";
+import { formatMonedaMXN } from "@/lib/text-format";
+import { DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO } from "@/lib/data/arrendamientos-temporal";
 
 function nombreArchivo(url: string): string {
   try {
@@ -91,10 +93,6 @@ export function TicketDetail({ id }: { id: string }) {
   const servicio = findServicio(ticket.servicioId);
   const esDueno = ticket.solicitanteId === uid;
   const puedeCalificar = esDueno && ticket.estatus === "Cierre" && ticket.satisfaccion == null;
-  // Admin puede corregir la solicitud (campos verdes) ademas del dueno —
-  // util para arreglar un error antes de asignar el ticket a un abogado.
-  // Firestore ya lo permitia (isAdmin() sin restriccion de campos, ver
-  // firestore.rules); esto solo habilita el boton en la UI.
   const puedeEditarSolicitud = (esDueno || role === "admin") && ticket.estatus !== "Cierre";
 
   async function handleGuardar() {
@@ -336,6 +334,68 @@ export function TicketDetail({ id }: { id: string }) {
                     </li>
                   ))}
                 </ul>
+              </div>
+            )}
+
+            {ticket.formatoArrendamientoUrl && (
+              <div>
+                <p className="opacity-60 text-sm mb-1.5">Formato de solicitud de arrendamiento</p>
+                <a
+                  href={ticket.formatoArrendamientoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  {nombreArchivo(ticket.formatoArrendamientoUrl)}
+                </a>
+              </div>
+            )}
+
+            {ticket.documentosArrendamiento && (
+              <div>
+                <p className="opacity-60 text-sm mb-1.5">Documentos de arrendamiento</p>
+                <ul className="space-y-1">
+                  {DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO.map((doc) => {
+                    const url = ticket.documentosArrendamiento![doc.key];
+                    if (!url) return null;
+                    return (
+                      <li key={doc.key}>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          {doc.label}
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {ticket.contratoArrendamiento && (
+              <div>
+                <p className="opacity-60 text-sm mb-2">Datos del contrato / convenio</p>
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                  <div><dt className="opacity-60">Sitio</dt><dd className="font-medium">{ticket.contratoArrendamiento.sitio}</dd></div>
+                  <div><dt className="opacity-60">Domicilio</dt><dd className="font-medium">{ticket.contratoArrendamiento.domicilio}</dd></div>
+                  <div><dt className="opacity-60">Alta de arrendador</dt><dd className="font-medium">{ticket.contratoArrendamiento.altaArrendador}</dd></div>
+                  <div><dt className="opacity-60">Solicitante</dt><dd className="font-medium">{ticket.contratoArrendamiento.solicitante}</dd></div>
+                  <div>
+                    <dt className="opacity-60">Periodo de arrendamiento</dt>
+                    <dd className="font-medium">
+                      {formatFechaSolo(ticket.contratoArrendamiento.periodoInicio)} — {formatFechaSolo(ticket.contratoArrendamiento.periodoFin)}
+                    </dd>
+                  </div>
+                  <div><dt className="opacity-60">Condiciones para pago</dt><dd className="font-medium">{ticket.contratoArrendamiento.condicionesPago}</dd></div>
+                  <div><dt className="opacity-60">Monto de pago</dt><dd className="font-medium tabular-nums">{formatMonedaMXN(ticket.contratoArrendamiento.montoPago)}</dd></div>
+                  <div><dt className="opacity-60">Motivo</dt><dd className="font-medium">{ticket.contratoArrendamiento.motivo}</dd></div>
+                  <div className="sm:col-span-2"><dt className="opacity-60">Notas</dt><dd>{ticket.contratoArrendamiento.notas}</dd></div>
+                </dl>
               </div>
             )}
           </>

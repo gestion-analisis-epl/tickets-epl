@@ -14,9 +14,7 @@ export function subscribeCatalogo(): Unsubscribe {
   return catalogoService.subscribe((servicios) => useCatalogoStore.getState().setServicios(servicios));
 }
 
-// Lectura sincrona desde el cache en memoria (poblado por subscribeCatalogo,
-// ver CatalogoProvider) — asi el dominio de tickets puede seguir llamando
-// findServicio() sin volverse async.
+// Lectura sincrona desde el cache en memoria (poblado por subscribeCatalogo).
 export function findServicio(servicioId: string): CatalogoServicio | undefined {
   return useCatalogoStore.getState().servicios.find((s) => s.id === servicioId);
 }

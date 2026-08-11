@@ -10,18 +10,16 @@ interface ServicioSelectorProps {
   value: string;
   onChange: (servicioId: string) => void;
   error?: string;
+  // TEMPORAL: si se pasa, Categoria queda fija y Servicio solo lista estos ids.
+  soloIds?: string[];
 }
 
-// Categoria primero, servicio despues (filtrado por esa categoria) — separado
-// de un solo select con optgroups porque el catalogo ya paso de 70 a 73+
-// servicios y se volvia dificil de recorrer de un jalon.
-export function ServicioSelector({ value, onChange, error }: ServicioSelectorProps) {
+export function ServicioSelector({ value, onChange, error, soloIds }: ServicioSelectorProps) {
   const servicios = useCatalogoStore((s) => s.servicios);
   const categorias = useCategoriasStore((s) => s.categorias);
   const [categoria, setCategoria] = useState<Categoria | "">(() => findServicio(value)?.categoria ?? "");
 
-  // Si `value` cambia desde afuera (ej. al cargar un ticket existente para
-  // editar), sincroniza la categoria mostrada.
+  // Sincroniza la categoria si `value` cambia desde afuera.
   useEffect(() => {
     const actual = findServicio(value)?.categoria;
     if (actual) setCategoria(actual);
@@ -38,6 +36,43 @@ export function ServicioSelector({ value, onChange, error }: ServicioSelectorPro
       return acc;
     }, {} as Partial<Record<Categoria, CatalogoServicio[]>>);
   }, [servicios]);
+
+  if (soloIds) {
+    const serviciosPermitidos = servicios.filter((s) => soloIds.includes(s.id));
+    const categoriaFija = serviciosPermitidos[0]?.categoria ?? "";
+
+    return (
+      <>
+        <div>
+          <label className="block text-sm font-medium mb-1.5">
+            Categoria <span className="text-danger">*</span>
+          </label>
+          <select
+            value={categoriaFija}
+            disabled
+            className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm opacity-70 disabled:cursor-not-allowed"
+          >
+            <option value={categoriaFija}>{categoriaFija}</option>
+          </select>
+        </div>
+
+        <div className="mt-4">
+          <label className="block text-sm font-medium mb-1.5">
+            Servicio <span className="text-danger">*</span>
+          </label>
+          <select
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">Selecciona un servicio...</option>
+            {serviciosPermitidos.map((s) => <option key={s.id} value={s.id}>{s.servicio}</option>)}
+          </select>
+          {error && <p className="text-xs text-danger mt-1">{error}</p>}
+        </div>
+      </>
+    );
+  }
 
   const serviciosDeLaCategoria = categoria ? serviciosPorCategoria[categoria] ?? [] : [];
 

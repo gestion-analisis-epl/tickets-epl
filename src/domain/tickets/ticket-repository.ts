@@ -14,10 +14,7 @@ export interface NewTicketResult {
 
 export type NewTicketBuilder = (ctx: { id: string; folio: string }) => NewTicketResult;
 
-// Puerto que el dominio de tickets usa para persistir/consultar — sin
-// mencionar Firestore. create() recibe un builder en vez del ticket ya armado
-// porque el folio (JUR-0001...) solo se conoce dentro de la transaccion que
-// lo genera; la implementacion decide como se garantiza esa atomicidad.
+// create() recibe un builder porque el folio solo se conoce dentro de la transaccion que lo genera.
 export interface TicketRepository {
   create(build: NewTicketBuilder): Promise<{ id: string; folio: string }>;
   getById(id: string): Promise<Ticket | null>;

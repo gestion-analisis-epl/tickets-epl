@@ -12,9 +12,7 @@ function toRepositoryError(err: FirestoreError): RepositoryError {
 }
 
 export const firestoreTicketRepository: TicketRepository = {
-  // El folio (JUR-0001...) y el ticket se crean en la misma transaccion del
-  // contador para que nunca quede un folio "gastado" sin ticket detras; la
-  // notificacion de "nuevo_ticket" entra a la misma escritura por lo mismo.
+  // Folio, ticket y notificacion en una sola transaccion: ningun folio queda "gastado" sin ticket.
   async create(build) {
     const counterRef = doc(db, "meta", "ticketCounter");
     const ref = doc(collection(db, "tickets"));
@@ -61,8 +59,7 @@ export const firestoreTicketRepository: TicketRepository = {
     return snap.docs.map((d) => ({ ...d.data(), id: d.id }) as Ticket);
   },
 
-  // Solicitantes solo ven los suyos; Legal/admin ven todos. Sin orderBy (evita
-  // un indice compuesto) — se ordena en JS, el volumen de tickets lo permite.
+  // Sin orderBy (evita un indice compuesto) — se ordena en JS.
   subscribeMany({ uid, role }, callback) {
     const ticketsRef = collection(db, "tickets");
     const q = role === "solicitante" ? query(ticketsRef, where("solicitanteId", "==", uid)) : query(ticketsRef);

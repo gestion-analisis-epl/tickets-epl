@@ -18,6 +18,30 @@ export interface HistorialEntry {
   uid: string;
 }
 
+// Especifico del servicio "Contratos / Convenios de Arrendamiento" — ver
+// lib/data/arrendamientos-temporal.ts. Temporal: quitar junto con esa
+// restriccion cuando el catalogo se vuelva a abrir por completo.
+export interface ContratoArrendamientoInput {
+  sitio: string;
+  domicilio: string;
+  altaArrendador: string;
+  solicitante: string;
+  periodoInicio: string; // fecha, yyyy-mm-dd
+  periodoFin: string; // fecha, yyyy-mm-dd
+  condicionesPago: string;
+  montoPago: number;
+  motivo: string;
+  notas: string;
+}
+
+// Solo Alta de Arrendadores / Cambio de Arrendador (ver arrendamientos-temporal.ts).
+export interface DocumentosArrendamientoInput {
+  escrituras: string;
+  identificacionArrendador: string;
+  predial: string;
+  comprobanteDomicilio: string;
+}
+
 export interface Ticket {
   id: string; // ID de documento de Firestore (autogenerado, estable) — usar para rutas/lookups
   folio: string; // JUR-0001... — SOLO exhibicion, nunca usar para identificar el ticket
@@ -32,6 +56,9 @@ export interface Ticket {
   documentacion: string[]; // URLs de Storage
   satisfaccion?: number; // 1-10, la llena el solicitante al cierre
   comentarioSatisfaccion?: string; // opcional, junto con satisfaccion
+  formatoArrendamientoUrl?: string;
+  documentosArrendamiento?: DocumentosArrendamientoInput;
+  contratoArrendamiento?: ContratoArrendamientoInput;
 
   // Gris — calculado por Cloud Function, no editable desde el cliente
   categoria: Categoria;
