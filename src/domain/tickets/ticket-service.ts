@@ -25,7 +25,9 @@ export function createTicketService(repo: TicketRepository, notifier: TicketNoti
       return { ticket: buildNuevoTicket(input, servicio, { id, folio }, new Date()), notificacionMensaje: mensaje };
     });
 
-    await notifier.ticketCreado({ ticketId: resultado.id, folio: resultado.folio, mensaje }).catch(() => {});
+    await notifier
+      .ticketCreado({ ticketId: resultado.id, folio: resultado.folio, mensaje, solicitanteId: input.solicitanteId })
+      .catch(() => {});
 
     return resultado;
   }
@@ -53,7 +55,11 @@ export function createTicketService(repo: TicketRepository, notifier: TicketNoti
     const avisos: Promise<unknown>[] = [];
 
     if (esNuevaAsignacion && input.abogadoAsignadoId) {
-      avisos.push(notifier.ticketAsignado({ ticketId: id, folio: current.folio, abogadoId: input.abogadoAsignadoId }));
+      avisos.push(
+        notifier.ticketAsignado({
+          ticketId: id, folio: current.folio, abogadoId: input.abogadoAsignadoId, solicitanteId: current.solicitanteId,
+        })
+      );
     }
 
     if (esCambioEstatus) {

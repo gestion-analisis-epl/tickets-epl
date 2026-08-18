@@ -1,6 +1,8 @@
 import type { Role } from "@/types/user";
 
-export type TipoNotificacion = "nuevo_ticket" | "asignacion" | "cambio_estatus" | "cierre";
+export type TipoNotificacion =
+  | "nuevo_ticket" | "asignacion" | "cambio_estatus" | "cierre"
+  | "creacion_solicitante" | "asignacion_solicitante";
 
 export interface Notificacion {
   id: string;

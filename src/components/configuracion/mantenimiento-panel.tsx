@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ShieldAlert, Wrench, Mail } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import { backfillSlaHistorico, type BackfillResultado } from "@/lib/tickets";
-import { enviarEmailPrueba } from "@/lib/notificaciones";
+import { enviarEmailNotificacion } from "@/lib/notificaciones";
 import { Button } from "@/components/ui/button";
 
 export function MantenimientoPanel() {
@@ -21,7 +21,7 @@ export function MantenimientoPanel() {
     setEnviandoPrueba(true);
     setPruebaEnviada(false);
     try {
-      await enviarEmailPrueba({
+      await enviarEmailNotificacion({
         tipo: "nuevo_ticket",
         mensaje: "Este es un correo de prueba disparado manualmente desde Mantenimiento, sin ticket real de por medio.",
         ticketId: "test",
@@ -117,7 +117,8 @@ export function MantenimientoPanel() {
         <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">Correo de prueba</h2>
         <p className="text-sm opacity-80">
           Dispara el mismo flujo de notificacion por correo que usan los tickets reales, sin necesidad de crear uno.
-          Va al destinatario de prueba configurado en <span className="font-mono text-xs">/api/notificaciones/email</span>.
+          Llega a todo el staff de Legal (destinatario real de &quot;nuevo ticket&quot;), salvo que{" "}
+          <span className="font-mono text-xs">NOTIFICACIONES_DESTINATARIOS_PRUEBA</span> este configurada.
         </p>
         <Button variant="outline" onClick={handleEnviarPrueba} disabled={enviandoPrueba}>
           <Mail className="h-4 w-4" />
@@ -125,7 +126,7 @@ export function MantenimientoPanel() {
         </Button>
         {pruebaEnviada && (
           <div className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
-            Solicitud enviada. Revisa la bandeja del destinatario de prueba.
+            Solicitud enviada.
           </div>
         )}
       </section>

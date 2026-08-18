@@ -14,6 +14,8 @@ const TIPO_LABEL: Record<TipoNotificacion, string> = {
   asignacion: "Asignacion",
   cambio_estatus: "Cambio de estatus",
   cierre: "Cierre",
+  creacion_solicitante: "Ticket creado",
+  asignacion_solicitante: "Responsable asignado",
 };
 
 const TIPO_ICON: Record<TipoNotificacion, React.ElementType> = {
@@ -21,6 +23,8 @@ const TIPO_ICON: Record<TipoNotificacion, React.ElementType> = {
   asignacion: UserCheck,
   cambio_estatus: ArrowRightCircle,
   cierre: CheckCircle2,
+  creacion_solicitante: Inbox,
+  asignacion_solicitante: UserCheck,
 };
 
 const TIPO_TONE: Record<TipoNotificacion, string> = {
@@ -28,6 +32,8 @@ const TIPO_TONE: Record<TipoNotificacion, string> = {
   asignacion: "text-indigo-600 bg-indigo-50 border-indigo-100 dark:text-indigo-300 dark:bg-indigo-500/10 dark:border-indigo-500/20",
   cambio_estatus: "text-amber-600 bg-amber-50 border-amber-100 dark:text-amber-300 dark:bg-amber-500/10 dark:border-amber-500/20",
   cierre: "text-success bg-success/10 border-success/20",
+  creacion_solicitante: "text-blue-600 bg-blue-50 border-blue-100 dark:text-blue-300 dark:bg-blue-500/10 dark:border-blue-500/20",
+  asignacion_solicitante: "text-indigo-600 bg-indigo-50 border-indigo-100 dark:text-indigo-300 dark:bg-indigo-500/10 dark:border-indigo-500/20",
 };
 
 // Panel tipo navbar (absolute, sin portal) — a diferencia de un menu dentro

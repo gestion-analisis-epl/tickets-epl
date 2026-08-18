@@ -1,16 +1,29 @@
-import { crearNotificacion, notificarAsignacion, enviarEmailPrueba } from "@/lib/notificaciones";
+import { crearNotificacion, notificarAsignacion, enviarEmailNotificacion } from "@/lib/notificaciones";
 import type { TicketNotifier } from "@/domain/tickets/ticket-notifier";
 
 export const firestoreTicketNotifier: TicketNotifier = {
-  async ticketCreado({ ticketId, folio, mensaje }) {
-    await enviarEmailPrueba({ tipo: "nuevo_ticket", mensaje, ticketId, ticketFolio: folio });
+  async ticketCreado({ ticketId, folio, mensaje, solicitanteId }) {
+    const mensajeSolicitante = `Tu ticket ${folio} fue creado y esta en revision.`;
+    await Promise.all([
+      enviarEmailNotificacion({ tipo: "nuevo_ticket", mensaje, ticketId, ticketFolio: folio }),
+      crearNotificacion({
+        ticketId, ticketFolio: folio, tipo: "creacion_solicitante", mensaje: mensajeSolicitante,
+        paraUid: solicitanteId, paraRoles: null,
+      }),
+      enviarEmailNotificacion({ tipo: "creacion_solicitante", mensaje: mensajeSolicitante, ticketId, ticketFolio: folio }),
+    ]);
   },
 
-  async ticketAsignado({ ticketId, folio, abogadoId }) {
-    const mensaje = `Te asignaron el ticket ${folio}.`;
+  async ticketAsignado({ ticketId, folio, abogadoId, solicitanteId }) {
+    const mensajeSolicitante = `Se asigno un responsable a tu ticket ${folio}.`;
     await Promise.all([
       notificarAsignacion(ticketId, folio, abogadoId),
-      enviarEmailPrueba({ tipo: "asignacion", mensaje, ticketId, ticketFolio: folio }),
+      enviarEmailNotificacion({ tipo: "asignacion", mensaje: `Te asignaron el ticket ${folio}.`, ticketId, ticketFolio: folio }),
+      crearNotificacion({
+        ticketId, ticketFolio: folio, tipo: "asignacion_solicitante", mensaje: mensajeSolicitante,
+        paraUid: solicitanteId, paraRoles: null,
+      }),
+      enviarEmailNotificacion({ tipo: "asignacion_solicitante", mensaje: mensajeSolicitante, ticketId, ticketFolio: folio }),
     ]);
   },
 
@@ -20,7 +33,7 @@ export const firestoreTicketNotifier: TicketNotifier = {
 
     await Promise.all([
       crearNotificacion({ ticketId, ticketFolio: folio, tipo, mensaje, paraUid: solicitanteId, paraRoles: null }),
-      enviarEmailPrueba({ tipo, mensaje, ticketId, ticketFolio: folio, tokenCalificacion: tipo === "cierre" ? tokenCalificacion : undefined }),
+      enviarEmailNotificacion({ tipo, mensaje, ticketId, ticketFolio: folio, tokenCalificacion: tipo === "cierre" ? tokenCalificacion : undefined }),
     ]);
   },
 };

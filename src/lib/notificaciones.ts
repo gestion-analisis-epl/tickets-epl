@@ -13,7 +13,7 @@ export const subscribeNotificaciones = notificacionService.subscribeNotificacion
 export const marcarLeida = notificacionService.marcarLeida;
 export const marcarTodasLeidas = notificacionService.marcarTodasLeidas;
 
-export interface EnviarEmailPruebaInput {
+export interface EnviarEmailNotificacionInput {
   tipo: TipoNotificacion;
   mensaje: string;
   ticketId: string;
@@ -21,8 +21,8 @@ export interface EnviarEmailPruebaInput {
   tokenCalificacion?: string; // solo tipo "cierre" — habilita el link de calificar sin login
 }
 
-// PRUEBA: redirige todo correo a una direccion fija. Best-effort.
-export async function enviarEmailPrueba(input: EnviarEmailPruebaInput): Promise<void> {
+// Best-effort: la ruta calcula el destinatario real segun tipo (ver route.ts).
+export async function enviarEmailNotificacion(input: EnviarEmailNotificacionInput): Promise<void> {
   const idToken = await auth.currentUser?.getIdToken();
   if (!idToken) return;
   await fetch("/api/notificaciones/email", {
