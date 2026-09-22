@@ -6,6 +6,9 @@ import type { TipoNotificacion } from "@/lib/notificaciones";
 import type { Ticket } from "@/types/ticket";
 
 export const runtime = "nodejs";
+// La pausa entre correos (ver abajo) hace que ~50 envios tarden cerca de un
+// minuto — el limite por defecto (10s) cortaria la funcion a la mitad.
+export const maxDuration = 60;
 
 // Un solo uso: reenvia (o solo cuenta, en dry-run) los avisos de correo que
 // no se mandaron bien por la falta de vinculo abogado<->usuario (ver
@@ -88,6 +91,9 @@ export async function POST(request: Request) {
           if (enviados > 0) {
             resumenPorTipo[envio.tipo] = (resumenPorTipo[envio.tipo] ?? 0) + 1;
             totalCorreos++;
+            // Pausa entre envios reales: margen extra para Gmail ademas del
+            // pool de conexion reutilizada en lib/email.ts.
+            await new Promise((r) => setTimeout(r, 300));
           } else {
             sinDestinatario.push(`${envio.ticketFolio} — ${envio.tipo}`);
           }
