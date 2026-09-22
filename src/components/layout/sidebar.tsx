@@ -11,6 +11,7 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { useAuthStore, type Role } from "@/stores/auth";
 import { signOutUser } from "@/lib/auth-actions";
+import { isAdminRole } from "@/types/user";
 
 interface NavItem {
   label: string;
@@ -160,7 +161,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
 
         {/* Bottom */}
         <div className={cn("space-y-0.5 border-t border-sidebar-border py-3 transition-[padding] duration-200", effectiveCollapsed ? "px-1.5" : "px-2.5")}>
-          {role === "admin" && (
+          {isAdminRole(role) && (
             <Link
               href="/configuracion"
               title="Configuracion"

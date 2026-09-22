@@ -11,6 +11,13 @@ function toRepositoryError(err: FirestoreError): RepositoryError {
   return { code: err.code };
 }
 
+// Tickets de prueba (creados mientras se validaba la plataforma, antes de
+// operar en real) — se excluyen del pipeline y de cualquier metrica.
+const CORTE_TICKETS_PRUEBA = "2026-09-21T00:00:00.000Z";
+function esTicketDePrueba(t: Ticket): boolean {
+  return t.fechaSolicitud < CORTE_TICKETS_PRUEBA;
+}
+
 export const firestoreTicketRepository: TicketRepository = {
   // Folio, ticket y notificacion en una sola transaccion: ningun folio queda "gastado" sin ticket.
   async create(build) {
@@ -56,7 +63,7 @@ export const firestoreTicketRepository: TicketRepository = {
 
   async listCerrados() {
     const snap = await getDocs(query(collection(db, "tickets"), where("estatus", "==", "Cierre")));
-    return snap.docs.map((d) => ({ ...d.data(), id: d.id }) as Ticket);
+    return snap.docs.map((d) => ({ ...d.data(), id: d.id }) as Ticket).filter((t) => !esTicketDePrueba(t));
   },
 
   // Sin orderBy (evita un indice compuesto) — se ordena en JS.
@@ -65,7 +72,9 @@ export const firestoreTicketRepository: TicketRepository = {
     const q = role === "solicitante" ? query(ticketsRef, where("solicitanteId", "==", uid)) : query(ticketsRef);
 
     return onSnapshot(q, (snap) => {
-      const tickets = snap.docs.map((d) => ({ ...d.data(), id: d.id }) as Ticket);
+      const tickets = snap.docs
+        .map((d) => ({ ...d.data(), id: d.id }) as Ticket)
+        .filter((t) => !esTicketDePrueba(t));
       tickets.sort((a, b) => (a.fechaSolicitud < b.fechaSolicitud ? 1 : -1));
       callback(tickets);
     });

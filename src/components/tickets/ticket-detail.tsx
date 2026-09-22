@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { formatFecha, formatFechaSolo } from "@/lib/format-fecha";
 import { formatMonedaMXN } from "@/lib/text-format";
 import { DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO } from "@/lib/data/arrendamientos-temporal";
+import { isAdminRole } from "@/types/user";
 
 function nombreArchivo(url: string): string {
   try {
@@ -35,7 +36,7 @@ export function TicketDetail({ id }: { id: string }) {
   const { uid, role } = useAuthStore();
   const { ticket, loading, forbidden } = useTicket(id);
   const puedeEditar = role === "mesa_control" || role === "abogado" || role === "gerente_juridico" || role === "admin";
-  const puedeEliminar = role === "admin";
+  const puedeEliminar = isAdminRole(role);
 
   const [estatusForm, setEstatusForm] = useState<Estatus>("Recepcion de solicitud");
   const [abogadoForm, setAbogadoForm] = useState("");
@@ -93,7 +94,7 @@ export function TicketDetail({ id }: { id: string }) {
   const servicio = findServicio(ticket.servicioId);
   const esDueno = ticket.solicitanteId === uid;
   const puedeCalificar = esDueno && ticket.estatus === "Cierre" && ticket.satisfaccion == null;
-  const puedeEditarSolicitud = (esDueno || role === "admin") && ticket.estatus !== "Cierre";
+  const puedeEditarSolicitud = (esDueno || isAdminRole(role)) && ticket.estatus !== "Cierre";
 
   async function handleGuardar() {
     setSaving(true);

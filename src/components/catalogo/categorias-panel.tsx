@@ -12,11 +12,12 @@ import { BADGE_TONES, type BadgeTone } from "@/types/badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { CatalogoServicio } from "@/types/catalogo";
+import { isAdminRole } from "@/types/user";
 
 type Panel = { mode: "crear" } | { mode: "editar"; categoria: CategoriaCatalogo } | null;
 
 export function CategoriasPanel({ servicios }: { servicios: CatalogoServicio[] }) {
-  const isAdmin = useAuthStore((s) => s.role === "admin");
+  const isAdmin = useAuthStore((s) => isAdminRole(s.role));
   const categorias = useCategoriasStore((s) => s.categorias);
 
   const [panel, setPanel] = useState<Panel>(null);

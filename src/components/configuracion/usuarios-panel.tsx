@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Loader2, Search, ShieldAlert, Plus, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Loader2, Search, ShieldAlert, Plus, Pencil, Trash2, ArrowUp, ArrowDown, ArrowUpDown, ListFilter } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import {
   listUsers, crearUsuarioStaff, actualizarUsuario, eliminarUsuario,
   type UserRow, type ActualizarUsuarioInput,
 } from "@/lib/users";
-import { STAFF_ROLES, LEGAL_STAFF_ROLES, type Role } from "@/types/user";
+import { STAFF_ROLES, LEGAL_STAFF_ROLES, isAdminRole, type Role } from "@/types/user";
 import { ABOGADOS, findAbogado } from "@/lib/data/abogados";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,99 @@ const ROLE_OPTIONS: Role[] = ["solicitante", "mesa_control", "abogado", "gerente
 
 type Panel = { mode: "crear" } | { mode: "editar"; user: UserRow } | null;
 
+type ColumnKey = "nombre" | "email" | "role" | "activo";
+type SortState = { key: ColumnKey; dir: "asc" | "desc" } | null;
+
+const COLUMNS: { key: ColumnKey; label: string }[] = [
+  { key: "nombre", label: "Nombre" },
+  { key: "email", label: "Correo" },
+  { key: "role", label: "Rol" },
+  { key: "activo", label: "Activo" },
+];
+
+// Portal a document.body: el header vive dentro de un contenedor con
+// overflow-x-auto/overflow-hidden (scroll horizontal de la tabla), que
+// recorta cualquier dropdown posicionado con position:absolute adentro.
+function ColumnFilterButton({
+  options, selected, onToggle, onClear,
+}: {
+  options: { value: string; label: string }[];
+  selected: Set<string>;
+  onToggle: (v: string) => void;
+  onClear: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
+
+  const toggle = () => {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      const left = Math.min(r.left, window.innerWidth - 216);
+      setCoords({ top: r.bottom + 4, left: Math.max(8, left) });
+    }
+    setOpen((o) => !o);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (dropRef.current?.contains(t)) return;
+      if (btnRef.current?.contains(t)) return;
+      setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={toggle}
+        className={cn("hover:opacity-100", selected.size > 0 ? "opacity-100 text-primary" : "opacity-40")}
+        title="Filtrar"
+      >
+        <ListFilter className="h-3 w-3" />
+      </button>
+
+      {open && createPortal(
+        <div
+          ref={dropRef}
+          style={{ position: "fixed", top: coords.top, left: coords.left, zIndex: 9999 }}
+          className="bg-card text-card-foreground rounded-lg border border-border shadow-lg min-w-[200px] overflow-hidden"
+        >
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-surface">
+            <span className="text-xs font-semibold uppercase tracking-wider opacity-70">Filtrar</span>
+            {selected.size > 0 && (
+              <button type="button" onClick={onClear} className="text-xs font-normal normal-case text-primary hover:underline">
+                Limpiar
+              </button>
+            )}
+          </div>
+          <div className="max-h-52 overflow-y-auto py-1">
+            {options.map((o) => (
+              <label key={o.value} className="flex items-center gap-2.5 px-3 py-2 hover:bg-surface cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selected.has(o.value)}
+                  onChange={() => onToggle(o.value)}
+                  className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-ring cursor-pointer shrink-0"
+                />
+                <span className="text-sm font-normal normal-case leading-none">{o.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
+  );
+}
+
 export function UsuariosPanel() {
   const myRole = useAuthStore((s) => s.role);
   const myUid = useAuthStore((s) => s.uid);
@@ -32,6 +126,9 @@ export function UsuariosPanel() {
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<SortState>(null);
+  const [roleFilter, setRoleFilter] = useState<Set<Role>>(new Set());
+  const [activoFilter, setActivoFilter] = useState<Set<"si" | "no">>(new Set());
 
   const [panel, setPanel] = useState<Panel>(null);
   const [formNombre, setFormNombre] = useState("");
@@ -51,18 +148,53 @@ export function UsuariosPanel() {
   }
 
   useEffect(() => {
-    if (myRole !== "admin") return;
+    if (!isAdminRole(myRole)) return;
     refresh()
       .catch(() => setListError("No se pudo cargar la lista de usuarios."))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myRole]);
 
+  function toggleSort(key: ColumnKey) {
+    setSort((prev) => {
+      if (prev?.key !== key) return { key, dir: "asc" };
+      if (prev.dir === "asc") return { key, dir: "desc" };
+      return null;
+    });
+  }
+
+  function toggleSetValue<T>(set: Set<T>, value: T, setter: (s: Set<T>) => void) {
+    const next = new Set(set);
+    if (next.has(value)) next.delete(value);
+    else next.add(value);
+    setter(next);
+  }
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter((u) => u.nombre.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
-  }, [users, search]);
+    let rows = users.filter((u) => {
+      if (q && !(u.nombre.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || ROLE_LABEL[u.role].toLowerCase().includes(q))) {
+        return false;
+      }
+      if (roleFilter.size > 0 && !roleFilter.has(u.role)) return false;
+      if (activoFilter.size > 0 && !activoFilter.has(u.activo ? "si" : "no")) return false;
+      return true;
+    });
+
+    if (sort) {
+      const { key, dir } = sort;
+      rows = [...rows].sort((a, b) => {
+        let cmp = 0;
+        if (key === "nombre") cmp = a.nombre.localeCompare(b.nombre);
+        else if (key === "email") cmp = a.email.localeCompare(b.email);
+        else if (key === "role") cmp = ROLE_LABEL[a.role].localeCompare(ROLE_LABEL[b.role]);
+        else if (key === "activo") cmp = Number(a.activo) - Number(b.activo);
+        return dir === "asc" ? cmp : -cmp;
+      });
+    }
+
+    return rows;
+  }, [users, search, sort, roleFilter, activoFilter]);
 
   function abrirCrear() {
     setFormNombre("");
@@ -132,7 +264,7 @@ export function UsuariosPanel() {
     }
   }
 
-  if (myRole !== "admin") {
+  if (!isAdminRole(myRole)) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card p-10 text-center max-w-lg">
         <ShieldAlert className="h-6 w-6 text-danger" />
@@ -143,7 +275,7 @@ export function UsuariosPanel() {
   }
 
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-4 max-w-6xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 opacity-50 pointer-events-none" />
@@ -151,7 +283,7 @@ export function UsuariosPanel() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nombre o correo..."
+            placeholder="Buscar por nombre, correo o rol..."
             className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-border bg-card focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
@@ -271,13 +403,43 @@ export function UsuariosPanel() {
       ) : (
         <div className="rounded-lg border border-border overflow-hidden bg-card">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-[860px] text-sm">
             <thead>
               <tr className="bg-surface border-b border-border">
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider opacity-70">Nombre</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider opacity-70">Correo</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider opacity-70">Rol</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider opacity-70">Activo</th>
+                {COLUMNS.map((col) => (
+                  <th key={col.key} className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider opacity-70">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => toggleSort(col.key)}
+                        className="flex items-center gap-1 hover:opacity-100"
+                      >
+                        {col.label}
+                        {sort?.key === col.key ? (
+                          sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 opacity-40" />
+                        )}
+                      </button>
+                      {col.key === "role" && (
+                        <ColumnFilterButton
+                          options={ROLE_OPTIONS.map((r) => ({ value: r, label: ROLE_LABEL[r] }))}
+                          selected={roleFilter}
+                          onToggle={(v) => toggleSetValue(roleFilter, v as Role, setRoleFilter)}
+                          onClear={() => setRoleFilter(new Set())}
+                        />
+                      )}
+                      {col.key === "activo" && (
+                        <ColumnFilterButton
+                          options={[{ value: "si", label: "Si" }, { value: "no", label: "No" }]}
+                          selected={activoFilter}
+                          onToggle={(v) => toggleSetValue(activoFilter, v as "si" | "no", setActivoFilter)}
+                          onClear={() => setActivoFilter(new Set())}
+                        />
+                      )}
+                    </div>
+                  </th>
+                ))}
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider opacity-70">Acciones</th>
               </tr>
             </thead>

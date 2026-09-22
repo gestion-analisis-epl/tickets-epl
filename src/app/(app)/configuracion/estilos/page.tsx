@@ -5,12 +5,13 @@ import { useAuthStore } from "@/stores/auth";
 import { Button } from "@/components/ui/button";
 import { EstatusBadge, CategoriaBadge, ESTATUS_TONE } from "@/components/ui/badge";
 import { useCategoriasStore } from "@/stores/categorias";
+import { isAdminRole } from "@/types/user";
 
 export default function EstilosPage() {
   const role = useAuthStore((s) => s.role);
   const categorias = useCategoriasStore((s) => s.categorias);
 
-  if (role !== "admin") {
+  if (!isAdminRole(role)) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card p-10 text-center max-w-lg">
         <ShieldAlert className="h-6 w-6 text-danger" />

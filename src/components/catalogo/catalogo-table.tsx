@@ -27,6 +27,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useAuthStore } from "@/stores/auth";
+import { isAdminRole } from "@/types/user";
 import {
   crearServicio, actualizarServicio, eliminarServicio, importarCatalogoEstatico,
   type ServicioInput,
@@ -249,7 +250,7 @@ const FORM_VACIO: ServicioInput = {
 };
 
 export function CatalogoTable({ data }: { data: CatalogoServicio[] }) {
-  const isAdmin = useAuthStore((s) => s.role === "admin");
+  const isAdmin = useAuthStore((s) => isAdminRole(s.role));
   const categorias = useCategoriasStore((s) => s.categorias);
   const [sorting, setSorting]             = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);

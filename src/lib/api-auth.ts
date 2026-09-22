@@ -1,4 +1,5 @@
 import { getAdminAuth, getAdminDb } from "./firebase-admin";
+import { isAdminRole } from "@/types/user";
 
 // Status HTTP que debe devolver el route handler que la atrape.
 export class ApiAuthError extends Error {
@@ -29,8 +30,8 @@ export async function requireAdmin(request: Request): Promise<string> {
   const callerUid = await verifyCallerToken(request);
 
   const callerDoc = await getAdminDb().collection("users").doc(callerUid).get();
-  if (callerDoc.data()?.role !== "admin") {
-    throw new ApiAuthError(403, "Solo una cuenta admin puede hacer esto.");
+  if (!isAdminRole(callerDoc.data()?.role)) {
+    throw new ApiAuthError(403, "Solo una cuenta admin o gerente juridico puede hacer esto.");
   }
 
   return callerUid;

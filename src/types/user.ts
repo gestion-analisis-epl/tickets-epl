@@ -10,6 +10,14 @@ export const STAFF_ROLES: Role[] = ["mesa_control", "abogado", "gerente_juridico
 // admin queda fuera: no atiende tickets (ver firestore.rules isAdmin() vs isLegalStaff()).
 export const LEGAL_STAFF_ROLES: Role[] = ["mesa_control", "abogado", "gerente_juridico"];
 
+// TEMPORAL: gerente_juridico tiene los mismos permisos que admin (para poder
+// gestionar usuarios/catalogo sin depender de una cuenta admin dedicada).
+// Sincronizar a mano con firestore.rules isAdmin().
+export const ADMIN_LIKE_ROLES: Role[] = ["admin", "gerente_juridico"];
+export function isAdminRole(role: Role | null | undefined): boolean {
+  return !!role && (ADMIN_LIKE_ROLES as Role[]).includes(role);
+}
+
 export interface AppUser {
   uid: string;
   nombre: string;
