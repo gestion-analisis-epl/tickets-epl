@@ -30,12 +30,8 @@ function planPorTicket(t: Ticket): Envio[] {
   const folio = t.folio ?? t.id;
 
   envios.push({ tipo: "nuevo_ticket", mensaje: `Nueva solicitud ${folio}.`, ticketId: t.id, ticketFolio: folio });
-  envios.push({
-    tipo: "creacion_solicitante",
-    mensaje: `Tu ticket ${folio} fue creado y esta en revision.`,
-    ticketId: t.id,
-    ticketFolio: folio,
-  });
+  // creacion_solicitante no se reenvia: ya se mando bien la primera vez
+  // (no dependia del vinculo abogado<->usuario que estaba roto).
 
   if (t.abogadoAsignadoId) {
     envios.push({ tipo: "asignacion", mensaje: `Te asignaron el ticket ${folio}.`, ticketId: t.id, ticketFolio: folio });

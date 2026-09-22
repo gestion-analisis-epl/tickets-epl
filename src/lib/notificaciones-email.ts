@@ -1,6 +1,5 @@
 import { enviarEmail } from "@/lib/email";
 import { getAdminDb } from "@/lib/firebase-admin";
-import { LEGAL_STAFF_ROLES } from "@/types/user";
 import type { TipoNotificacion } from "@/lib/notificaciones";
 
 export const TIPO_LABEL: Record<TipoNotificacion, string> = {
@@ -20,29 +19,57 @@ const BOTON = "display:inline-block;padding:10px 18px;background:#1d4ed8;color:#
 const DESTINATARIOS_PRUEBA = (process.env.NOTIFICACIONES_DESTINATARIOS_PRUEBA ?? "")
   .split(",").map((e) => e.trim()).filter(Boolean);
 
-export async function destinatariosReales(tipo: TipoNotificacion, ticketId: string): Promise<string[]> {
+// Legal/admin que dan seguimiento operativo: solo gerente_juridico y admin
+// (mesa_control y abogado ya se enteran via el aviso de asignacion/cambio de
+// estatus, dirigido puntualmente al abogado vinculado al ticket).
+async function gerenteJuridicoYAdminEmails(): Promise<string[]> {
   const db = getAdminDb();
+  const snap = await db.collection("users").where("role", "in", ["gerente_juridico", "admin"]).get();
+  return snap.docs.map((d) => d.data()).filter((u) => u.activo && u.email).map((u) => u.email as string);
+}
 
+async function abogadoAsignadoEmail(abogadoAsignadoId: string | null | undefined): Promise<string[]> {
+  if (!abogadoAsignadoId) return [];
+  const db = getAdminDb();
+  const snap = await db.collection("users").where("abogadoId", "==", abogadoAsignadoId).limit(1).get();
+  const email = snap.docs[0]?.data().email;
+  return email ? [email] : [];
+}
+
+async function solicitanteEmail(solicitanteId: string): Promise<string[]> {
+  const db = getAdminDb();
+  const solicitante = (await db.collection("users").doc(solicitanteId).get()).data();
+  return solicitante?.email ? [solicitante.email] : [];
+}
+
+export async function destinatariosReales(tipo: TipoNotificacion, ticketId: string): Promise<string[]> {
   if (tipo === "nuevo_ticket") {
-    // TEMPORAL mientras se prueba la plataforma: admin tambien recibe el aviso
-    // de nuevo ticket aunque no atienda tickets. Quitar "admin" cuando se
-    // valide el flujo (ver LEGAL_STAFF_ROLES en types/user.ts).
-    const snap = await db.collection("users").where("role", "in", [...LEGAL_STAFF_ROLES, "admin"]).get();
-    return snap.docs.map((d) => d.data()).filter((u) => u.activo && u.email).map((u) => u.email as string);
+    return gerenteJuridicoYAdminEmails();
   }
 
+  const db = getAdminDb();
   const ticket = (await db.collection("tickets").doc(ticketId).get()).data();
   if (!ticket) return [];
 
   if (tipo === "asignacion") {
-    if (!ticket.abogadoAsignadoId) return [];
-    const snap = await db.collection("users").where("abogadoId", "==", ticket.abogadoAsignadoId).limit(1).get();
-    const email = snap.docs[0]?.data().email;
-    return email ? [email] : [];
+    const [abogado, legalAdmin] = await Promise.all([
+      abogadoAsignadoEmail(ticket.abogadoAsignadoId),
+      gerenteJuridicoYAdminEmails(),
+    ]);
+    return Array.from(new Set([...abogado, ...legalAdmin]));
   }
 
-  const solicitante = (await db.collection("users").doc(ticket.solicitanteId).get()).data();
-  return solicitante?.email ? [solicitante.email] : [];
+  if (tipo === "cambio_estatus") {
+    const [abogado, legalAdmin, solicitante] = await Promise.all([
+      abogadoAsignadoEmail(ticket.abogadoAsignadoId),
+      gerenteJuridicoYAdminEmails(),
+      solicitanteEmail(ticket.solicitanteId),
+    ]);
+    return Array.from(new Set([...abogado, ...legalAdmin, ...solicitante]));
+  }
+
+  // creacion_solicitante, asignacion_solicitante, cierre -> solo el solicitante.
+  return solicitanteEmail(ticket.solicitanteId);
 }
 
 export interface EnviarNotificacionEmailInput {
