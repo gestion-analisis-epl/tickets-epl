@@ -39,7 +39,11 @@ export function ServicioSelector({ value, onChange, error, soloIds }: ServicioSe
 
   if (soloIds) {
     const serviciosPermitidos = servicios.filter((s) => soloIds.includes(s.id));
-    const categoriaFija = serviciosPermitidos[0]?.categoria ?? "";
+    const categoriasPermitidas = Array.from(new Set(serviciosPermitidos.map((s) => s.categoria)));
+    const categoriaActual = categoria || serviciosPermitidos[0]?.categoria || "";
+    const serviciosDeLaCategoriaPermitida = categoriaActual
+      ? serviciosPermitidos.filter((s) => s.categoria === categoriaActual)
+      : serviciosPermitidos;
 
     return (
       <>
@@ -48,11 +52,11 @@ export function ServicioSelector({ value, onChange, error, soloIds }: ServicioSe
             Categoria <span className="text-danger">*</span>
           </label>
           <select
-            value={categoriaFija}
-            disabled
-            className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm opacity-70 disabled:cursor-not-allowed"
+            value={categoriaActual}
+            onChange={(e) => handleCategoriaChange(e.target.value)}
+            className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value={categoriaFija}>{categoriaFija}</option>
+            {categoriasPermitidas.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
 
@@ -66,7 +70,7 @@ export function ServicioSelector({ value, onChange, error, soloIds }: ServicioSe
             className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="">Selecciona un servicio...</option>
-            {serviciosPermitidos.map((s) => <option key={s.id} value={s.id}>{s.servicio}</option>)}
+            {serviciosDeLaCategoriaPermitida.map((s) => <option key={s.id} value={s.id}>{s.servicio}</option>)}
           </select>
           {error && <p className="text-xs text-danger mt-1">{error}</p>}
         </div>
