@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldAlert, Wrench, Mail, Send } from "lucide-react";
+import { ShieldAlert, Wrench, Mail, Send, Square } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import { backfillSlaHistorico, type BackfillResultado } from "@/lib/tickets";
 import { enviarEmailNotificacion } from "@/lib/notificaciones";
@@ -11,6 +11,7 @@ import { isAdminRole } from "@/types/user";
 
 interface ReenvioResultado {
   modo: "dry-run" | "envio";
+  cancelado?: boolean;
   tickets: number;
   totalCorreos: number;
   resumenPorTipo: Record<string, number>;
@@ -29,6 +30,16 @@ async function llamarReenvio(send: boolean): Promise<ReenvioResultado> {
   return res.json();
 }
 
+async function llamarCancelarReenvio(): Promise<void> {
+  const idToken = await auth.currentUser?.getIdToken();
+  if (!idToken) throw new Error("Sesion invalida.");
+  const res = await fetch("/api/notificaciones/reenviar-retroactivo/cancelar", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error ?? "No se pudo detener.");
+}
+
 export function MantenimientoPanel() {
   const role = useAuthStore((s) => s.role);
   const [confirmando, setConfirmando] = useState(false);
@@ -40,6 +51,8 @@ export function MantenimientoPanel() {
   const [pruebaEnviada, setPruebaEnviada] = useState(false);
 
   const [corriendoReenvio, setCorriendoReenvio] = useState(false);
+  const [enviandoReenvioReal, setEnviandoReenvioReal] = useState(false);
+  const [deteniendoReenvio, setDeteniendoReenvio] = useState(false);
   const [reenvioDryRun, setReenvioDryRun] = useState<ReenvioResultado | null>(null);
   const [reenvioFinal, setReenvioFinal] = useState<ReenvioResultado | null>(null);
   const [reenvioError, setReenvioError] = useState<string | null>(null);
@@ -62,6 +75,7 @@ export function MantenimientoPanel() {
 
   async function handleEnviarReenvio() {
     setCorriendoReenvio(true);
+    setEnviandoReenvioReal(true);
     setReenvioError(null);
     try {
       setReenvioFinal(await llamarReenvio(true));
@@ -70,6 +84,18 @@ export function MantenimientoPanel() {
       setReenvioError(err instanceof Error ? err.message : "No se pudo enviar.");
     } finally {
       setCorriendoReenvio(false);
+      setEnviandoReenvioReal(false);
+    }
+  }
+
+  async function handleDetenerReenvio() {
+    setDeteniendoReenvio(true);
+    try {
+      await llamarCancelarReenvio();
+    } catch (err) {
+      setReenvioError(err instanceof Error ? err.message : "No se pudo detener.");
+    } finally {
+      setDeteniendoReenvio(false);
     }
   }
 
@@ -246,13 +272,30 @@ export function MantenimientoPanel() {
                   <Button variant="outline" onClick={() => setConfirmandoReenvio(false)} disabled={corriendoReenvio}>
                     Cancelar
                   </Button>
+                  {enviandoReenvioReal && (
+                    <Button variant="danger" onClick={handleDetenerReenvio} disabled={deteniendoReenvio}>
+                      <Square className="h-4 w-4" />
+                      {deteniendoReenvio ? "Deteniendo..." : "Detener envio"}
+                    </Button>
+                  )}
                 </div>
+                {enviandoReenvioReal && (
+                  <p className="text-xs opacity-60">
+                    El envio esta en curso (con pausa entre correos) — si algo se ve mal, dale a &quot;Detener
+                    envio&quot; y se frena antes del siguiente correo.
+                  </p>
+                )}
               </div>
             )}
           </div>
         )}
 
-        {reenvioFinal && (
+        {reenvioFinal && reenvioFinal.cancelado && (
+          <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
+            Detenido a mitad de camino: {reenvioFinal.totalCorreos} correos se alcanzaron a enviar antes de parar.
+          </div>
+        )}
+        {reenvioFinal && !reenvioFinal.cancelado && (
           <div className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
             Listo: {reenvioFinal.totalCorreos} correos enviados de {reenvioFinal.tickets} tickets.
           </div>

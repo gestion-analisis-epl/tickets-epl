@@ -17,6 +17,17 @@ export const maxDuration = 60;
 // ticket-repository.ts CORTE_TICKETS_PRUEBA).
 const CORTE = "2026-09-21T00:00:00.000Z";
 
+// Bandera de cancelacion compartida via Firestore (no memoria del proceso):
+// el boton "Detener" de otra request la prende, y este loop la revisa entre
+// cada correo — necesario porque abortar el fetch del cliente no mata la
+// funcion serverless que sigue corriendo del lado del servidor.
+const CANCEL_DOC = "reenvioRetroactivo";
+
+async function estaCancelado(): Promise<boolean> {
+  const snap = await getAdminDb().collection("meta").doc(CANCEL_DOC).get();
+  return snap.data()?.cancelado === true;
+}
+
 interface Envio {
   tipo: TipoNotificacion;
   mensaje: string;
@@ -76,13 +87,24 @@ export async function POST(request: Request) {
       .map((d) => ({ ...d.data(), id: d.id }) as Ticket)
       .filter((t) => t.fechaSolicitud >= CORTE);
 
+    if (send) {
+      // Arranca "sin cancelar" cada vez que se dispara un envio real.
+      await getAdminDb().collection("meta").doc(CANCEL_DOC).set({ cancelado: false });
+    }
+
     const resumenPorTipo: Record<string, number> = {};
     const sinDestinatario: string[] = [];
     let totalCorreos = 0;
+    let cancelado = false;
 
-    for (const t of tickets) {
+    outer: for (const t of tickets) {
       for (const envio of planPorTicket(t)) {
         if (send) {
+          if (await estaCancelado()) {
+            cancelado = true;
+            break outer;
+          }
+
           const enviados = await enviarNotificacionEmail(envio);
           if (enviados > 0) {
             resumenPorTipo[envio.tipo] = (resumenPorTipo[envio.tipo] ?? 0) + 1;
@@ -108,6 +130,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       modo: send ? "envio" : "dry-run",
+      cancelado,
       tickets: tickets.length,
       totalCorreos,
       resumenPorTipo,
