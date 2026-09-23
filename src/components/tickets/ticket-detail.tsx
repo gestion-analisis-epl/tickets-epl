@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, ShieldAlert, FileText, Trash2, Pencil } from "lucide-react";
+import { Loader2, ShieldAlert, FileText, Trash2, Pencil, Download } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import { useTicket } from "@/hooks/use-ticket";
 import { updateTicketAsignacion, updateTicketSolicitud, submitSatisfaccion, deleteTicket } from "@/lib/tickets";
@@ -11,7 +11,7 @@ import { findServicio } from "@/lib/catalogo";
 import { ServicioSelector } from "./servicio-selector";
 import { ABOGADOS } from "@/lib/data/abogados";
 import { AREAS_EMPRESA } from "@/lib/data/listas";
-import { uploadTicketFile, deleteTicketDocument } from "@/lib/storage";
+import { uploadTicketFile, deleteTicketDocument, deleteTicketDocumentByUrl } from "@/lib/storage";
 import { FileDropzone, type UploadingFile } from "@/components/ui/file-dropzone";
 import { ESTATUS_VALUES, type Estatus } from "@/types/ticket";
 import { EstatusBadge, CategoriaBadge } from "@/components/ui/badge";
@@ -33,10 +33,12 @@ function nombreArchivo(url: string): string {
 
 export function TicketDetail({ id }: { id: string }) {
   const router = useRouter();
-  const { uid, role } = useAuthStore();
+  const { uid, role, abogadoId } = useAuthStore();
   const { ticket, loading, forbidden } = useTicket(id);
   const puedeEditar = role === "mesa_control" || role === "abogado" || role === "gerente_juridico" || role === "admin";
   const puedeEliminar = isAdminRole(role);
+  // Reasignar abogado es tarea exclusiva de Admin/Gerente Juridico (ver firestore.rules).
+  const puedeAsignarAbogado = isAdminRole(role);
 
   const [estatusForm, setEstatusForm] = useState<Estatus>("Recepcion de solicitud");
   const [abogadoForm, setAbogadoForm] = useState("");
@@ -58,8 +60,12 @@ export function TicketDetail({ id }: { id: string }) {
   const [servicioIdForm, setServicioIdForm] = useState("");
   const [descripcionForm, setDescripcionForm] = useState("");
   const [nuevosArchivos, setNuevosArchivos] = useState<UploadingFile[]>([]);
+  const [docsExistentesForm, setDocsExistentesForm] = useState<string[]>([]);
   const [savingSolicitud, setSavingSolicitud] = useState(false);
   const [solicitudError, setSolicitudError] = useState<string | null>(null);
+
+  const [descargandoZip, setDescargandoZip] = useState(false);
+  const [zipError, setZipError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!ticket) return;
@@ -94,7 +100,17 @@ export function TicketDetail({ id }: { id: string }) {
   const servicio = findServicio(ticket.servicioId);
   const esDueno = ticket.solicitanteId === uid;
   const puedeCalificar = esDueno && ticket.estatus === "Cierre" && ticket.satisfaccion == null;
+  // Area/servicio/descripcion: solo el dueno o admin, mientras no este Cerrada.
   const puedeEditarSolicitud = (esDueno || isAdminRole(role)) && ticket.estatus !== "Cierre";
+  // Documentacion: ademas del dueno/admin, el abogado asignado a ESTE ticket
+  // y gerente_juridico (ya cubierto por isAdminRole) pueden subir/borrar archivos.
+  const esAbogadoAsignado = role === "abogado" && !!abogadoId && abogadoId === ticket.abogadoAsignadoId;
+  const puedeEditarDocumentos = (puedeEditarSolicitud || esAbogadoAsignado) && ticket.estatus !== "Cierre";
+  const todaLaDocumentacion = [
+    ...ticket.documentacion,
+    ...(ticket.formatoArrendamientoUrl ? [ticket.formatoArrendamientoUrl] : []),
+    ...(ticket.documentosArrendamiento ? Object.values(ticket.documentosArrendamiento).filter((u): u is string => !!u) : []),
+  ];
 
   async function handleGuardar() {
     setSaving(true);
@@ -158,10 +174,20 @@ export function TicketDetail({ id }: { id: string }) {
     }
   }
 
+  function handleIniciarEdicionSolicitud() {
+    setDocsExistentesForm(ticket!.documentacion);
+    setEditingSolicitud(true);
+  }
+
+  function handleEliminarDocExistente(url: string) {
+    setDocsExistentesForm((prev) => prev.filter((u) => u !== url));
+  }
+
   function handleCancelarEdicionSolicitud() {
     setEditingSolicitud(false);
     setSolicitudError(null);
     setNuevosArchivos([]);
+    setDocsExistentesForm(ticket!.documentacion);
     setAreaEmpresaForm(ticket!.areaEmpresa);
     setServicioIdForm(ticket!.servicioId);
     setDescripcionForm(ticket!.descripcion);
@@ -172,18 +198,60 @@ export function TicketDetail({ id }: { id: string }) {
     setSolicitudError(null);
     try {
       const nuevosUrls = nuevosArchivos.filter((f) => f.status === "done" && f.url).map((f) => f.url!);
+      const docsEliminados = ticket!.documentacion.filter((u) => !docsExistentesForm.includes(u));
+
       await updateTicketSolicitud(id, {
         areaEmpresa: areaEmpresaForm,
         servicioId: servicioIdForm,
         descripcion: descripcionForm,
-        documentacion: [...ticket!.documentacion, ...nuevosUrls],
+        documentacion: [...docsExistentesForm, ...nuevosUrls],
       });
+
+      await Promise.all(docsEliminados.map((url) => deleteTicketDocumentByUrl(url).catch(() => {})));
+
       setNuevosArchivos([]);
       setEditingSolicitud(false);
     } catch {
       setSolicitudError("No se pudo guardar. Intenta de nuevo.");
     } finally {
       setSavingSolicitud(false);
+    }
+  }
+
+  async function handleDescargarZip() {
+    setDescargandoZip(true);
+    setZipError(null);
+    try {
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      const usados = new Set<string>();
+
+      await Promise.all(
+        todaLaDocumentacion.map(async (url) => {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`No se pudo descargar ${nombreArchivo(url)}`);
+          const blob = await res.blob();
+
+          let nombre = nombreArchivo(url);
+          let i = 1;
+          while (usados.has(nombre)) nombre = `${i++}_${nombreArchivo(url)}`;
+          usados.add(nombre);
+
+          zip.file(nombre, blob);
+        })
+      );
+
+      const contenido = await zip.generateAsync({ type: "blob" });
+      const zipUrl = URL.createObjectURL(contenido);
+      const a = document.createElement("a");
+      a.href = zipUrl;
+      a.download = `${ticket!.folio}-documentacion.zip`;
+      a.click();
+      URL.revokeObjectURL(zipUrl);
+    } catch {
+      setZipError("No se pudo generar el ZIP. Intenta de nuevo.");
+    } finally {
+      setDescargandoZip(false);
     }
   }
 
@@ -211,8 +279,8 @@ export function TicketDetail({ id }: { id: string }) {
       <section className="rounded-lg border border-border bg-card p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">Solicitud</h2>
-          {puedeEditarSolicitud && !editingSolicitud && (
-            <Button variant="outline" size="sm" onClick={() => setEditingSolicitud(true)}>
+          {puedeEditarDocumentos && !editingSolicitud && (
+            <Button variant="outline" size="sm" onClick={handleIniciarEdicionSolicitud}>
               <Pencil className="h-3.5 w-3.5" />
               Editar
             </Button>
@@ -221,38 +289,44 @@ export function TicketDetail({ id }: { id: string }) {
 
         {editingSolicitud ? (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1.5">Area / Empresa</label>
-                <select
-                  value={areaEmpresaForm}
-                  onChange={(e) => setAreaEmpresaForm(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {AREAS_EMPRESA.map((a) => <option key={a} value={a}>{a}</option>)}
-                </select>
-              </div>
-              <div>
-                <ServicioSelector value={servicioIdForm} onChange={setServicioIdForm} />
-              </div>
-            </div>
+            {puedeEditarSolicitud ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">Area / Empresa</label>
+                    <select
+                      value={areaEmpresaForm}
+                      onChange={(e) => setAreaEmpresaForm(e.target.value)}
+                      className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      {AREAS_EMPRESA.map((a) => <option key={a} value={a}>{a}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <ServicioSelector value={servicioIdForm} onChange={setServicioIdForm} />
+                  </div>
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1.5">Descripcion</label>
-              <textarea
-                value={descripcionForm}
-                onChange={(e) => setDescripcionForm(e.target.value)}
-                rows={4}
-                className="w-full px-3 py-2 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
-              />
-            </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Descripcion</label>
+                  <textarea
+                    value={descripcionForm}
+                    onChange={(e) => setDescripcionForm(e.target.value)}
+                    rows={4}
+                    className="w-full px-3 py-2 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+                  />
+                </div>
+              </>
+            ) : (
+              <p className="text-xs opacity-60">Como abogado asignado solo puedes editar la documentacion adjunta.</p>
+            )}
 
-            {ticket.documentacion.length > 0 && (
+            {docsExistentesForm.length > 0 && (
               <div>
                 <p className="opacity-60 text-sm mb-1.5">Documentacion ya adjunta</p>
                 <ul className="space-y-1">
-                  {ticket.documentacion.map((url) => (
-                    <li key={url}>
+                  {docsExistentesForm.map((url) => (
+                    <li key={url} className="flex items-center justify-between gap-2">
                       <a
                         href={url}
                         target="_blank"
@@ -262,6 +336,14 @@ export function TicketDetail({ id }: { id: string }) {
                         <FileText className="h-3.5 w-3.5" />
                         {nombreArchivo(url)}
                       </a>
+                      <button
+                        type="button"
+                        onClick={() => handleEliminarDocExistente(url)}
+                        className="text-danger hover:opacity-70"
+                        aria-label={`Eliminar ${nombreArchivo(url)}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -316,6 +398,16 @@ export function TicketDetail({ id }: { id: string }) {
               <p className="opacity-60 text-sm mb-1">Descripcion</p>
               <p className="text-sm whitespace-pre-wrap">{ticket.descripcion}</p>
             </div>
+
+            {ticket.estatus === "Cierre" && todaLaDocumentacion.length > 0 && (
+              <div>
+                <Button variant="outline" size="sm" onClick={handleDescargarZip} disabled={descargandoZip}>
+                  <Download className="h-3.5 w-3.5" />
+                  {descargandoZip ? "Generando ZIP..." : `Descargar toda la documentacion (${todaLaDocumentacion.length})`}
+                </Button>
+                {zipError && <p className="text-sm text-danger mt-1.5">{zipError}</p>}
+              </div>
+            )}
 
             {ticket.documentacion.length > 0 && (
               <div>
@@ -425,11 +517,15 @@ export function TicketDetail({ id }: { id: string }) {
                 <select
                   value={abogadoForm}
                   onChange={(e) => setAbogadoForm(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  disabled={!puedeAsignarAbogado}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <option value="">Sin asignar</option>
                   {ABOGADOS.map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
                 </select>
+                {!puedeAsignarAbogado && (
+                  <p className="text-xs opacity-60 mt-1">Solo Admin/Gerente Juridico pueden reasignar.</p>
+                )}
               </div>
             </div>
 

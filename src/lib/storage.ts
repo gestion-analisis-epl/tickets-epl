@@ -54,6 +54,13 @@ export async function deleteTicketDocument(path: string): Promise<void> {
   await deleteObject(ref(storage, path));
 }
 
+// Igual que deleteTicketDocument pero para documentos ya guardados en
+// `ticket.documentacion`, que solo trae la URL de descarga (no el path del
+// bucket) — el SDK puede construir la referencia directo desde la URL.
+export async function deleteTicketDocumentByUrl(url: string): Promise<void> {
+  await deleteObject(ref(storage, url));
+}
+
 /*
  * Se usa al borrar un ticket completo (ver lib/tickets.ts deleteTicket).
  * `documentacion` solo guarda URLs de descarga, no el `path` del bucket, pero

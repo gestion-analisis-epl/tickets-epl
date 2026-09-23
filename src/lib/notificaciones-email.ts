@@ -19,6 +19,24 @@ const BOTON = "display:inline-block;padding:10px 18px;background:#1d4ed8;color:#
 const DESTINATARIOS_PRUEBA = (process.env.NOTIFICACIONES_DESTINATARIOS_PRUEBA ?? "")
   .split(",").map((e) => e.trim()).filter(Boolean);
 
+// A donde se avisa cuando falla un envio o no se encontro a quien mandarlo
+// (caso borde), para poder resolverlo en cuanto se detecte.
+const ALERTA_EMAIL = "aescalante@grupoepl.com.mx";
+
+// Nunca debe tirar: si la alerta misma falla (p.ej. SMTP caido), solo se
+// registra en consola para no ocultar el error original ni generar un loop.
+async function enviarAlerta(asunto: string, detalle: string): Promise<void> {
+  try {
+    await enviarEmail({
+      to: ALERTA_EMAIL,
+      subject: `[Alerta] ${asunto}`,
+      html: `<p>${detalle}</p>`,
+    });
+  } catch (err) {
+    console.error("No se pudo enviar la alerta de notificaciones:", err);
+  }
+}
+
 // Legal/admin que dan seguimiento operativo: solo gerente_juridico y admin
 // (mesa_control y abogado ya se enteran via el aviso de asignacion/cambio de
 // estatus, dirigido puntualmente al abogado vinculado al ticket).
@@ -86,6 +104,18 @@ function buildHtml(mensaje: string, ticketFolio: string, verTicketUrl: string, c
 
 // Devuelve cuantos destinatarios recibieron el correo (0 si no habia a quien mandarlo).
 export async function enviarNotificacionEmail(input: EnviarNotificacionEmailInput): Promise<number> {
+  try {
+    return await enviarNotificacionEmailInterno(input);
+  } catch (err) {
+    await enviarAlerta(
+      `Fallo al enviar correo de "${TIPO_LABEL[input.tipo] ?? input.tipo}"`,
+      `Ticket ${input.ticketFolio} (${input.ticketId}). Error: ${err instanceof Error ? err.message : String(err)}`
+    );
+    throw err;
+  }
+}
+
+async function enviarNotificacionEmailInterno(input: EnviarNotificacionEmailInput): Promise<number> {
   const verTicketUrl = `${APP_URL}/tickets/${input.ticketId}`;
   const calificarUrl = input.tokenCalificacion ? `${APP_URL}/calificar/${input.ticketId}?token=${input.tokenCalificacion}` : null;
   const subject = `${TIPO_LABEL[input.tipo] ?? input.tipo} — ${input.ticketFolio}`;
@@ -100,6 +130,14 @@ export async function enviarNotificacionEmail(input: EnviarNotificacionEmailInpu
       ticket ? solicitanteEmail(ticket.solicitanteId) : Promise.resolve([]),
     ]);
 
+    if (legalAdmin.length === 0 && solicitante.length === 0) {
+      await enviarAlerta(
+        `Sin destinatarios para "${TIPO_LABEL.cierre}"`,
+        `Ticket ${input.ticketFolio} (${input.ticketId}): no se encontro correo de gerente_juridico/admin ni del solicitante.`
+      );
+      return 0;
+    }
+
     let total = 0;
     if (legalAdmin.length) {
       await enviarEmail({ to: legalAdmin.join(", "), subject, html: buildHtml(input.mensaje, input.ticketFolio, verTicketUrl, null) });
@@ -113,7 +151,13 @@ export async function enviarNotificacionEmail(input: EnviarNotificacionEmailInpu
   }
 
   const destinatarios = DESTINATARIOS_PRUEBA.length ? DESTINATARIOS_PRUEBA : await destinatariosReales(input.tipo, input.ticketId);
-  if (destinatarios.length === 0) return 0;
+  if (destinatarios.length === 0) {
+    await enviarAlerta(
+      `Sin destinatarios para "${TIPO_LABEL[input.tipo] ?? input.tipo}"`,
+      `Ticket ${input.ticketFolio} (${input.ticketId}): no se encontro a quien enviarle este correo.`
+    );
+    return 0;
+  }
 
   await enviarEmail({
     to: destinatarios.join(", "),

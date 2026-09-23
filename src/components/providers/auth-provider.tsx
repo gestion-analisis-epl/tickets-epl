@@ -21,6 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         nombre: userDoc?.nombre ?? firebaseUser.displayName ?? "Sin nombre",
         email: firebaseUser.email ?? "",
         role: userDoc?.role ?? "solicitante",
+        abogadoId: userDoc?.abogadoId ?? null,
       });
     });
     return unsubscribe;
