@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, ShieldAlert, FileText, Trash2, Pencil, Download } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
+import { auth } from "@/lib/firebase";
 import { useTicket } from "@/hooks/use-ticket";
 import { updateTicketAsignacion, updateTicketSolicitud, submitSatisfaccion, deleteTicket } from "@/lib/tickets";
 import { findServicio } from "@/lib/catalogo";
@@ -222,34 +223,30 @@ export function TicketDetail({ id }: { id: string }) {
     setDescargandoZip(true);
     setZipError(null);
     try {
-      const { default: JSZip } = await import("jszip");
-      const zip = new JSZip();
-      const usados = new Set<string>();
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) throw new Error("Tu sesion expiro, recarga la pagina.");
 
-      await Promise.all(
-        todaLaDocumentacion.map(async (url) => {
-          const res = await fetch(url);
-          if (!res.ok) throw new Error(`No se pudo descargar ${nombreArchivo(url)}`);
-          const blob = await res.blob();
+      const res = await fetch("/api/tickets/descargar-zip", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ urls: todaLaDocumentacion }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "No se pudo generar el ZIP.");
+      }
 
-          let nombre = nombreArchivo(url);
-          let i = 1;
-          while (usados.has(nombre)) nombre = `${i++}_${nombreArchivo(url)}`;
-          usados.add(nombre);
-
-          zip.file(nombre, blob);
-        })
-      );
-
-      const contenido = await zip.generateAsync({ type: "blob" });
+      const contenido = await res.blob();
       const zipUrl = URL.createObjectURL(contenido);
       const a = document.createElement("a");
       a.href = zipUrl;
       a.download = `${ticket!.folio}-documentacion.zip`;
       a.click();
       URL.revokeObjectURL(zipUrl);
-    } catch {
-      setZipError("No se pudo generar el ZIP. Intenta de nuevo.");
+    } catch (err) {
+      console.error("Error al generar ZIP de documentacion:", err);
+      const msg = err instanceof Error ? err.message : "No se pudo generar el ZIP.";
+      setZipError(`${msg} Intenta de nuevo.`);
     } finally {
       setDescargandoZip(false);
     }
