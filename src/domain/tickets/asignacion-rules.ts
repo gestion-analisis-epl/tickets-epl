@@ -10,6 +10,7 @@ export interface AsignacionInput {
 export interface AsignacionResultado {
   patch: Partial<Ticket>;
   esNuevaAsignacion: boolean;
+  esReasignacion: boolean;
   esCambioEstatus: boolean;
 }
 
@@ -26,7 +27,11 @@ export function calcularPatchAsignacion(
     notasCierre: input.notasCierre,
   };
 
-  if (input.abogadoAsignadoId && !current.fechaAsignacion) {
+  const esReasignacion =
+    !!input.abogadoAsignadoId && !!current.abogadoAsignadoId && input.abogadoAsignadoId !== current.abogadoAsignadoId;
+
+  // Primera asignacion o reasignacion a otro abogado: el SLA reinicia desde cero en ambos casos.
+  if (input.abogadoAsignadoId && (!current.fechaAsignacion || esReasignacion)) {
     const fechaAsignacion = ahora.toISOString();
     patch.fechaAsignacion = fechaAsignacion;
     patch.fechaCompromiso = addBusinessDays(ahora, current.slaInterno).toISOString();
@@ -58,6 +63,7 @@ export function calcularPatchAsignacion(
   return {
     patch,
     esNuevaAsignacion: !!input.abogadoAsignadoId && input.abogadoAsignadoId !== current.abogadoAsignadoId,
+    esReasignacion,
     esCambioEstatus: input.estatus !== current.estatus,
   };
 }

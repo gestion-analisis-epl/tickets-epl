@@ -18,6 +18,7 @@ export type NewTicketBuilder = (ctx: { id: string; folio: string }) => NewTicket
 export interface TicketRepository {
   create(build: NewTicketBuilder): Promise<{ id: string; folio: string }>;
   getById(id: string): Promise<Ticket | null>;
+  getByFolio(folio: string): Promise<Ticket | null>;
   update(id: string, patch: Partial<Ticket>): Promise<void>;
   delete(id: string): Promise<void>;
   listCerrados(): Promise<Ticket[]>;

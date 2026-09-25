@@ -18,6 +18,17 @@ export function createNotificacionService(repo: NotificacionRepository) {
     });
   }
 
+  // Igual que notificarAsignacion, pero para cuando el abogado cambia (no la primera vez).
+  async function notificarReasignacion(ticketId: string, ticketFolio: string, abogadoId: string): Promise<void> {
+    const uid = await repo.findUidPorAbogado(abogadoId);
+    if (!uid) return;
+    await repo.crear({
+      ticketId, ticketFolio, tipo: "reasignacion",
+      mensaje: `Te reasignaron el ticket ${ticketFolio}.`,
+      paraUid: uid, paraRoles: null,
+    });
+  }
+
   function subscribeNotificaciones(filter: { uid: string; role: Role }, callback: (notifs: Notificacion[]) => void) {
     return repo.subscribeMany(filter, callback);
   }
@@ -30,5 +41,8 @@ export function createNotificacionService(repo: NotificacionRepository) {
     await Promise.all(notifs.map((n) => repo.marcarLeida(n.id, uid).catch(() => {})));
   }
 
-  return { crearNotificacion, notificarAsignacion, subscribeNotificaciones, marcarLeida, marcarTodasLeidas };
+  return {
+    crearNotificacion, notificarAsignacion, notificarReasignacion,
+    subscribeNotificaciones, marcarLeida, marcarTodasLeidas,
+  };
 }

@@ -39,18 +39,25 @@ describe("calcularPatchAsignacion", () => {
     expect(patch.fechaCompromiso).toBeUndefined();
   });
 
-  it("reasignar a un abogado distinto no reinicia una fechaAsignacion que ya existia", () => {
-    const current = buildTicket({ abogadoAsignadoId: "ab1", fechaAsignacion: "2024-01-08T12:00:00.000Z" });
-    const { patch, esNuevaAsignacion } = calcularPatchAsignacion(
+  it("reasignar a un abogado distinto reinicia fechaAsignacion/fechaCompromiso (el SLA arranca de cero)", () => {
+    const current = buildTicket({
+      abogadoAsignadoId: "ab1",
+      fechaAsignacion: "2024-01-08T12:00:00.000Z",
+      slaInterno: 5,
+    });
+    const ahora = new Date("2024-01-12T12:00:00.000Z");
+    const { patch, esNuevaAsignacion, esReasignacion } = calcularPatchAsignacion(
       current,
       { estatus: current.estatus, abogadoAsignadoId: "ab2", notasCierre: null },
       "actor-1",
-      new Date("2024-01-12T12:00:00.000Z")
+      ahora
     );
 
-    expect(patch.fechaAsignacion).toBeUndefined();
+    expect(patch.fechaAsignacion).toBe(ahora.toISOString());
+    expect(patch.fechaCompromiso).toBe(addBusinessDays(ahora, 5).toISOString());
     expect(patch.abogadoAsignadoId).toBe("ab2");
     expect(esNuevaAsignacion).toBe(true); // el aviso de "te asignaron" si debe dispararse otra vez
+    expect(esReasignacion).toBe(true); // distingue el correo de reasignacion del de primera asignacion
   });
 
   it("al cerrar por primera vez congela diasPipeline/diasHabilesTranscurridos/nivelServicio y genera token de calificacion", () => {

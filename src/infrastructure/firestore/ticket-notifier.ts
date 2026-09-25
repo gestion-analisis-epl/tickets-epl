@@ -1,4 +1,4 @@
-import { crearNotificacion, notificarAsignacion, enviarEmailNotificacion } from "@/lib/notificaciones";
+import { crearNotificacion, notificarAsignacion, notificarReasignacion, enviarEmailNotificacion } from "@/lib/notificaciones";
 import type { TicketNotifier } from "@/domain/tickets/ticket-notifier";
 
 export const firestoreTicketNotifier: TicketNotifier = {
@@ -24,6 +24,19 @@ export const firestoreTicketNotifier: TicketNotifier = {
         paraUid: solicitanteId, paraRoles: null,
       }),
       enviarEmailNotificacion({ tipo: "asignacion_solicitante", mensaje: mensajeSolicitante, ticketId, ticketFolio: folio }),
+    ]);
+  },
+
+  async ticketReasignado({ ticketId, folio, abogadoId, solicitanteId }) {
+    const mensajeSolicitante = `Tu ticket ${folio} fue reasignado a otro abogado.`;
+    await Promise.all([
+      notificarReasignacion(ticketId, folio, abogadoId),
+      enviarEmailNotificacion({ tipo: "reasignacion", mensaje: `Te reasignaron el ticket ${folio}.`, ticketId, ticketFolio: folio }),
+      crearNotificacion({
+        ticketId, ticketFolio: folio, tipo: "reasignacion_solicitante", mensaje: mensajeSolicitante,
+        paraUid: solicitanteId, paraRoles: null,
+      }),
+      enviarEmailNotificacion({ tipo: "reasignacion_solicitante", mensaje: mensajeSolicitante, ticketId, ticketFolio: folio }),
     ]);
   },
 

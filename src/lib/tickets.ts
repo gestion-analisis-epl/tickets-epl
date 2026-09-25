@@ -14,6 +14,7 @@ export const createTicket = ticketService.createTicket;
 export const subscribeTickets = ticketService.subscribeTickets;
 export const subscribeTicket = ticketService.subscribeTicket;
 export const updateTicketAsignacion = ticketService.updateTicketAsignacion;
+export const reenviarNotificacionReasignacion = ticketService.reenviarNotificacionReasignacion;
 export const updateTicketSolicitud = ticketService.updateTicketSolicitud;
 export const deleteTicket = ticketService.deleteTicket;
 export const submitSatisfaccion = ticketService.submitSatisfaccion;

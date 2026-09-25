@@ -9,6 +9,8 @@ export const TIPO_LABEL: Record<TipoNotificacion, string> = {
   cierre: "Cierre de ticket",
   creacion_solicitante: "Ticket creado",
   asignacion_solicitante: "Responsable asignado",
+  reasignacion: "Reasignacion de abogado",
+  reasignacion_solicitante: "Tu ticket fue reasignado",
 };
 
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -69,7 +71,7 @@ export async function destinatariosReales(tipo: TipoNotificacion, ticketId: stri
   const ticket = (await db.collection("tickets").doc(ticketId).get()).data();
   if (!ticket) return [];
 
-  if (tipo === "asignacion") {
+  if (tipo === "asignacion" || tipo === "reasignacion") {
     return abogadoAsignadoEmail(ticket.abogadoAsignadoId);
   }
 
@@ -81,7 +83,7 @@ export async function destinatariosReales(tipo: TipoNotificacion, ticketId: stri
     return Array.from(new Set([...legalAdmin, ...solicitante]));
   }
 
-  // creacion_solicitante, asignacion_solicitante -> solo el solicitante.
+  // creacion_solicitante, asignacion_solicitante, reasignacion_solicitante -> solo el solicitante.
   return solicitanteEmail(ticket.solicitanteId);
 }
 

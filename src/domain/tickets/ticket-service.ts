@@ -48,7 +48,9 @@ export function createTicketService(repo: TicketRepository, notifier: TicketNoti
     const current = await repo.getById(id);
     if (!current) throw new Error("Ticket no encontrado.");
 
-    const { patch, esNuevaAsignacion, esCambioEstatus } = calcularPatchAsignacion(current, input, actorUid, new Date());
+    const { patch, esNuevaAsignacion, esReasignacion, esCambioEstatus } = calcularPatchAsignacion(
+      current, input, actorUid, new Date()
+    );
     await repo.update(id, patch);
 
     // Best-effort: si fallan no bloquean el cambio, que ya se guardo.
@@ -56,7 +58,7 @@ export function createTicketService(repo: TicketRepository, notifier: TicketNoti
 
     if (esNuevaAsignacion && input.abogadoAsignadoId) {
       avisos.push(
-        notifier.ticketAsignado({
+        (esReasignacion ? notifier.ticketReasignado : notifier.ticketAsignado)({
           ticketId: id, folio: current.folio, abogadoId: input.abogadoAsignadoId, solicitanteId: current.solicitanteId,
         })
       );
@@ -75,6 +77,18 @@ export function createTicketService(repo: TicketRepository, notifier: TicketNoti
     }
 
     await Promise.all(avisos).catch(() => {});
+  }
+
+  // Reenvia el aviso de reasignacion (correo + notificacion in-app) sin tocar el ticket ni
+  // el SLA — para casos donde el correo original fallo (ver ticket-notifier.ts).
+  async function reenviarNotificacionReasignacion(folio: string): Promise<void> {
+    const ticket = await repo.getByFolio(folio);
+    if (!ticket) throw new Error(`No se encontro el ticket ${folio}.`);
+    if (!ticket.abogadoAsignadoId) throw new Error(`El ticket ${folio} no tiene abogado asignado.`);
+
+    await notifier.ticketReasignado({
+      ticketId: ticket.id, folio: ticket.folio, abogadoId: ticket.abogadoAsignadoId, solicitanteId: ticket.solicitanteId,
+    });
   }
 
   async function updateTicketSolicitud(id: string, input: SolicitudInput): Promise<void> {
@@ -130,6 +144,7 @@ export function createTicketService(repo: TicketRepository, notifier: TicketNoti
     subscribeTickets,
     subscribeTicket,
     updateTicketAsignacion,
+    reenviarNotificacionReasignacion,
     updateTicketSolicitud,
     deleteTicket,
     submitSatisfaccion,

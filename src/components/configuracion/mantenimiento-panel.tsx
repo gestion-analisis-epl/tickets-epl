@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldAlert, Wrench, Mail, Send, Square } from "lucide-react";
+import { ShieldAlert, Wrench, Mail, Send, Square, RefreshCw } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
-import { backfillSlaHistorico, type BackfillResultado } from "@/lib/tickets";
+import { backfillSlaHistorico, reenviarNotificacionReasignacion, type BackfillResultado } from "@/lib/tickets";
 import { enviarEmailNotificacion } from "@/lib/notificaciones";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,11 @@ export function MantenimientoPanel() {
 
   const [enviandoPrueba, setEnviandoPrueba] = useState(false);
   const [pruebaEnviada, setPruebaEnviada] = useState(false);
+
+  const [folioReasignacion, setFolioReasignacion] = useState("");
+  const [enviandoReasignacion, setEnviandoReasignacion] = useState(false);
+  const [reasignacionOk, setReasignacionOk] = useState<string | null>(null);
+  const [reasignacionError, setReasignacionError] = useState<string | null>(null);
 
   const [corriendoReenvio, setCorriendoReenvio] = useState(false);
   const [enviandoReenvioReal, setEnviandoReenvioReal] = useState(false);
@@ -96,6 +101,23 @@ export function MantenimientoPanel() {
       setReenvioError(err instanceof Error ? err.message : "No se pudo detener.");
     } finally {
       setDeteniendoReenvio(false);
+    }
+  }
+
+  async function handleReenviarReasignacion() {
+    const folio = folioReasignacion.trim();
+    if (!folio) return;
+    setEnviandoReasignacion(true);
+    setReasignacionOk(null);
+    setReasignacionError(null);
+    try {
+      await reenviarNotificacionReasignacion(folio);
+      setReasignacionOk(folio);
+      setFolioReasignacion("");
+    } catch (err) {
+      setReasignacionError(err instanceof Error ? err.message : "No se pudo reenviar.");
+    } finally {
+      setEnviandoReasignacion(false);
     }
   }
 
@@ -193,6 +215,38 @@ export function MantenimientoPanel() {
             </ul>
           </details>
         )}
+      </section>
+
+      <section className="rounded-lg border border-border bg-card p-6 space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">Reenviar aviso de reasignacion</h2>
+        <p className="text-sm opacity-80">
+          Reenvia el correo y la notificacion de <span className="font-medium">reasignacion</span> (al abogado
+          asignado actual y al solicitante) de un ticket puntual, sin volver a pasarlo por el pipeline de
+          asignacion — no toca el SLA ni el historial.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="text"
+            value={folioReasignacion}
+            onChange={(e) => setFolioReasignacion(e.target.value)}
+            placeholder="JUR-0021"
+            className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm w-40"
+          />
+          <Button
+            variant="outline"
+            onClick={handleReenviarReasignacion}
+            disabled={enviandoReasignacion || !folioReasignacion.trim()}
+          >
+            <RefreshCw className="h-4 w-4" />
+            {enviandoReasignacion ? "Enviando..." : "Reenviar"}
+          </Button>
+        </div>
+        {reasignacionOk && (
+          <div className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
+            Aviso de reasignacion reenviado para {reasignacionOk}.
+          </div>
+        )}
+        {reasignacionError && <p className="text-sm text-danger">{reasignacionError}</p>}
       </section>
 
       <section className="rounded-lg border border-border bg-card p-6 space-y-3">

@@ -9,6 +9,7 @@ const notificacionService = createNotificacionService(firestoreNotificacionRepos
 
 export const crearNotificacion = notificacionService.crearNotificacion;
 export const notificarAsignacion = notificacionService.notificarAsignacion;
+export const notificarReasignacion = notificacionService.notificarReasignacion;
 export const subscribeNotificaciones = notificacionService.subscribeNotificaciones;
 export const marcarLeida = notificacionService.marcarLeida;
 export const marcarTodasLeidas = notificacionService.marcarTodasLeidas;

@@ -1,5 +1,5 @@
 import {
-  collection, doc, runTransaction, query, where, onSnapshot, getDoc, getDocs, updateDoc, deleteDoc,
+  collection, doc, runTransaction, query, where, onSnapshot, getDoc, getDocs, updateDoc, deleteDoc, limit,
   type FirestoreError,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -55,6 +55,11 @@ export const firestoreTicketRepository: TicketRepository = {
 
   async update(id, patch) {
     await updateDoc(doc(db, "tickets", id), patch);
+  },
+
+  async getByFolio(folio) {
+    const snap = await getDocs(query(collection(db, "tickets"), where("folio", "==", folio), limit(1)));
+    return snap.empty ? null : ({ ...snap.docs[0].data(), id: snap.docs[0].id } as Ticket);
   },
 
   async delete(id) {
