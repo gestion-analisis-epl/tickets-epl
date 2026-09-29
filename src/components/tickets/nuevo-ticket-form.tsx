@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Download } from "lucide-react";
@@ -15,11 +15,14 @@ import {
   URL_FORMATO_SOLICITUD_ARRENDAMIENTO, CONDICIONES_PAGO_CODIGOS, CONDICIONES_PAGO_TIPOS, MOTIVO_CONTRATO_OPTIONS,
   DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO, type DocumentoRequeridoArrendamientoKey,
 } from "@/lib/data/arrendamientos-temporal";
-import { toTitleCase, toSentenceCase, formatMontoInput, parseMontoInput } from "@/lib/text-format";
+import { toTitleCase, formatMontoInput, parseMontoInput } from "@/lib/text-format";
 import { validarFormatoArrendamiento } from "@/lib/validar-formato";
 import { ServicioSelector } from "./servicio-selector";
+import { SitioSelector } from "./sitio-selector";
+import { SELECCION_VACIA, type SeleccionSitio } from "@/domain/sitios/sitios-rules";
 import { uploadTicketFile, deleteTicketDocument } from "@/lib/storage";
 import { createTicket } from "@/lib/tickets";
+import { precargarSitios } from "@/lib/sitios";
 import type { ContratoArrendamientoInput, DocumentosArrendamientoInput } from "@/types/ticket";
 
 const DOCUMENTOS_FILES_VACIO = Object.fromEntries(
@@ -35,7 +38,6 @@ interface FormState {
 const EMPTY_FORM: FormState = { areaEmpresa: "", servicioId: "", descripcion: "" };
 
 interface ContratoFormState {
-  sitio: string;
   domicilio: string;
   altaArrendador: string;
   solicitante: string;
@@ -45,12 +47,11 @@ interface ContratoFormState {
   condicionesTipo: string;
   montoPago: string;
   motivo: string;
-  notas: string;
 }
 
 const EMPTY_CONTRATO: ContratoFormState = {
-  sitio: "", domicilio: "", altaArrendador: "", solicitante: "",
-  periodoInicio: "", periodoFin: "", condicionesCodigo: "", condicionesTipo: "", montoPago: "", motivo: "", notas: "",
+  domicilio: "", altaArrendador: "", solicitante: "",
+  periodoInicio: "", periodoFin: "", condicionesCodigo: "", condicionesTipo: "", montoPago: "", motivo: "",
 };
 
 export function NuevoTicketForm() {
@@ -58,6 +59,7 @@ export function NuevoTicketForm() {
   const { uid, nombre } = useAuthStore();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [contrato, setContratoState] = useState<ContratoFormState>(EMPTY_CONTRATO);
+  const [sitio, setSitio] = useState<SeleccionSitio>(SELECCION_VACIA);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [folioCreado, setFolioCreado] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -67,6 +69,9 @@ export function NuevoTicketForm() {
   const [documentosFiles, setDocumentosFiles] = useState(DOCUMENTOS_FILES_VACIO);
   // Los archivos se suben a esta carpeta temporal antes de que exista un folio real.
   const [draftId] = useState(() => crypto.randomUUID());
+
+  // El catalogo de sitios ya va cargado cuando se elige el servicio.
+  useEffect(() => { precargarSitios(); }, []);
 
   const hoy = useMemo(() => new Date().toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" }), []);
   const servicioSeleccionado = form.servicioId ? findServicio(form.servicioId) : undefined;
@@ -210,6 +215,8 @@ export function NuevoTicketForm() {
     if (!form.servicioId) next.servicioId = "Selecciona el servicio que necesitas.";
     if (!form.descripcion.trim()) next.descripcion = "Describe brevemente la solicitud.";
 
+    if (form.servicioId && !(sitio.clave && sitio.alias)) next.sitio = "Selecciona el sitio (clave y alias).";
+
     if (requiereFormato) {
       if (!(formatoFiles.length === 1 && formatoFiles[0].status === "done")) {
         next.formato = "Adjunta el formato de solicitud de arrendamiento (obligatorio para este servicio).";
@@ -223,7 +230,6 @@ export function NuevoTicketForm() {
     }
 
     if (esContrato) {
-      if (!contrato.sitio.trim()) next.sitio = "Captura el sitio.";
       if (!contrato.domicilio.trim()) next.domicilio = "Captura el domicilio.";
       if (!contrato.altaArrendador.trim()) next.altaArrendador = "Captura el arrendador dado de alta.";
       if (!contrato.solicitante.trim()) next.solicitante = "Captura el solicitante.";
@@ -236,7 +242,6 @@ export function NuevoTicketForm() {
       const monto = parseMontoInput(contrato.montoPago);
       if (!contrato.montoPago.trim() || !Number.isFinite(monto) || monto <= 0) next.montoPago = "Captura un monto valido.";
       if (!contrato.motivo) next.motivo = "Selecciona el motivo.";
-      if (!contrato.notas.trim()) next.notas = "Captura las notas.";
     }
 
     setErrors(next);
@@ -252,7 +257,6 @@ export function NuevoTicketForm() {
     try {
       const contratoArrendamiento: ContratoArrendamientoInput | undefined = esContrato
         ? {
-            sitio: contrato.sitio,
             domicilio: contrato.domicilio,
             altaArrendador: contrato.altaArrendador,
             solicitante: contrato.solicitante,
@@ -261,7 +265,6 @@ export function NuevoTicketForm() {
             condicionesPago: `${contrato.condicionesCodigo} - ${contrato.condicionesTipo}`,
             montoPago: parseMontoInput(contrato.montoPago),
             motivo: contrato.motivo,
-            notas: contrato.notas,
           }
         : undefined;
 
@@ -281,6 +284,7 @@ export function NuevoTicketForm() {
         formatoArrendamientoUrl: requiereFormato ? formatoFiles[0]?.url : undefined,
         documentosArrendamiento,
         contratoArrendamiento,
+        sitioArrendamiento: { clave: sitio.clave, alias: sitio.alias },
       });
       setFolioCreado(folio);
     } catch {
@@ -294,6 +298,7 @@ export function NuevoTicketForm() {
     setFolioCreado(null);
     setForm(EMPTY_FORM);
     setContratoState(EMPTY_CONTRATO);
+    setSitio(SELECCION_VACIA);
     setFiles([]);
     setFormatoFiles([]);
     setDocumentosFiles(DOCUMENTOS_FILES_VACIO);
@@ -365,6 +370,20 @@ export function NuevoTicketForm() {
           )}
         </div>
 
+        {servicioSeleccionado && (
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide opacity-70 mb-3">Sitio</p>
+            <SitioSelector
+              value={sitio}
+              onChange={(v) => {
+                setSitio(v);
+                setErrors((prev) => ({ ...prev, sitio: "" }));
+              }}
+              error={errors.sitio}
+            />
+          </div>
+        )}
+
         {requiereFormato && (
           <div className="space-y-4">
             <label className="block text-sm font-medium mb-1.5">
@@ -413,18 +432,6 @@ export function NuevoTicketForm() {
             <p className="text-sm font-semibold uppercase tracking-wide opacity-70">Datos del contrato / convenio</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1.5">Sitio <span className="text-danger">*</span></label>
-                <input
-                  type="text"
-                  value={contrato.sitio}
-                  onChange={(e) => setContrato("sitio", e.target.value)}
-                  onBlur={() => sanitizarContrato("sitio", toTitleCase)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-                {errors.sitio && <p className="text-xs text-danger mt-1">{errors.sitio}</p>}
-              </div>
-
               <div>
                 <label className="block text-sm font-medium mb-1.5">Domicilio <span className="text-danger">*</span></label>
                 <textarea
@@ -534,18 +541,6 @@ export function NuevoTicketForm() {
                 </select>
                 {errors.motivo && <p className="text-xs text-danger mt-1">{errors.motivo}</p>}
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1.5">Notas <span className="text-danger">*</span></label>
-              <textarea
-                value={contrato.notas}
-                onChange={(e) => setContrato("notas", e.target.value)}
-                onBlur={() => sanitizarContrato("notas", toSentenceCase)}
-                rows={3}
-                className="w-full px-3 py-2 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
-              />
-              {errors.notas && <p className="text-xs text-danger mt-1">{errors.notas}</p>}
             </div>
           </div>
         )}

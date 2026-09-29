@@ -1,4 +1,4 @@
-import type { ContratoArrendamientoInput, DocumentosArrendamientoInput, Ticket } from "@/types/ticket";
+import type { ContratoArrendamientoInput, DocumentosArrendamientoInput, SitioArrendamiento, Ticket } from "@/types/ticket";
 import type { CatalogoServicio } from "@/types/catalogo";
 
 export interface NuevoTicketInput {
@@ -11,6 +11,7 @@ export interface NuevoTicketInput {
   formatoArrendamientoUrl?: string;
   documentosArrendamiento?: DocumentosArrendamientoInput;
   contratoArrendamiento?: ContratoArrendamientoInput;
+  sitioArrendamiento?: SitioArrendamiento;
 }
 
 export function buildNuevoTicket(
@@ -35,6 +36,7 @@ export function buildNuevoTicket(
     ...(input.formatoArrendamientoUrl ? { formatoArrendamientoUrl: input.formatoArrendamientoUrl } : {}),
     ...(input.documentosArrendamiento ? { documentosArrendamiento: input.documentosArrendamiento } : {}),
     ...(input.contratoArrendamiento ? { contratoArrendamiento: input.contratoArrendamiento } : {}),
+    ...(input.sitioArrendamiento ? { sitioArrendamiento: input.sitioArrendamiento } : {}),
     categoria: servicio.categoria,
     puestoResponsableSugerido: servicio.puestoResponsable,
     slaInterno: servicio.slaInterno,

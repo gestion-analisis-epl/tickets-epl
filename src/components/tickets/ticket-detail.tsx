@@ -7,9 +7,12 @@ import { Loader2, ShieldAlert, FileText, Trash2, Pencil, Download } from "lucide
 import { useAuthStore } from "@/stores/auth";
 import { auth } from "@/lib/firebase";
 import { useTicket } from "@/hooks/use-ticket";
-import { updateTicketAsignacion, updateTicketSolicitud, submitSatisfaccion, deleteTicket } from "@/lib/tickets";
+import { updateTicketAsignacion, updateTicketSolicitud, updateTicketSitio, submitSatisfaccion, deleteTicket } from "@/lib/tickets";
 import { findServicio } from "@/lib/catalogo";
 import { ServicioSelector } from "./servicio-selector";
+import { SitioSelector, seleccionDeSitio } from "./sitio-selector";
+import { SELECCION_VACIA, type SeleccionSitio } from "@/domain/sitios/sitios-rules";
+import { puedeActualizarSitio } from "@/domain/tickets/sitio-rules";
 import { ABOGADOS } from "@/lib/data/abogados";
 import { AREAS_EMPRESA } from "@/lib/data/listas";
 import { uploadTicketFile, deleteTicketDocument, deleteTicketDocumentByUrl } from "@/lib/storage";
@@ -20,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatFecha, formatFechaSolo } from "@/lib/format-fecha";
 import { formatMonedaMXN } from "@/lib/text-format";
-import { DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO } from "@/lib/data/arrendamientos-temporal";
+import { DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO, SERVICIOS_ARRENDAMIENTO_IDS } from "@/lib/data/arrendamientos-temporal";
 import { isAdminRole } from "@/types/user";
 
 function nombreArchivo(url: string): string {
@@ -64,6 +67,11 @@ export function TicketDetail({ id }: { id: string }) {
   const [docsExistentesForm, setDocsExistentesForm] = useState<string[]>([]);
   const [savingSolicitud, setSavingSolicitud] = useState(false);
   const [solicitudError, setSolicitudError] = useState<string | null>(null);
+
+  const [editandoSitio, setEditandoSitio] = useState(false);
+  const [sitioForm, setSitioForm] = useState<SeleccionSitio>(SELECCION_VACIA);
+  const [savingSitio, setSavingSitio] = useState(false);
+  const [sitioError, setSitioError] = useState<string | null>(null);
 
   const [descargandoZip, setDescargandoZip] = useState(false);
   const [zipError, setZipError] = useState<string | null>(null);
@@ -112,6 +120,31 @@ export function TicketDetail({ id }: { id: string }) {
     ...(ticket.formatoArrendamientoUrl ? [ticket.formatoArrendamientoUrl] : []),
     ...(ticket.documentosArrendamiento ? Object.values(ticket.documentosArrendamiento).filter((u): u is string => !!u) : []),
   ];
+
+  const esArrendamiento = SERVICIOS_ARRENDAMIENTO_IDS.includes(ticket.servicioId);
+  const sitioCompleto = !!(sitioForm.clave && sitioForm.alias);
+  // Asignar el sitio a un ticket existente: solo Mesa de Control y admins.
+  const puedeCambiarSitio = puedeActualizarSitio(role, ticket);
+
+  function handleEditarSitio() {
+    setSitioForm(seleccionDeSitio(ticket!.sitioArrendamiento));
+    setSitioError(null);
+    setEditandoSitio(true);
+  }
+
+  async function handleGuardarSitio() {
+    if (!sitioCompleto) return;
+    setSavingSitio(true);
+    setSitioError(null);
+    try {
+      await updateTicketSitio(id, uid!, sitioForm);
+      setEditandoSitio(false);
+    } catch {
+      setSitioError("No se pudo guardar el sitio. Intenta de nuevo.");
+    } finally {
+      setSavingSitio(false);
+    }
+  }
 
   async function handleGuardar() {
     setSaving(true);
@@ -427,6 +460,47 @@ export function TicketDetail({ id }: { id: string }) {
               </div>
             )}
 
+            {esArrendamiento && (
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <p className="opacity-60 text-sm">Sitio</p>
+                  {puedeCambiarSitio && !editandoSitio && (
+                    <Button type="button" variant="outline" size="sm" onClick={handleEditarSitio}>
+                      <Pencil className="h-3.5 w-3.5" />
+                      {ticket.sitioArrendamiento ? "Cambiar sitio" : "Actualizar sitio"}
+                    </Button>
+                  )}
+                </div>
+
+                {editandoSitio ? (
+                  <div className="space-y-3">
+                    <SitioSelector value={sitioForm} onChange={setSitioForm} />
+                    {sitioError && <p className="text-sm text-danger">{sitioError}</p>}
+                    <div className="flex gap-2">
+                      <Button type="button" size="sm" onClick={handleGuardarSitio} disabled={!sitioCompleto || savingSitio}>
+                        {savingSitio ? "Guardando..." : "Guardar sitio"}
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => setEditandoSitio(false)} disabled={savingSitio}>
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                ) : ticket.sitioArrendamiento ? (
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                    <div><dt className="opacity-60">Clave</dt><dd className="font-medium">{ticket.sitioArrendamiento.clave}</dd></div>
+                    <div><dt className="opacity-60">Alias</dt><dd className="font-medium">{ticket.sitioArrendamiento.alias}</dd></div>
+                  </dl>
+                ) : ticket.contratoArrendamiento?.sitio ? (
+                  <p className="text-sm">
+                    <span className="font-medium">{ticket.contratoArrendamiento.sitio}</span>
+                    <span className="opacity-60"> (texto libre, anterior al catalogo de sitios)</span>
+                  </p>
+                ) : (
+                  <p className="text-sm opacity-60">Sin sitio asignado.</p>
+                )}
+              </div>
+            )}
+
             {ticket.formatoArrendamientoUrl && (
               <div>
                 <p className="opacity-60 text-sm mb-1.5">Formato de solicitud de arrendamiento</p>
@@ -471,7 +545,6 @@ export function TicketDetail({ id }: { id: string }) {
               <div>
                 <p className="opacity-60 text-sm mb-2">Datos del contrato / convenio</p>
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                  <div><dt className="opacity-60">Sitio</dt><dd className="font-medium">{ticket.contratoArrendamiento.sitio}</dd></div>
                   <div><dt className="opacity-60">Domicilio</dt><dd className="font-medium">{ticket.contratoArrendamiento.domicilio}</dd></div>
                   <div><dt className="opacity-60">Alta de arrendador</dt><dd className="font-medium">{ticket.contratoArrendamiento.altaArrendador}</dd></div>
                   <div><dt className="opacity-60">Solicitante</dt><dd className="font-medium">{ticket.contratoArrendamiento.solicitante}</dd></div>
@@ -484,7 +557,9 @@ export function TicketDetail({ id }: { id: string }) {
                   <div><dt className="opacity-60">Condiciones para pago</dt><dd className="font-medium">{ticket.contratoArrendamiento.condicionesPago}</dd></div>
                   <div><dt className="opacity-60">Monto de pago</dt><dd className="font-medium tabular-nums">{formatMonedaMXN(ticket.contratoArrendamiento.montoPago)}</dd></div>
                   <div><dt className="opacity-60">Motivo</dt><dd className="font-medium">{ticket.contratoArrendamiento.motivo}</dd></div>
-                  <div className="sm:col-span-2"><dt className="opacity-60">Notas</dt><dd>{ticket.contratoArrendamiento.notas}</dd></div>
+                  {ticket.contratoArrendamiento.notas && (
+                    <div className="sm:col-span-2"><dt className="opacity-60">Notas</dt><dd>{ticket.contratoArrendamiento.notas}</dd></div>
+                  )}
                 </dl>
               </div>
             )}

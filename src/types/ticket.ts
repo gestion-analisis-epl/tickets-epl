@@ -22,7 +22,8 @@ export interface HistorialEntry {
 // lib/data/arrendamientos-temporal.ts. Temporal: quitar junto con esa
 // restriccion cuando el catalogo se vuelva a abrir por completo.
 export interface ContratoArrendamientoInput {
-  sitio: string;
+  // Texto libre: solo tickets previos al selector de sitios (ver Ticket.sitioArrendamiento).
+  sitio?: string;
   domicilio: string;
   altaArrendador: string;
   solicitante: string;
@@ -31,7 +32,15 @@ export interface ContratoArrendamientoInput {
   condicionesPago: string;
   montoPago: number;
   motivo: string;
-  notas: string;
+  // Ya no se captura: solo existe en tickets previos. La descripcion de la solicitud la reemplaza.
+  notas?: string;
+}
+
+// Sitio elegido del catalogo en Google Sheets. Se guarda copiado: si la hoja cambia,
+// el ticket conserva lo que se eligio.
+export interface SitioArrendamiento {
+  clave: string;
+  alias: string;
 }
 
 // Solo Alta de Arrendadores / Cambio de Arrendador (ver arrendamientos-temporal.ts).
@@ -59,6 +68,11 @@ export interface Ticket {
   formatoArrendamientoUrl?: string;
   documentosArrendamiento?: DocumentosArrendamientoInput;
   contratoArrendamiento?: ContratoArrendamientoInput;
+  // Los 4 servicios de arrendamiento. Ausente en tickets previos al selector.
+  sitioArrendamiento?: SitioArrendamiento;
+  // Se llenan solo cuando Mesa de Control / admin asigna el sitio a un ticket existente.
+  sitioActualizadoPor?: string;
+  sitioActualizadoEn?: string; // ISO
 
   // Gris — calculado por Cloud Function, no editable desde el cliente
   categoria: Categoria;

@@ -1,5 +1,5 @@
 import { deleteTicketDocuments } from "@/lib/storage";
-import type { Ticket } from "@/types/ticket";
+import type { SitioArrendamiento, Ticket } from "@/types/ticket";
 import type { CatalogoLookup } from "@/domain/catalogo/catalogo-lookup";
 import type { TicketRepository } from "./ticket-repository";
 import type { TicketNotifier } from "./ticket-notifier";
@@ -7,6 +7,7 @@ import { buildNuevoTicket, type NuevoTicketInput } from "./nuevo-ticket";
 import { calcularPatchAsignacion, type AsignacionInput } from "./asignacion-rules";
 import { calcularPatchSolicitud, type SolicitudInput } from "./solicitud-rules";
 import { calcularBackfill } from "./backfill-rules";
+import { calcularPatchSitio } from "./sitio-rules";
 
 export interface BackfillResultado {
   actualizados: number;
@@ -101,6 +102,13 @@ export function createTicketService(repo: TicketRepository, notifier: TicketNoti
     await repo.update(id, calcularPatchSolicitud(current, input, servicio));
   }
 
+  async function updateTicketSitio(id: string, actorUid: string, sitio: SitioArrendamiento): Promise<void> {
+    const current = await repo.getById(id);
+    if (!current) throw new Error("Ticket no encontrado.");
+
+    await repo.update(id, calcularPatchSitio(sitio, actorUid, new Date()));
+  }
+
   async function deleteTicket(id: string): Promise<void> {
     const current = await repo.getById(id);
     if (current) await deleteTicketDocuments(current.documentacion);
@@ -146,6 +154,7 @@ export function createTicketService(repo: TicketRepository, notifier: TicketNoti
     updateTicketAsignacion,
     reenviarNotificacionReasignacion,
     updateTicketSolicitud,
+    updateTicketSitio,
     deleteTicket,
     submitSatisfaccion,
     backfillSlaHistorico,
