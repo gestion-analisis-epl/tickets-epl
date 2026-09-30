@@ -1,6 +1,7 @@
 import { enviarEmail } from "@/lib/email";
 import { getAdminDb } from "@/lib/firebase-admin";
 import type { TipoNotificacion } from "@/lib/notificaciones";
+import { formatearFecha, renderEmailNotificacion, type DatosTicketEmail } from "@/domain/notificaciones/email-template";
 
 export const TIPO_LABEL: Record<TipoNotificacion, string> = {
   nuevo_ticket: "Nuevo ticket",
@@ -14,7 +15,11 @@ export const TIPO_LABEL: Record<TipoNotificacion, string> = {
 };
 
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-const BOTON = "display:inline-block;padding:10px 18px;background:#1d4ed8;color:#fff;text-decoration:none;border-radius:6px;font-weight:600";
+
+// Logo del encabezado: URL de descarga (con token) del objeto img/grupo-epl.png en Storage.
+// Los clientes de correo no pueden cargar imagenes de localhost ni de objetos privados.
+const LOGO_URL = process.env.EMAIL_LOGO_URL
+  ?? "https://firebasestorage.googleapis.com/v0/b/tickets-epl-legal/o/img%2Fgrupo-epl.png?alt=media&token=e3393b74-d17c-4d3f-a852-537459baadf7";
 
 // Escotilla de seguridad: si esta variable trae correos, todo se redirige ahi
 // en vez de a los destinatarios reales (ver .env.example).
@@ -95,13 +100,57 @@ export interface EnviarNotificacionEmailInput {
   tokenCalificacion?: string;
 }
 
-function buildHtml(mensaje: string, ticketFolio: string, verTicketUrl: string, calificarUrl: string | null): string {
-  return `
-      <p>${mensaje}</p>
-      <p style="color:#666;font-size:12px">Ticket: ${ticketFolio}</p>
-      <p><a href="${verTicketUrl}" style="${BOTON}">Ver ticket</a></p>
-      ${calificarUrl ? `<p><a href="${calificarUrl}" style="${BOTON};background:#15803d">Calificar tu experiencia</a></p>` : ""}
-    `;
+// Best-effort: si algo falla al leer (ticket borrado, catalogo caido) el correo sale
+// igual, solo sin la tarjeta de datos.
+async function cargarDatosTicket(ticketId: string): Promise<DatosTicketEmail> {
+  try {
+    const db = getAdminDb();
+    const ticket = (await db.collection("tickets").doc(ticketId).get()).data();
+    if (!ticket) return {};
+
+    const [servicioSnap, abogadoSnap] = await Promise.all([
+      ticket.servicioId ? db.collection("catalogoServicios").doc(ticket.servicioId).get() : Promise.resolve(null),
+      ticket.abogadoAsignadoId
+        ? db.collection("users").where("abogadoId", "==", ticket.abogadoAsignadoId).limit(1).get()
+        : Promise.resolve(null),
+    ]);
+
+    const sitio = ticket.sitioArrendamiento
+      ? [ticket.sitioArrendamiento.clave, ticket.sitioArrendamiento.alias].filter(Boolean).join(" — ")
+      : ticket.contratoArrendamiento?.sitio;
+
+    return {
+      solicitante: ticket.solicitanteNombre,
+      servicio: servicioSnap?.data()?.servicio,
+      categoria: ticket.categoria,
+      sitio,
+      estatus: ticket.estatus,
+      abogado: abogadoSnap?.docs[0]?.data().nombre,
+      fechaSolicitud: formatearFecha(ticket.fechaSolicitud),
+      fechaCompromiso: formatearFecha(ticket.fechaCompromiso),
+      fechaCierre: formatearFecha(ticket.fechaCierre),
+    };
+  } catch (err) {
+    console.error("No se pudieron cargar los datos del ticket para el correo:", err);
+    return {};
+  }
+}
+
+function buildHtml(
+  input: EnviarNotificacionEmailInput,
+  ticket: DatosTicketEmail,
+  verTicketUrl: string,
+  calificarUrl: string | null
+): string {
+  return renderEmailNotificacion({
+    tipo: input.tipo,
+    mensaje: input.mensaje,
+    folio: input.ticketFolio,
+    verTicketUrl,
+    calificarUrl,
+    logoUrl: LOGO_URL,
+    ticket,
+  });
 }
 
 // Devuelve cuantos destinatarios recibieron el correo (0 si no habia a quien mandarlo).
@@ -121,6 +170,7 @@ async function enviarNotificacionEmailInterno(input: EnviarNotificacionEmailInpu
   const verTicketUrl = `${APP_URL}/tickets/${input.ticketId}`;
   const calificarUrl = input.tokenCalificacion ? `${APP_URL}/calificar/${input.ticketId}?token=${input.tokenCalificacion}` : null;
   const subject = `${TIPO_LABEL[input.tipo] ?? input.tipo} — ${input.ticketFolio}`;
+  const datosTicket = await cargarDatosTicket(input.ticketId);
 
   // El link de calificacion es personal del solicitante: en "cierre" se separa el
   // envio para que gerente_juridico/admin no lo reciban.
@@ -142,11 +192,11 @@ async function enviarNotificacionEmailInterno(input: EnviarNotificacionEmailInpu
 
     let total = 0;
     if (legalAdmin.length) {
-      await enviarEmail({ to: legalAdmin.join(", "), subject, html: buildHtml(input.mensaje, input.ticketFolio, verTicketUrl, null) });
+      await enviarEmail({ to: legalAdmin.join(", "), subject, html: buildHtml(input, datosTicket, verTicketUrl, null) });
       total += legalAdmin.length;
     }
     if (solicitante.length) {
-      await enviarEmail({ to: solicitante.join(", "), subject, html: buildHtml(input.mensaje, input.ticketFolio, verTicketUrl, calificarUrl) });
+      await enviarEmail({ to: solicitante.join(", "), subject, html: buildHtml(input, datosTicket, verTicketUrl, calificarUrl) });
       total += solicitante.length;
     }
     return total;
@@ -164,7 +214,7 @@ async function enviarNotificacionEmailInterno(input: EnviarNotificacionEmailInpu
   await enviarEmail({
     to: destinatarios.join(", "),
     subject,
-    html: buildHtml(input.mensaje, input.ticketFolio, verTicketUrl, calificarUrl),
+    html: buildHtml(input, datosTicket, verTicketUrl, calificarUrl),
   });
 
   return destinatarios.length;
