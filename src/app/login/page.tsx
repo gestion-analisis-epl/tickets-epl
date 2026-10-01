@@ -4,13 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Scale, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { signInWithGoogle, signInStaff, AuthActionError } from "@/lib/auth-actions";
+import { signInWithGoogle, AuthActionError } from "@/lib/auth-actions";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mostrarStaff, setMostrarStaff] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,20 +19,6 @@ export default function LoginPage() {
       router.push("/");
     } catch (err) {
       setError(err instanceof AuthActionError ? err.message : "No se pudo iniciar sesion. Intenta de nuevo.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleStaffSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      await signInStaff(email, password);
-      router.push("/");
-    } catch (err) {
-      setError(err instanceof AuthActionError ? err.message : "Correo o contraseña incorrectos.");
     } finally {
       setLoading(false);
     }
@@ -76,58 +59,15 @@ export default function LoginPage() {
           </div>
         )}
 
-        {!mostrarStaff ? (
-          <div className="space-y-4">
-            <Button variant="primary" className="w-full" onClick={handleGoogle} disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Continuar con Google
-            </Button>
-            <p className="text-xs text-center text-muted">
-              Usa tu correo de la empresa (Google Workspace).
-            </p>
-            <button
-              type="button"
-              onClick={() => setMostrarStaff(true)}
-              className="w-full text-center text-sm text-primary hover:underline"
-            >
-              ¿Eres de Legal o administrador del sistema? Inicia sesion aqui
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleStaffSubmit} className="space-y-4">
-            <div>
-              <label className="field-label">Correo</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full field"
-              />
-            </div>
-            <div>
-              <label className="field-label">Contraseña</label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full field"
-              />
-            </div>
-            <Button type="submit" variant="primary" className="w-full" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Iniciar sesion
-            </Button>
-            <button
-              type="button"
-              onClick={() => { setMostrarStaff(false); setError(null); }}
-              className="w-full text-center text-sm text-muted hover:text-foreground"
-            >
-              Volver a la opcion de solicitante
-            </button>
-          </form>
-        )}
+        <div className="space-y-4">
+          <Button variant="primary" className="w-full" onClick={handleGoogle} disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Continuar con Google
+          </Button>
+          <p className="text-xs text-center text-muted">
+            Usa tu correo de la empresa (Google Workspace).
+          </p>
+        </div>
       </div>
       </div>
     </div>
