@@ -1,5 +1,6 @@
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from "./firebase";
+import { formatSize } from "./format-size";
 
 export interface UploadedDocument {
   name: string;
@@ -26,7 +27,7 @@ export function uploadTicketFile(
   onProgress?: (pct: number) => void
 ): Promise<UploadedDocument> {
   if (file.size > MAX_FILE_SIZE_BYTES) {
-    return Promise.reject(new Error("El archivo pesa mas de 20 MB."));
+    return Promise.reject(new Error(`No se pudo subir: el archivo pesa ${formatSize(file.size)} y el limite es de ${formatSize(MAX_FILE_SIZE_BYTES)}. Comprimelo o dividelo en partes mas pequeñas.`));
   }
 
   const safeName = file.name.replace(/[^\w.\-]+/g, "_");

@@ -7,28 +7,29 @@ import {
   PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import { updateTicketAsignacion } from "@/lib/tickets";
 import { findServicio } from "@/lib/catalogo";
 import { ESTATUS_VALUES, type Estatus, type Ticket } from "@/types/ticket";
 import { Badge, ESTATUS_TONE, TONE_SURFACE_CLASSES, CategoriaBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { normalizar } from "@/lib/busqueda";
 
 function TicketCardBody({ ticket }: { ticket: Ticket }) {
   const servicio = findServicio(ticket.servicioId);
   return (
     <>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium tabular-nums opacity-60">{ticket.folio}</span>
+        <span className="font-display text-[15px] font-semibold tabular-nums">{ticket.folio}</span>
         <CategoriaBadge categoria={ticket.categoria} />
       </div>
       <p className="text-sm font-medium mt-1.5 truncate" title={servicio?.servicio}>
         {servicio?.servicio ?? ticket.servicioId}
       </p>
-      <p className="text-xs opacity-60 mt-0.5 truncate">{ticket.solicitanteNombre}</p>
+      <p className="text-xs text-muted mt-0.5 truncate">{ticket.solicitanteNombre}</p>
       <div className="flex items-center justify-between mt-2 text-xs gap-2">
-        <span className="opacity-60 truncate">{ticket.abogadoAsignadoId ?? "Sin asignar"}</span>
+        <span className="text-muted truncate">{ticket.abogadoAsignadoId ?? "Sin asignar"}</span>
         {ticket.nivelServicio != null && (
           <span className={cn("font-medium tabular-nums shrink-0", ticket.nivelServicio < 0 ? "text-danger" : "text-success")}>
             {ticket.nivelServicio > 0 ? `+${ticket.nivelServicio}` : ticket.nivelServicio}
@@ -63,16 +64,16 @@ function TicketCard({ ticket, canDrag, moving }: { ticket: Ticket; canDrag: bool
       onClick={() => { if (!isDragging) router.push(`/tickets/${ticket.id}`); }}
       onKeyDown={(e) => { if (e.key === "Enter") router.push(`/tickets/${ticket.id}`); }}
       className={cn(
-        "relative block rounded-md border border-border bg-card p-3 cursor-pointer select-none touch-none",
-        "hover:border-primary/40 hover:bg-surface/60 transition-colors",
-        isDragging && "opacity-40",
-        moving && "opacity-60 pointer-events-none"
+        "relative block rounded-md border border-border border-l-[3px] border-l-accent bg-card p-3 cursor-pointer select-none touch-none shadow-sm",
+        "hover:-translate-y-px hover:shadow-md hover:border-primary/40 transition-all",
+        isDragging && "text-muted",
+        moving && "text-muted pointer-events-none"
       )}
     >
       <TicketCardBody ticket={ticket} />
       {moving && (
         <div className="absolute inset-0 flex items-center justify-center bg-card/60 rounded-md">
-          <Loader2 className="h-4 w-4 animate-spin opacity-70" />
+          <Loader2 className="h-4 w-4 animate-spin text-muted" />
         </div>
       )}
     </div>
@@ -97,21 +98,21 @@ function Column({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex flex-col w-72 shrink-0 rounded-lg border transition-colors",
+        "flex flex-col w-72 shrink-0 rounded-md border transition-colors",
         TONE_SURFACE_CLASSES[tone],
         isOver && "ring-2 ring-primary"
       )}
     >
       <div className="px-3 py-2.5 border-b border-black/5 dark:border-white/5 flex items-center justify-between gap-2">
         <Badge tone={tone}>{estatus}</Badge>
-        <span className="text-xs tabular-nums opacity-50 shrink-0">{items.length}</span>
+        <span className="font-display text-lg font-semibold tabular-nums shrink-0">{items.length}</span>
       </div>
       <div
         className="flex-1 overflow-y-auto p-2 space-y-2 min-h-[80px]"
         style={{ maxHeight: TARJETAS_VISIBLES_MAX * ALTURA_TARJETA_PX }}
       >
         {items.length === 0 ? (
-          <p className="text-xs opacity-40 text-center py-6">Sin tickets</p>
+          <p className="text-xs text-center py-6 italic">Sin tickets</p>
         ) : (
           items.map((t) => <TicketCard key={t.id} ticket={t} canDrag={canDrag} moving={movingIds.has(t.id)} />)
         )}
@@ -127,6 +128,21 @@ export function TicketsKanban({ tickets }: { tickets: Ticket[] }) {
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [movingIds, setMovingIds] = useState<Set<string>>(new Set());
   const [dragError, setDragError] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+
+  const q = normalizar(busqueda).trim();
+  const visibles = q
+    ? tickets.filter((t) =>
+        [
+          t.folio,
+          t.solicitanteNombre,
+          findServicio(t.servicioId)?.servicio ?? t.servicioId,
+          t.categoria,
+          t.estatus,
+          t.abogadoAsignadoId ?? "Sin asignar",
+        ].some((campo) => normalizar(campo).includes(q))
+      )
+    : tickets;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -165,7 +181,17 @@ export function TicketsKanban({ tickets }: { tickets: Ticket[] }) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      <div className="relative max-w-sm w-full">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted pointer-events-none" />
+        <input
+          type="text"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar por folio, solicitante, servicio, categoria, estatus o abogado..."
+          className="field w-full pl-9 pr-3"
+        />
+      </div>
       {dragError && <p className="text-sm text-danger">{dragError}</p>}
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex gap-3 overflow-x-auto pb-2">
@@ -173,7 +199,7 @@ export function TicketsKanban({ tickets }: { tickets: Ticket[] }) {
             <Column
               key={estatus}
               estatus={estatus}
-              items={tickets.filter((t) => t.estatus === estatus)}
+              items={visibles.filter((t) => t.estatus === estatus)}
               canDrag={canDrag}
               movingIds={movingIds}
             />
@@ -181,7 +207,7 @@ export function TicketsKanban({ tickets }: { tickets: Ticket[] }) {
         </div>
         <DragOverlay>
           {activeTicket && (
-            <div className="w-72 rounded-md border border-primary bg-card p-3 shadow-lg">
+            <div className="w-72 rounded-md border border-primary border-l-[3px] border-l-accent bg-card p-3 shadow-xl rotate-1">
               <TicketCardBody ticket={activeTicket} />
             </div>
           )}

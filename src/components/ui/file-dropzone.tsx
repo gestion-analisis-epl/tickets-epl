@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { UploadCloud, FileText, X, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatSize } from "@/lib/format-size";
+import { MAX_FILE_SIZE_BYTES } from "@/lib/storage";
 
 export interface UploadingFile {
   id: string;
@@ -13,12 +15,6 @@ export interface UploadingFile {
   url?: string;
   path?: string;
   error?: string;
-}
-
-function formatSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 interface Props {
@@ -51,14 +47,14 @@ export function FileDropzone({ files, onFilesSelected, onRemove, disabled, multi
         className={cn(
           "flex flex-col items-center justify-center gap-1.5 rounded-md border-2 border-dashed px-4 py-6 text-center cursor-pointer transition-colors",
           dragOver ? "border-primary bg-primary/5" : "border-input hover:bg-surface",
-          disabled && "opacity-50 cursor-not-allowed"
+          disabled && "text-muted cursor-not-allowed"
         )}
       >
-        <UploadCloud className="h-6 w-6 opacity-50" />
+        <UploadCloud className="h-6 w-6 text-muted" />
         <p className="text-sm">
           <span className="font-medium text-primary">Selecciona archivos</span> o arrastralos aqui
         </p>
-        <p className="text-xs opacity-50">PDF, Word, Excel, imagenes...</p>
+        <p className="text-xs text-muted">PDF, Word, Excel, imagenes... · Maximo {formatSize(MAX_FILE_SIZE_BYTES)} por archivo</p>
         <input
           ref={inputRef}
           type="file"
@@ -78,10 +74,16 @@ export function FileDropzone({ files, onFilesSelected, onRemove, disabled, multi
       {files.length > 0 && (
         <ul className="space-y-1.5">
           {files.map((f) => (
-            <li key={f.id} className="flex items-center gap-2.5 rounded-md border border-border bg-surface px-3 py-2 text-sm">
-              {(f.status === "uploading" || f.status === "validando") && <Loader2 className="h-4 w-4 shrink-0 animate-spin opacity-60" />}
+            <li
+              key={f.id}
+              className={cn(
+                "flex items-start gap-2.5 rounded-md border px-3 py-2 text-sm",
+                f.status === "error" ? "border-danger/40 border-l-[3px] border-l-danger bg-danger/10" : "items-center border-border bg-surface"
+              )}
+            >
+              {(f.status === "uploading" || f.status === "validando") && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted" />}
               {f.status === "done"      && <FileText className="h-4 w-4 shrink-0 text-success" />}
-              {f.status === "error"     && <AlertCircle className="h-4 w-4 shrink-0 text-danger" />}
+              {f.status === "error"     && <AlertCircle className="h-4 w-4 shrink-0 text-danger mt-0.5" />}
 
               <div className="min-w-0 flex-1">
                 <p className="truncate">{f.name}</p>
@@ -90,9 +92,9 @@ export function FileDropzone({ files, onFilesSelected, onRemove, disabled, multi
                     <div className="h-full bg-primary transition-all" style={{ width: `${f.progress}%` }} />
                   </div>
                 )}
-                {f.status === "validando" && <p className="text-xs opacity-60 mt-0.5">Validando archivo...</p>}
-                {f.status === "error" && <p className="text-xs text-danger mt-0.5">{f.error ?? "Error al subir el archivo."}</p>}
-                {f.status === "done" && <p className="text-xs opacity-50 mt-0.5">{formatSize(f.size)}</p>}
+                {f.status === "validando" && <p className="text-xs text-muted mt-0.5">Validando archivo...</p>}
+                {f.status === "error" && <p className="text-xs font-medium text-danger mt-0.5">{f.error ?? "Error al subir el archivo."}</p>}
+                {f.status === "done" && <p className="text-xs text-muted mt-0.5">{formatSize(f.size)}</p>}
               </div>
 
               <button

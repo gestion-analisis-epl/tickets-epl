@@ -19,8 +19,8 @@ import {
   type ColumnFiltersState,
   type PaginationState,
   type VisibilityState,
-  type FilterFn,
   type Column,
+  type FilterFn,
 } from "@tanstack/react-table";
 import {
   ArrowUp, ArrowDown, ArrowUpDown, ListFilter, Search,
@@ -31,18 +31,22 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import type { Ticket } from "@/types/ticket";
 import { findServicio } from "@/lib/catalogo";
 import { formatFecha } from "@/lib/format-fecha";
+import { normalizar } from "@/lib/busqueda";
+import { multiSelectColumn, facetOptions, FILTRO_VACIO } from "@/lib/table-filter";
 import { EstatusBadge, CategoriaBadge } from "@/components/ui/badge";
 
 // ── Filters ───────────────────────────────────────────────────────────────────
 
-const multiSelectFilter: FilterFn<Ticket> = (row, columnId, filterValue: string[]) =>
-  filterValue.includes(String(row.getValue(columnId) ?? ""));
-multiSelectFilter.autoRemove = (val: string[]) => !val?.length;
+const busquedaGlobal: FilterFn<Ticket> = (row, columnId, filterValue: string) =>
+  normalizar(row.getValue(columnId)).includes(normalizar(filterValue).trim());
+
+const multiSelect = multiSelectColumn<Ticket>;
+const porDia = multiSelectColumn<Ticket>((v) => (v ? formatFecha(String(v)) : FILTRO_VACIO));
 
 function SortIcon({ sorted }: { sorted: false | "asc" | "desc" }) {
   if (sorted === "asc")  return <ArrowUp className="h-3 w-3 text-primary shrink-0" />;
   if (sorted === "desc") return <ArrowDown className="h-3 w-3 text-primary shrink-0" />;
-  return <ArrowUpDown className="h-3 w-3 opacity-40 group-hover:opacity-70 shrink-0 transition-opacity" />;
+  return <ArrowUpDown className="h-3 w-3 text-muted group-hover:text-foreground shrink-0 transition-opacity" />;
 }
 
 function FilterDropdown({
@@ -59,10 +63,9 @@ function FilterDropdown({
 
   const filterValue  = (column.getFilterValue() as string[]) ?? [];
   const isActive     = filterValue.length > 0;
-  const uniqueValues = Array.from(column.getFacetedUniqueValues().keys())
-    .filter((v) => v != null && v !== "")
-    .map(String)
-    .sort();
+  const uniqueValues = facetOptions(column);
+  const [query, setQuery] = useState("");
+  const visibles = uniqueValues.filter((v) => (v === FILTRO_VACIO ? "(vacio)" : v).toLowerCase().includes(query.trim().toLowerCase()));
 
   const toggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -104,11 +107,11 @@ function FilterDropdown({
         ref={btnRef}
         type="button"
         onClick={toggle}
-        className={cn("relative p-0.5 rounded transition-colors shrink-0", isActive ? "text-primary" : "opacity-40 hover:opacity-80")}
+        className={cn("relative p-0.5 rounded transition-colors shrink-0", isActive ? "text-primary" : "text-muted hover:text-foreground")}
         title="Filtrar columna"
       >
         <ListFilter className="h-3.5 w-3.5" />
-        {isActive && <span className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full" />}
+        {isActive && <span className="absolute -top-1 -right-1 h-2 w-2 bg-primary dark:bg-primary-text rounded-full" />}
       </button>
 
       {open && createPortal(
@@ -118,15 +121,28 @@ function FilterDropdown({
           className="bg-card text-card-foreground rounded-lg border border-border shadow-lg min-w-[200px] overflow-hidden"
         >
           <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-surface">
-            <span className="text-xs font-semibold opacity-80">Filtrar por valor</span>
+            <span className="text-xs font-semibold text-muted">Filtrar por valor</span>
             {isActive && (
               <button type="button" onClick={() => column.setFilterValue(undefined)} className="text-xs text-primary hover:underline">
                 Limpiar
               </button>
             )}
           </div>
+          {uniqueValues.length > 8 && (
+            <div className="px-3 py-2 border-b border-border">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar valor..."
+                className="field h-8 w-full text-xs"
+                autoFocus
+              />
+            </div>
+          )}
           <div className="max-h-52 overflow-y-auto py-1">
-            {uniqueValues.map((value) => (
+            {visibles.length === 0 && <p className="px-3 py-2 text-xs text-muted">Sin coincidencias</p>}
+            {visibles.map((value) => (
               <label key={value} className="flex items-center gap-2.5 px-3 py-2 hover:bg-surface cursor-pointer">
                 <input
                   type="checkbox"
@@ -134,7 +150,7 @@ function FilterDropdown({
                   onChange={() => setFilter(value)}
                   className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-ring cursor-pointer shrink-0"
                 />
-                <span className="text-sm leading-none">{renderLabel ? renderLabel(value) : value}</span>
+                <span className="text-sm leading-none">{value === FILTRO_VACIO ? <span className="italic">(Vacio)</span> : renderLabel ? renderLabel(value) : value}</span>
               </label>
             ))}
           </div>
@@ -180,7 +196,7 @@ function ColumnVisibilityMenu({ columns }: { columns: Column<Ticket, unknown>[] 
         ref={btnRef}
         type="button"
         onClick={toggle}
-        className="flex items-center gap-1.5 h-8 rounded-lg border border-border bg-card px-3 text-sm hover:bg-surface transition-colors shrink-0"
+        className="flex items-center gap-1.5 h-8 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-surface transition-colors shrink-0"
       >
         <Columns3 className="h-3.5 w-3.5" />
         Columnas
@@ -196,7 +212,7 @@ function ColumnVisibilityMenu({ columns }: { columns: Column<Ticket, unknown>[] 
           className="bg-card text-card-foreground rounded-lg border border-border shadow-lg min-w-[210px] overflow-hidden"
         >
           <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-surface">
-            <span className="text-xs font-semibold opacity-80">Mostrar columnas</span>
+            <span className="text-xs font-semibold text-muted">Mostrar columnas</span>
             {hiddenCount > 0 && (
               <button type="button" onClick={() => columns.forEach((c) => c.toggleVisibility(true))} className="text-xs text-primary hover:underline">
                 Mostrar todas
@@ -257,37 +273,37 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
 
   const columns = useMemo(() => [
     columnHelper.accessor("folio", {
+      ...multiSelect(),
       header: "Folio",
       size: 100, minSize: 90,
-      enableColumnFilter: false,
       cell: (info) => (
-        <Link href={`/tickets/${info.row.original.id}`} className="font-medium tabular-nums text-primary hover:underline">
+        <Link href={`/tickets/${info.row.original.id}`} className="font-display font-semibold tabular-nums text-primary hover:underline underline-offset-4">
           {info.getValue()}
         </Link>
       ),
     }),
     columnHelper.accessor("fechaSolicitud", {
+      ...porDia,
       header: "Fecha",
       size: 110, minSize: 90,
-      enableColumnFilter: false,
       cell: (info) => <span className="tabular-nums">{formatFecha(info.getValue())}</span>,
     }),
     columnHelper.accessor("solicitanteNombre", {
+      ...multiSelect(),
       header: "Solicitante",
       size: 170, minSize: 120,
-      enableColumnFilter: false,
     }),
     columnHelper.accessor("areaEmpresa", {
       header: "Area / Empresa",
       size: 160, minSize: 120,
-      filterFn: multiSelectFilter,
+      ...multiSelect(),
       enableGlobalFilter: false,
     }),
-    columnHelper.display({
+    columnHelper.accessor((row) => findServicio(row.servicioId)?.servicio ?? row.servicioId, {
       id: "servicio",
       header: "Servicio",
       size: 240, minSize: 160,
-      enableColumnFilter: false,
+      ...multiSelect(),
       enableSorting: false,
       cell: (info) => {
         const servicio = findServicio(info.row.original.servicioId);
@@ -297,52 +313,49 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
     columnHelper.accessor("categoria", {
       header: "Categoria",
       size: 170, minSize: 130,
-      filterFn: multiSelectFilter,
-      enableGlobalFilter: false,
+      ...multiSelect(),
       cell: (info) => <CategoriaBadge categoria={info.getValue()} />,
     }),
     columnHelper.accessor("estatus", {
       header: "Estatus",
       size: 230, minSize: 170,
-      filterFn: multiSelectFilter,
-      enableGlobalFilter: false,
+      ...multiSelect(),
       cell: (info) => <EstatusBadge estatus={info.getValue()} />,
     }),
     columnHelper.accessor((row) => row.abogadoAsignadoId ?? "Sin asignar", {
       id: "abogadoAsignadoId",
       header: "Abogado asignado",
       size: 170, minSize: 130,
-      filterFn: multiSelectFilter,
-      enableGlobalFilter: false,
+      ...multiSelect(),
       cell: (info) => {
         const v = info.getValue();
         return v === "Sin asignar"
-          ? <span className="opacity-50">Sin asignar</span>
+          ? <span className="text-muted">Sin asignar</span>
           : <span>{v}</span>;
       },
     }),
     columnHelper.accessor("slaInterno", {
+      ...multiSelect(),
       header: "SLA (dias)",
       size: 100, minSize: 90,
-      enableColumnFilter: false,
       cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
     }),
     columnHelper.accessor("diasHabilesTranscurridos", {
+      ...multiSelect(),
       header: "Dias transcurridos",
       size: 130, minSize: 110,
-      enableColumnFilter: false,
       cell: (info) => {
         const v = info.getValue();
         return <span className="tabular-nums">{v ?? "—"}</span>;
       },
     }),
     columnHelper.accessor("nivelServicio", {
+      ...multiSelect(),
       header: "Nivel de servicio",
       size: 140, minSize: 110,
-      enableColumnFilter: false,
       cell: (info) => {
         const v = info.getValue();
-        if (v == null) return <span className="opacity-50">—</span>;
+        if (v == null) return <span className="text-muted">—</span>;
         return (
           <span className={cn("tabular-nums font-medium", v < 0 ? "text-danger" : "text-success")}>
             {v > 0 ? `+${v}` : v}
@@ -351,18 +364,18 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
       },
     }),
     columnHelper.accessor("diasPipeline", {
+      ...multiSelect(),
       header: "Dias en pipeline",
       size: 130, minSize: 110,
-      enableColumnFilter: false,
       cell: (info) => {
         const v = info.getValue();
         return <span className="tabular-nums">{v ?? "—"}</span>;
       },
     }),
     columnHelper.accessor("fechaCierre", {
+      ...porDia,
       header: "Fecha de cierre",
       size: 150, minSize: 120,
-      enableColumnFilter: false,
       cell: (info) => <span className="tabular-nums">{formatFecha(info.getValue(), { conHora: true })}</span>,
     }),
   ], []);
@@ -371,7 +384,7 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
     data: tickets,
     columns,
     columnResizeMode: "onChange",
-    globalFilterFn: "includesString",
+    globalFilterFn: busquedaGlobal,
     state: { sorting, columnFilters, globalFilter, pagination, columnVisibility },
     onSortingChange:         setSorting,
     onColumnFiltersChange:   setColumnFilters,
@@ -431,13 +444,13 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="relative max-w-sm w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 opacity-50 pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted pointer-events-none" />
           <input
             type="text"
             value={globalFilter}
             onChange={(e) => setGlobalFilter(e.target.value)}
-            placeholder="Buscar solicitante..."
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-border bg-card focus:outline-none focus:ring-2 focus:ring-ring"
+            placeholder="Buscar por folio, solicitante, servicio, categoria, estatus o abogado..."
+            className="field w-full pl-9 pr-3"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -445,7 +458,7 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
           <button
             type="button"
             onClick={exportToExcel}
-            className="flex items-center gap-1.5 h-8 rounded-lg border border-border bg-card px-3 text-sm hover:bg-surface transition-colors shrink-0"
+            className="flex items-center gap-1.5 h-8 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-surface transition-colors shrink-0"
           >
             <FileSpreadsheet className="h-3.5 w-3.5" />
             Exportar Excel
@@ -455,11 +468,11 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
 
       {filteredCount === 0 ? (
         <div className="flex flex-col items-center justify-center h-48 bg-card rounded-lg border border-border text-center">
-          <p className="text-sm font-medium opacity-70">Sin resultados</p>
-          <p className="text-xs opacity-50 mt-1">Ajusta los filtros o la busqueda</p>
+          <p className="text-sm font-medium text-muted">Sin resultados</p>
+          <p className="text-xs text-muted mt-1">Ajusta los filtros o la busqueda</p>
         </div>
       ) : (
-        <div className="rounded-lg border border-border overflow-hidden bg-card">
+        <div className="rounded-md border border-border border-t-2 border-t-accent overflow-hidden bg-card">
           <div
             className="overflow-auto max-h-[max(320px,calc(100vh-320px))]"
             style={{ cursor: isResizing ? "col-resize" : undefined }}
@@ -470,7 +483,7 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
               </colgroup>
 
               <thead className="sticky top-0 z-10">
-                <tr className="bg-surface border-b border-border">
+                <tr className="bg-surface border-b-2 border-foreground/15">
                   {table.getFlatHeaders().map((header) => {
                     const canSort   = header.column.getCanSort();
                     const canFilter = header.column.getCanFilter();
@@ -482,13 +495,13 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
                             <button
                               type="button"
                               onClick={header.column.getToggleSortingHandler()}
-                              className="group flex items-center gap-1 text-xs font-semibold uppercase tracking-wider opacity-70 hover:opacity-100 transition-opacity min-w-0 truncate"
+                              className="group flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] hover:text-foreground transition-opacity min-w-0 truncate"
                             >
                               <span className="truncate">{flexRender(header.column.columnDef.header, header.getContext())}</span>
                               <SortIcon sorted={sorted} />
                             </button>
                           ) : (
-                            <span className="text-xs font-semibold uppercase tracking-wider opacity-70 truncate">
+                            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] truncate">
                               {flexRender(header.column.columnDef.header, header.getContext())}
                             </span>
                           )}
@@ -518,8 +531,8 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
                     onDoubleClick={() => router.push(`/tickets/${row.original.id}`)}
                     title="Doble clic para ver el detalle"
                     className={cn(
-                      "border-b border-border last:border-0 hover:bg-surface/60 transition-colors cursor-pointer",
-                      rowIndex % 2 === 1 && "bg-surface/30"
+                      "border-b border-border/70 last:border-0 hover:bg-accent/10 transition-colors cursor-pointer",
+                      rowIndex % 2 === 1 && "bg-surface/40"
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
@@ -536,9 +549,9 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
           {/* Footer */}
           <div className="px-4 py-2.5 border-t border-border bg-surface flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3">
-              <p className="text-xs opacity-60">
+              <p className="text-xs text-muted">
                 {pageStart}–{pageEnd} de {filteredCount} ticket{filteredCount !== 1 ? "s" : ""}
-                {filteredCount < tickets.length && <span className="opacity-40"> (de {tickets.length})</span>}
+                {filteredCount < tickets.length && <span className="text-muted"> (de {tickets.length})</span>}
               </p>
               {hasFilters && (
                 <button onClick={() => { setColumnFilters([]); setGlobalFilter(""); }} className="text-xs text-primary hover:underline">
@@ -549,7 +562,7 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
 
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs opacity-60">Filas:</span>
+                <span className="text-xs text-muted">Filas:</span>
                 <select
                   value={pageSize}
                   onChange={(e) => table.setPageSize(Number(e.target.value))}
@@ -567,7 +580,7 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                <span className="text-xs min-w-[56px] text-center opacity-70">{pageIndex + 1} / {pageCount}</span>
+                <span className="text-xs min-w-[56px] text-center text-muted">{pageIndex + 1} / {pageCount}</span>
                 <button
                   onClick={() => table.nextPage()}
                   disabled={!table.getCanNextPage()}
