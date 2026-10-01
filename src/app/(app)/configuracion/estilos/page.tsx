@@ -22,13 +22,13 @@ export default function EstilosPage() {
 
   return (
     <div className="space-y-8 max-w-4xl">
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         Referencia viva de tipografia, contraste y componentes base — util cuando se agreguen
         o ajusten pantallas nuevas, para no perder de vista lo ya definido.
       </p>
 
-      <section className="rounded-lg border border-border bg-card p-6 space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide opacity-80">Botones</h2>
+      <section className="section-card p-6 space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Botones</h2>
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="primary">Guardar</Button>
           <Button variant="success">Aceptar</Button>
@@ -39,8 +39,8 @@ export default function EstilosPage() {
         </div>
       </section>
 
-      <section className="rounded-lg border border-border bg-card p-6 space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide opacity-80">Estatus del ticket</h2>
+      <section className="section-card p-6 space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Estatus del ticket</h2>
         <div className="flex flex-wrap gap-2">
           {Object.keys(ESTATUS_TONE).map((estatus) => (
             <EstatusBadge key={estatus} estatus={estatus} />
@@ -48,8 +48,8 @@ export default function EstilosPage() {
         </div>
       </section>
 
-      <section className="rounded-lg border border-border bg-card p-6 space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide opacity-80">Categoria de servicio</h2>
+      <section className="section-card p-6 space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Categoria de servicio</h2>
         <div className="flex flex-wrap gap-2">
           {categorias.map((c) => (
             <CategoriaBadge key={c.id} categoria={c.nombre} />
@@ -58,7 +58,7 @@ export default function EstilosPage() {
       </section>
 
       <section className="rounded-lg border border-border bg-surface p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide opacity-80">Panel secundario (surface)</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Panel secundario (surface)</h2>
         <p className="text-sm mt-2">Texto sobre fondo surface, tambien calibrado a 10:1 de contraste.</p>
       </section>
     </div>

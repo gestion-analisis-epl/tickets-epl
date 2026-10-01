@@ -15,6 +15,8 @@ const config: Config = {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        "primary-text": "hsl(var(--primary-text))",
+        muted: "hsl(var(--muted-foreground))",
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
@@ -23,6 +25,7 @@ const config: Config = {
           DEFAULT: "hsl(var(--surface))",
           foreground: "hsl(var(--surface-foreground))",
         },
+        accent: { DEFAULT: "hsl(var(--accent))", light: "hsl(var(--accent-light))" },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           hover: "hsl(var(--primary-hover))",
@@ -71,7 +74,8 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Georgia", "serif"],
       },
     },
   },

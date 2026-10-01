@@ -95,9 +95,9 @@ export function CategoriasPanel({ servicios }: { servicios: CatalogoServicio[] }
   }
 
   return (
-    <section className="rounded-lg border border-border bg-card p-5 space-y-4">
+    <section className="section-card p-5 space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">Categorias</h2>
+        <h2 className="eyebrow">Categorias</h2>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -123,23 +123,23 @@ export function CategoriasPanel({ servicios }: { servicios: CatalogoServicio[] }
         <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-surface p-4 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1.5">Nombre</label>
+              <label className="field-label">Nombre</label>
               <input
                 type="text" required
                 disabled={panel.mode === "editar"}
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
                 title={panel.mode === "editar" ? "El nombre no se puede editar — elimina y crea de nuevo si necesitas renombrar" : undefined}
-                className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                className="w-full field disabled:opacity-50"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5">Color</label>
+              <label className="field-label">Color</label>
               <div className="flex items-center gap-2">
                 <select
                   value={tono}
                   onChange={(e) => setTono(e.target.value as BadgeTone)}
-                  className="flex-1 h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="flex-1 field"
                 >
                   {BADGE_TONES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
@@ -162,13 +162,13 @@ export function CategoriasPanel({ servicios }: { servicios: CatalogoServicio[] }
       )}
 
       <div className="flex flex-wrap gap-2">
-        {categorias.length === 0 && <p className="text-sm opacity-50">Sin categorias todavia.</p>}
+        {categorias.length === 0 && <p className="text-sm text-muted">Sin categorias todavia.</p>}
         {categorias.map((c) => {
           const enUso = servicios.filter((s) => s.categoria === c.nombre).length;
           return (
             <div key={c.id} className="flex items-center gap-1.5 rounded-full border border-border pl-3 pr-1 py-1">
               <Badge tone={c.tono}>{c.nombre}</Badge>
-              <span className="text-xs opacity-50">{enUso}</span>
+              <span className="text-xs text-muted">{enUso}</span>
               {confirmandoId === c.id ? (
                 <>
                   <Button variant="danger" size="sm" onClick={() => handleEliminar(c.id)} disabled={eliminandoId === c.id}>

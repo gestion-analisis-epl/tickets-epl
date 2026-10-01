@@ -18,8 +18,8 @@ export default function InicioPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Hola, {nombre?.split(" ")[0] ?? "bienvenido"}</h1>
-        <p className="text-sm mt-1 opacity-70">Sistema de tickets del area Legal de EPL.</p>
+        <h1 className="page-rule text-3xl font-semibold">Hola, {nombre?.split(" ")[0] ?? "bienvenido"}</h1>
+        <p className="text-sm mt-1 text-muted">Sistema de tickets del area Legal de EPL.</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -29,11 +29,11 @@ export default function InicioPage() {
             <Link
               key={a.href}
               href={a.href}
-              className="rounded-lg border border-border bg-card p-5 hover:border-primary/40 hover:bg-surface transition-colors"
+              className="section-card p-5 hover:border-primary/40 hover:bg-surface transition-colors"
             >
               <Icon className="h-5 w-5 text-primary" />
               <p className="text-sm font-semibold mt-3">{a.label}</p>
-              <p className="text-xs opacity-60 mt-1">{a.desc}</p>
+              <p className="text-xs text-muted mt-1">{a.desc}</p>
             </Link>
           );
         })}

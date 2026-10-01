@@ -33,7 +33,7 @@ export function SitioSelector({ value, onChange, error }: SitioSelectorProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm opacity-70">
+      <div className="flex items-center gap-2 text-sm text-muted">
         <Loader2 className="h-4 w-4 animate-spin" /> Cargando catalogo de sitios...
       </div>
     );
@@ -73,7 +73,7 @@ export function SitioSelector({ value, onChange, error }: SitioSelectorProps) {
             <div key={campo}>
               <label className="flex items-center gap-1.5 text-sm font-medium mb-1.5">
                 {etiqueta} <span className="text-danger">*</span>
-                {bloqueado && <Lock className="h-3 w-3 opacity-50" aria-label="Bloqueado" />}
+                {bloqueado && <Lock className="h-3 w-3 text-muted" aria-label="Bloqueado" />}
               </label>
               <Combobox
                 value={value[campo]}
@@ -94,7 +94,7 @@ export function SitioSelector({ value, onChange, error }: SitioSelectorProps) {
       )}
       {error && <p className="text-xs text-danger mt-1">{error}</p>}
       {desactualizado && (
-        <p className="text-xs opacity-60 mt-1">
+        <p className="text-xs text-muted mt-1">
           No se pudo actualizar el catalogo desde Sheets; se muestra la ultima version cargada.
         </p>
       )}

@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
  * solidos cumplen 10:1 de contraste con su texto (ver globals.css).
  */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium " +
-  "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 " +
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold tracking-wide " +
+  "transition-all active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 " +
   "focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {

@@ -157,16 +157,16 @@ export function MantenimientoPanel() {
       <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card p-10 text-center max-w-lg">
         <ShieldAlert className="h-6 w-6 text-danger" />
         <p className="text-sm font-medium">No tienes permiso para ver esta pagina.</p>
-        <p className="text-xs opacity-60">Solo cuentas con rol admin pueden usar herramientas de mantenimiento.</p>
+        <p className="text-xs text-muted">Solo cuentas con rol admin pueden usar herramientas de mantenimiento.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4 max-w-2xl">
-      <section className="rounded-lg border border-border bg-card p-6 space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">Recalcular SLA historico</h2>
-        <p className="text-sm opacity-80">
+      <section className="section-card p-6 space-y-3">
+        <h2 className="eyebrow">Recalcular SLA historico</h2>
+        <p className="text-sm text-muted">
           Recalcula <span className="font-medium">nivel de servicio</span> y{" "}
           <span className="font-medium">dias en pipeline</span> de los tickets ya cerrados, usando la fecha de
           asignacion del abogado como inicio del SLA (antes se calculaba desde la fecha de solicitud). Los tickets
@@ -206,7 +206,7 @@ export function MantenimientoPanel() {
         )}
 
         {resultado && resultado.detalles.length > 0 && (
-          <details className="text-xs opacity-70">
+          <details className="text-xs text-muted">
             <summary className="cursor-pointer select-none">Ver detalle por ticket</summary>
             <ul className="mt-2 space-y-0.5 max-h-64 overflow-y-auto font-mono">
               {resultado.detalles.map((linea, i) => (
@@ -217,9 +217,9 @@ export function MantenimientoPanel() {
         )}
       </section>
 
-      <section className="rounded-lg border border-border bg-card p-6 space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">Reenviar aviso de reasignacion</h2>
-        <p className="text-sm opacity-80">
+      <section className="section-card p-6 space-y-3">
+        <h2 className="eyebrow">Reenviar aviso de reasignacion</h2>
+        <p className="text-sm text-muted">
           Reenvia el correo y la notificacion de <span className="font-medium">reasignacion</span> (al abogado
           asignado actual y al solicitante) de un ticket puntual, sin volver a pasarlo por el pipeline de
           asignacion — no toca el SLA ni el historial.
@@ -249,9 +249,9 @@ export function MantenimientoPanel() {
         {reasignacionError && <p className="text-sm text-danger">{reasignacionError}</p>}
       </section>
 
-      <section className="rounded-lg border border-border bg-card p-6 space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">Correo de prueba</h2>
-        <p className="text-sm opacity-80">
+      <section className="section-card p-6 space-y-3">
+        <h2 className="eyebrow">Correo de prueba</h2>
+        <p className="text-sm text-muted">
           Dispara el mismo flujo de notificacion por correo que usan los tickets reales, sin necesidad de crear uno.
           Llega a todo el staff de Legal (destinatario real de &quot;nuevo ticket&quot;), salvo que{" "}
           <span className="font-mono text-xs">NOTIFICACIONES_DESTINATARIOS_PRUEBA</span> este configurada.
@@ -267,9 +267,9 @@ export function MantenimientoPanel() {
         )}
       </section>
 
-      <section className="rounded-lg border border-border bg-card p-6 space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">Reenvio retroactivo de correos</h2>
-        <p className="text-sm opacity-80">
+      <section className="section-card p-6 space-y-3">
+        <h2 className="eyebrow">Reenvio retroactivo de correos</h2>
+        <p className="text-sm text-muted">
           Recalcula y reenvia los avisos de correo (nuevo ticket, creacion, asignacion, cambio de estatus/cierre)
           de todos los tickets desde el 21 de septiembre de 2026 — usa el mismo flujo y destinatarios reales que
           los tickets nuevos, solo que basado en el estado <span className="font-medium">actual</span> de cada
@@ -291,13 +291,13 @@ export function MantenimientoPanel() {
               <p>
                 {reenvioDryRun.tickets} tickets, {reenvioDryRun.totalCorreos} correos se enviarian:
               </p>
-              <ul className="text-xs opacity-80 pl-4 list-disc">
+              <ul className="text-xs text-muted pl-4 list-disc">
                 {Object.entries(reenvioDryRun.resumenPorTipo).map(([tipo, n]) => (
                   <li key={tipo}>{tipo}: {n}</li>
                 ))}
               </ul>
               {reenvioDryRun.sinDestinatario.length > 0 && (
-                <details className="text-xs opacity-70 mt-1">
+                <details className="text-xs text-muted mt-1">
                   <summary className="cursor-pointer select-none">
                     {reenvioDryRun.sinDestinatario.length} sin destinatario (no se enviaran)
                   </summary>
@@ -334,7 +334,7 @@ export function MantenimientoPanel() {
                   )}
                 </div>
                 {enviandoReenvioReal && (
-                  <p className="text-xs opacity-60">
+                  <p className="text-xs text-muted">
                     El envio esta en curso (con pausa entre correos) — si algo se ve mal, dale a &quot;Detener
                     envio&quot; y se frena antes del siguiente correo.
                   </p>

@@ -85,7 +85,7 @@ export function NotificationBell() {
         type="button"
         onClick={() => setOpen((o) => !o)}
         title="Notificaciones"
-        className="relative p-2 rounded-lg text-foreground/60 hover:text-foreground hover:bg-surface transition-colors"
+        className="relative p-2 rounded-lg text-muted hover:text-foreground hover:bg-surface transition-colors"
       >
         <Bell className="h-5 w-5" />
         {noLeidas.length > 0 && (
@@ -99,7 +99,7 @@ export function NotificationBell() {
         <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-96 bg-card text-card-foreground rounded-xl border border-border shadow-lg z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface">
             <div className="flex items-center gap-2">
-              <Bell className="h-4 w-4 opacity-60" />
+              <Bell className="h-4 w-4 text-muted" />
               <span className="text-sm font-semibold">Notificaciones</span>
               {noLeidas.length > 0 && (
                 <span className="text-[10px] font-bold rounded-full bg-danger/15 text-danger px-1.5 py-0.5">
@@ -122,7 +122,7 @@ export function NotificationBell() {
 
           <div className="max-h-96 overflow-y-auto">
             {notificaciones.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 gap-2 opacity-50">
+              <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted">
                 <Bell className="h-8 w-8" />
                 <p className="text-sm">Sin notificaciones</p>
               </div>
@@ -137,7 +137,7 @@ export function NotificationBell() {
                     onClick={() => handleClickNotif(n)}
                     className={cn(
                       "flex gap-3 w-full text-left px-4 py-3 border-b border-border last:border-0 transition-colors hover:bg-surface",
-                      !noLeida && "opacity-60 hover:opacity-100"
+                      !noLeida && "text-muted hover:text-foreground"
                     )}
                   >
                     <div className={cn("mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border", TIPO_TONE[n.tipo])}>
@@ -146,12 +146,12 @@ export function NotificationBell() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-semibold">{TIPO_LABEL[n.tipo]}</span>
-                        {noLeida && <span className="h-2 w-2 rounded-full bg-primary shrink-0" />}
+                        {noLeida && <span className="h-2 w-2 rounded-full bg-primary dark:bg-primary-text shrink-0" />}
                       </div>
                       <p className="text-sm mt-0.5">{n.mensaje}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[11px] opacity-50 tabular-nums">{n.ticketFolio}</span>
-                        <span className="text-[11px] opacity-40">{formatFecha(n.fecha, { conHora: true })}</span>
+                        <span className="text-[11px] text-muted tabular-nums">{n.ticketFolio}</span>
+                        <span className="text-[11px] text-muted">{formatFecha(n.fecha, { conHora: true })}</span>
                       </div>
                     </div>
                   </button>

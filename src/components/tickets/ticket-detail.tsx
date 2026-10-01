@@ -89,7 +89,7 @@ export function TicketDetail({ id }: { id: string }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-40">
-        <Loader2 className="h-5 w-5 animate-spin opacity-50" />
+        <Loader2 className="h-5 w-5 animate-spin text-muted" />
       </div>
     );
   }
@@ -300,15 +300,15 @@ export function TicketDetail({ id }: { id: string }) {
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-semibold tabular-nums">{ticket.folio}</h1>
+        <h1 className="page-rule text-3xl font-semibold tabular-nums">{ticket.folio}</h1>
         <EstatusBadge estatus={ticket.estatus} />
         <CategoriaBadge categoria={ticket.categoria} />
       </div>
 
       {/* Datos de la solicitud (verde) — el dueno o admin pueden corregirla mientras no este Cerrada */}
-      <section className="rounded-lg border border-border bg-card p-6 space-y-4">
+      <section className="section-card p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">Solicitud</h2>
+          <h2 className="eyebrow">Solicitud</h2>
           {puedeEditarDocumentos && !editingSolicitud && (
             <Button variant="outline" size="sm" onClick={handleIniciarEdicionSolicitud}>
               <Pencil className="h-3.5 w-3.5" />
@@ -323,11 +323,11 @@ export function TicketDetail({ id }: { id: string }) {
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1.5">Area / Empresa</label>
+                    <label className="field-label">Area / Empresa</label>
                     <select
                       value={areaEmpresaForm}
                       onChange={(e) => setAreaEmpresaForm(e.target.value)}
-                      className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="w-full field"
                     >
                       {AREAS_EMPRESA.map((a) => <option key={a} value={a}>{a}</option>)}
                     </select>
@@ -338,22 +338,22 @@ export function TicketDetail({ id }: { id: string }) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">Descripcion</label>
+                  <label className="field-label">Descripcion</label>
                   <textarea
                     value={descripcionForm}
                     onChange={(e) => setDescripcionForm(e.target.value)}
                     rows={4}
-                    className="w-full px-3 py-2 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+                    className="field w-full resize-y"
                   />
                 </div>
               </>
             ) : (
-              <p className="text-xs opacity-60">Como abogado asignado solo puedes editar la documentacion adjunta.</p>
+              <p className="text-xs text-muted">Como abogado asignado solo puedes editar la documentacion adjunta.</p>
             )}
 
             {docsExistentesForm.length > 0 && (
               <div>
-                <p className="opacity-60 text-sm mb-1.5">Documentacion ya adjunta</p>
+                <p className="text-muted text-sm mb-1.5">Documentacion ya adjunta</p>
                 <ul className="space-y-1">
                   {docsExistentesForm.map((url) => (
                     <li key={url} className="flex items-center justify-between gap-2">
@@ -381,7 +381,7 @@ export function TicketDetail({ id }: { id: string }) {
             )}
 
             <div>
-              <label className="block text-sm font-medium mb-1.5">Agregar mas documentacion</label>
+              <label className="field-label">Agregar mas documentacion</label>
               <FileDropzone files={nuevosArchivos} onFilesSelected={handleNuevosArchivos} onRemove={handleRemoveNuevoArchivo} />
             </div>
 
@@ -403,18 +403,18 @@ export function TicketDetail({ id }: { id: string }) {
         ) : (
           <>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <div><dt className="opacity-60">Solicitante</dt><dd className="font-medium">{ticket.solicitanteNombre}</dd></div>
-              <div><dt className="opacity-60">Area / Empresa</dt><dd className="font-medium">{ticket.areaEmpresa}</dd></div>
-              <div><dt className="opacity-60">Servicio</dt><dd className="font-medium">{servicio?.servicio ?? ticket.servicioId}</dd></div>
-              <div><dt className="opacity-60">Fecha de solicitud</dt><dd className="font-medium">{formatFecha(ticket.fechaSolicitud)}</dd></div>
-              <div><dt className="opacity-60">Puesto responsable sugerido</dt><dd className="font-medium">{ticket.puestoResponsableSugerido}</dd></div>
-              <div><dt className="opacity-60">SLA interno</dt><dd className="font-medium">{ticket.slaInterno} dias habiles</dd></div>
-              <div><dt className="opacity-60">Dias en pipeline</dt><dd className="font-medium tabular-nums">{ticket.diasPipeline ?? 0}</dd></div>
-              <div><dt className="opacity-60">Fecha compromiso</dt><dd className="font-medium">{formatFecha(ticket.fechaCompromiso)}</dd></div>
+              <div><dt className="text-muted">Solicitante</dt><dd className="font-medium">{ticket.solicitanteNombre}</dd></div>
+              <div><dt className="text-muted">Area / Empresa</dt><dd className="font-medium">{ticket.areaEmpresa}</dd></div>
+              <div><dt className="text-muted">Servicio</dt><dd className="font-medium">{servicio?.servicio ?? ticket.servicioId}</dd></div>
+              <div><dt className="text-muted">Fecha de solicitud</dt><dd className="font-medium">{formatFecha(ticket.fechaSolicitud)}</dd></div>
+              <div><dt className="text-muted">Puesto responsable sugerido</dt><dd className="font-medium">{ticket.puestoResponsableSugerido}</dd></div>
+              <div><dt className="text-muted">SLA interno</dt><dd className="font-medium">{ticket.slaInterno} dias habiles</dd></div>
+              <div><dt className="text-muted">Dias en pipeline</dt><dd className="font-medium tabular-nums">{ticket.diasPipeline ?? 0}</dd></div>
+              <div><dt className="text-muted">Fecha compromiso</dt><dd className="font-medium">{formatFecha(ticket.fechaCompromiso)}</dd></div>
               <div>
-                <dt className="opacity-60">Nivel de servicio</dt>
+                <dt className="text-muted">Nivel de servicio</dt>
                 {ticket.nivelServicio == null ? (
-                  <dd className="font-medium opacity-50">SLA aun no inicia (pendiente de asignar abogado)</dd>
+                  <dd className="font-medium text-muted">SLA aun no inicia (pendiente de asignar abogado)</dd>
                 ) : (
                   <dd className={cn("font-medium tabular-nums", ticket.nivelServicio < 0 ? "text-danger" : "text-success")}>
                     {ticket.nivelServicio > 0 ? `+${ticket.nivelServicio}` : ticket.nivelServicio}
@@ -425,7 +425,7 @@ export function TicketDetail({ id }: { id: string }) {
             </dl>
 
             <div>
-              <p className="opacity-60 text-sm mb-1">Descripcion</p>
+              <p className="text-muted text-sm mb-1">Descripcion</p>
               <p className="text-sm whitespace-pre-wrap">{ticket.descripcion}</p>
             </div>
 
@@ -441,7 +441,7 @@ export function TicketDetail({ id }: { id: string }) {
 
             {ticket.documentacion.length > 0 && (
               <div>
-                <p className="opacity-60 text-sm mb-1.5">Documentacion adjunta</p>
+                <p className="text-muted text-sm mb-1.5">Documentacion adjunta</p>
                 <ul className="space-y-1">
                   {ticket.documentacion.map((url) => (
                     <li key={url}>
@@ -463,7 +463,7 @@ export function TicketDetail({ id }: { id: string }) {
             {esArrendamiento && (
               <div>
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <p className="opacity-60 text-sm">Sitio</p>
+                  <p className="text-muted text-sm">Sitio</p>
                   {puedeCambiarSitio && !editandoSitio && (
                     <Button type="button" variant="outline" size="sm" onClick={handleEditarSitio}>
                       <Pencil className="h-3.5 w-3.5" />
@@ -487,23 +487,23 @@ export function TicketDetail({ id }: { id: string }) {
                   </div>
                 ) : ticket.sitioArrendamiento ? (
                   <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                    <div><dt className="opacity-60">Clave</dt><dd className="font-medium">{ticket.sitioArrendamiento.clave}</dd></div>
-                    <div><dt className="opacity-60">Alias</dt><dd className="font-medium">{ticket.sitioArrendamiento.alias}</dd></div>
+                    <div><dt className="text-muted">Clave</dt><dd className="font-medium">{ticket.sitioArrendamiento.clave}</dd></div>
+                    <div><dt className="text-muted">Alias</dt><dd className="font-medium">{ticket.sitioArrendamiento.alias}</dd></div>
                   </dl>
                 ) : ticket.contratoArrendamiento?.sitio ? (
                   <p className="text-sm">
                     <span className="font-medium">{ticket.contratoArrendamiento.sitio}</span>
-                    <span className="opacity-60"> (texto libre, anterior al catalogo de sitios)</span>
+                    <span className="text-muted"> (texto libre, anterior al catalogo de sitios)</span>
                   </p>
                 ) : (
-                  <p className="text-sm opacity-60">Sin sitio asignado.</p>
+                  <p className="text-sm text-muted">Sin sitio asignado.</p>
                 )}
               </div>
             )}
 
             {ticket.formatoArrendamientoUrl && (
               <div>
-                <p className="opacity-60 text-sm mb-1.5">Formato de solicitud de arrendamiento</p>
+                <p className="text-muted text-sm mb-1.5">Formato de solicitud de arrendamiento</p>
                 <a
                   href={ticket.formatoArrendamientoUrl}
                   target="_blank"
@@ -518,7 +518,7 @@ export function TicketDetail({ id }: { id: string }) {
 
             {ticket.documentosArrendamiento && (
               <div>
-                <p className="opacity-60 text-sm mb-1.5">Documentos de arrendamiento</p>
+                <p className="text-muted text-sm mb-1.5">Documentos de arrendamiento</p>
                 <ul className="space-y-1">
                   {DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO.map((doc) => {
                     const url = ticket.documentosArrendamiento![doc.key];
@@ -543,22 +543,22 @@ export function TicketDetail({ id }: { id: string }) {
 
             {ticket.contratoArrendamiento && (
               <div>
-                <p className="opacity-60 text-sm mb-2">Datos del contrato / convenio</p>
+                <p className="text-muted text-sm mb-2">Datos del contrato / convenio</p>
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                  <div><dt className="opacity-60">Domicilio</dt><dd className="font-medium">{ticket.contratoArrendamiento.domicilio}</dd></div>
-                  <div><dt className="opacity-60">Alta de arrendador</dt><dd className="font-medium">{ticket.contratoArrendamiento.altaArrendador}</dd></div>
-                  <div><dt className="opacity-60">Solicitante</dt><dd className="font-medium">{ticket.contratoArrendamiento.solicitante}</dd></div>
+                  <div><dt className="text-muted">Domicilio</dt><dd className="font-medium">{ticket.contratoArrendamiento.domicilio}</dd></div>
+                  <div><dt className="text-muted">Alta de arrendador</dt><dd className="font-medium">{ticket.contratoArrendamiento.altaArrendador}</dd></div>
+                  <div><dt className="text-muted">Solicitante</dt><dd className="font-medium">{ticket.contratoArrendamiento.solicitante}</dd></div>
                   <div>
-                    <dt className="opacity-60">Periodo de arrendamiento</dt>
+                    <dt className="text-muted">Periodo de arrendamiento</dt>
                     <dd className="font-medium">
                       {formatFechaSolo(ticket.contratoArrendamiento.periodoInicio)} — {formatFechaSolo(ticket.contratoArrendamiento.periodoFin)}
                     </dd>
                   </div>
-                  <div><dt className="opacity-60">Condiciones para pago</dt><dd className="font-medium">{ticket.contratoArrendamiento.condicionesPago}</dd></div>
-                  <div><dt className="opacity-60">Monto de pago</dt><dd className="font-medium tabular-nums">{formatMonedaMXN(ticket.contratoArrendamiento.montoPago)}</dd></div>
-                  <div><dt className="opacity-60">Motivo</dt><dd className="font-medium">{ticket.contratoArrendamiento.motivo}</dd></div>
+                  <div><dt className="text-muted">Condiciones para pago</dt><dd className="font-medium">{ticket.contratoArrendamiento.condicionesPago}</dd></div>
+                  <div><dt className="text-muted">Monto de pago</dt><dd className="font-medium tabular-nums">{formatMonedaMXN(ticket.contratoArrendamiento.montoPago)}</dd></div>
+                  <div><dt className="text-muted">Motivo</dt><dd className="font-medium">{ticket.contratoArrendamiento.motivo}</dd></div>
                   {ticket.contratoArrendamiento.notas && (
-                    <div className="sm:col-span-2"><dt className="opacity-60">Notas</dt><dd>{ticket.contratoArrendamiento.notas}</dd></div>
+                    <div className="sm:col-span-2"><dt className="text-muted">Notas</dt><dd>{ticket.contratoArrendamiento.notas}</dd></div>
                   )}
                 </dl>
               </div>
@@ -568,55 +568,55 @@ export function TicketDetail({ id }: { id: string }) {
       </section>
 
       {/* Asignacion / estatus (ambar, editable solo por Legal/admin) */}
-      <section className="rounded-lg border border-border bg-card p-6 space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">Asignacion y estatus</h2>
+      <section className="section-card p-6 space-y-4">
+        <h2 className="eyebrow">Asignacion y estatus</h2>
 
         {puedeEditar ? (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1.5">Estatus</label>
+                <label className="field-label">Estatus</label>
                 <select
                   value={estatusForm}
                   onChange={(e) => setEstatusForm(e.target.value as Estatus)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full field"
                 >
                   {ESTATUS_VALUES.map((e) => <option key={e} value={e}>{e}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Abogado asignado</label>
+                <label className="field-label">Abogado asignado</label>
                 <select
                   value={abogadoForm}
                   onChange={(e) => setAbogadoForm(e.target.value)}
                   disabled={!puedeAsignarAbogado}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full field disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <option value="">Sin asignar</option>
                   {ABOGADOS.map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
                 </select>
                 {!puedeAsignarAbogado && (
-                  <p className="text-xs opacity-60 mt-1">Solo Admin/Gerente Juridico pueden reasignar.</p>
+                  <p className="text-xs text-muted mt-1">Solo Admin/Gerente Juridico pueden reasignar.</p>
                 )}
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1.5">Notas de cierre / lecciones aprendidas</label>
+              <label className="field-label">Notas de cierre / lecciones aprendidas</label>
               <textarea
                 value={notasForm}
                 onChange={(e) => setNotasForm(e.target.value)}
                 rows={3}
                 placeholder="Opcional — util sobre todo al cerrar el ticket."
-                className="w-full px-3 py-2 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+                className="field w-full resize-y"
               />
             </div>
 
             {ticket.fechaAsignacion && (
-              <p className="text-xs opacity-60">Asignado el {formatFecha(ticket.fechaAsignacion, { conHora: true })}</p>
+              <p className="text-xs text-muted">Asignado el {formatFecha(ticket.fechaAsignacion, { conHora: true })}</p>
             )}
             {ticket.fechaCierre && (
-              <p className="text-xs opacity-60">Cerrado el {formatFecha(ticket.fechaCierre, { conHora: true })}</p>
+              <p className="text-xs text-muted">Cerrado el {formatFecha(ticket.fechaCierre, { conHora: true })}</p>
             )}
 
             {saveError && <p className="text-sm text-danger">{saveError}</p>}
@@ -628,12 +628,12 @@ export function TicketDetail({ id }: { id: string }) {
           </>
         ) : (
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-            <div><dt className="opacity-60">Abogado asignado</dt><dd className="font-medium">{ticket.abogadoAsignadoId ?? "Sin asignar"}</dd></div>
-            <div><dt className="opacity-60">Fecha de asignacion</dt><dd className="font-medium">{formatFecha(ticket.fechaAsignacion, { conHora: true })}</dd></div>
+            <div><dt className="text-muted">Abogado asignado</dt><dd className="font-medium">{ticket.abogadoAsignadoId ?? "Sin asignar"}</dd></div>
+            <div><dt className="text-muted">Fecha de asignacion</dt><dd className="font-medium">{formatFecha(ticket.fechaAsignacion, { conHora: true })}</dd></div>
             {ticket.fechaCierre && (
               <>
-                <div><dt className="opacity-60">Fecha de cierre</dt><dd className="font-medium">{formatFecha(ticket.fechaCierre, { conHora: true })}</dd></div>
-                {ticket.notasCierre && <div className="sm:col-span-2"><dt className="opacity-60">Notas de cierre</dt><dd>{ticket.notasCierre}</dd></div>}
+                <div><dt className="text-muted">Fecha de cierre</dt><dd className="font-medium">{formatFecha(ticket.fechaCierre, { conHora: true })}</dd></div>
+                {ticket.notasCierre && <div className="sm:col-span-2"><dt className="text-muted">Notas de cierre</dt><dd>{ticket.notasCierre}</dd></div>}
               </>
             )}
           </dl>
@@ -642,8 +642,8 @@ export function TicketDetail({ id }: { id: string }) {
 
       {/* Calificacion — solo el dueno, solo si ya cerro y no ha calificado */}
       {puedeCalificar && (
-        <section className="rounded-lg border border-border bg-card p-6 space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">Califica tu experiencia</h2>
+        <section className="section-card p-6 space-y-3">
+          <h2 className="eyebrow">Califica tu experiencia</h2>
           <div className="grid grid-cols-5 sm:grid-cols-10 gap-1 max-w-md">
             {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
               <button
@@ -660,13 +660,13 @@ export function TicketDetail({ id }: { id: string }) {
             ))}
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1.5">Comentarios (opcional)</label>
+            <label className="field-label">Comentarios (opcional)</label>
             <textarea
               value={comentarioSatisfaccion}
               onChange={(e) => setComentarioSatisfaccion(e.target.value)}
               rows={3}
               placeholder="Cuentanos mas sobre tu experiencia..."
-              className="w-full px-3 py-2 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+              className="field w-full resize-y"
             />
           </div>
           <Button variant="success" onClick={handleCalificar} disabled={satisfaccionSel == null || enviandoSatisfaccion}>
@@ -676,7 +676,7 @@ export function TicketDetail({ id }: { id: string }) {
       )}
 
       {ticket.satisfaccion != null && (
-        <div className="text-sm opacity-70 space-y-1">
+        <div className="text-sm text-muted space-y-1">
           <p>Satisfaccion registrada: <span className="font-medium opacity-100">{ticket.satisfaccion} / 10</span></p>
           {ticket.comentarioSatisfaccion && (
             <p className="opacity-100">&quot;{ticket.comentarioSatisfaccion}&quot;</p>

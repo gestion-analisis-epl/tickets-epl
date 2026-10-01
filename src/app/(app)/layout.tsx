@@ -27,7 +27,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (status !== "signed-in") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin opacity-50" />
+        <Loader2 className="h-6 w-6 animate-spin text-muted" />
       </div>
     );
   }

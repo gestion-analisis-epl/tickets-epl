@@ -63,7 +63,7 @@ export function TicketsView({ tickets }: { tickets: Ticket[] }) {
 
       {/* Filtro por abogado asignado — misma idea, tambien aplica a ambas vistas */}
       <div className="flex items-center gap-2">
-        <label className="text-xs font-medium opacity-60">Abogado:</label>
+        <label className="text-xs font-medium text-muted">Abogado:</label>
         <select
           value={abogadoFiltro}
           onChange={(e) => setAbogadoFiltro(e.target.value)}
@@ -82,7 +82,7 @@ export function TicketsView({ tickets }: { tickets: Ticket[] }) {
           onClick={() => setVista("tabla")}
           className={cn(
             "flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
-            vista === "tabla" ? "border-primary text-primary" : "border-transparent opacity-60 hover:opacity-100"
+            vista === "tabla" ? "border-primary text-primary" : "border-transparent text-muted hover:text-foreground"
           )}
         >
           <Table2 className="h-3.5 w-3.5" />
@@ -93,7 +93,7 @@ export function TicketsView({ tickets }: { tickets: Ticket[] }) {
           onClick={() => setVista("kanban")}
           className={cn(
             "flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
-            vista === "kanban" ? "border-primary text-primary" : "border-transparent opacity-60 hover:opacity-100"
+            vista === "kanban" ? "border-primary text-primary" : "border-transparent text-muted hover:text-foreground"
           )}
         >
           <LayoutGrid className="h-3.5 w-3.5" />

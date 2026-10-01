@@ -110,7 +110,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
         <div className="flex h-14 shrink-0 items-center border-b border-sidebar-border">
           {effectiveCollapsed ? (
             <div className="flex w-full items-center justify-between px-3">
-              <Scale className="h-5 w-5 text-primary-hover shrink-0" />
+              <Scale className="h-5 w-5 text-accent-light shrink-0" />
               <button onClick={toggle} title="Expandir"
                 className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-sidebar-hover transition-colors"
               >
@@ -119,8 +119,8 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
             </div>
           ) : (
             <div className="flex w-full items-center gap-2 px-4">
-              <Scale className="h-5 w-5 text-primary-hover shrink-0" />
-              <span className="text-[15px] font-semibold tracking-tight">Legal EPL</span>
+              <Scale className="h-5 w-5 text-accent-light shrink-0" />
+              <span className="font-display text-[17px] font-semibold tracking-tight">Legal <span className="italic text-accent-light">EPL</span></span>
               <button onClick={toggle} title="Colapsar"
                 className="ml-auto hidden md:flex h-6 w-6 shrink-0 items-center justify-center rounded-md hover:bg-sidebar-hover transition-colors"
               >
@@ -149,7 +149,10 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
                 className={cn(
                   "flex items-center rounded-lg text-[13px] font-medium transition-colors duration-100",
                   effectiveCollapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2.5",
-                  active ? "bg-primary text-primary-foreground" : "hover:bg-sidebar-hover"
+                  "relative",
+                  active
+                    ? "bg-sidebar-hover text-white before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[2px] before:rounded-full before:bg-accent"
+                    : "hover:bg-sidebar-hover hover:text-white"
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
@@ -192,7 +195,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
           </button>
 
           {!effectiveCollapsed && (
-            <div className="px-3 py-1.5 text-[11px] opacity-80 truncate">{nombre}</div>
+            <div className="px-3 py-1.5 text-[11px] uppercase tracking-[0.12em] truncate">{nombre}</div>
           )}
 
           <button

@@ -13,8 +13,8 @@ export default function TicketsPage() {
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold">Tickets</h1>
-          <p className="text-sm mt-1 opacity-70">Todas las solicitudes del area Legal, en tabla o por etapa.</p>
+          <h1 className="page-rule text-3xl font-semibold">Tickets</h1>
+          <p className="text-sm mt-1 text-muted">Todas las solicitudes del area Legal, en tabla o por etapa.</p>
         </div>
         <Link href="/tickets/nuevo">
           <Button variant="primary">Nuevo ticket</Button>
@@ -23,7 +23,7 @@ export default function TicketsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center h-40">
-          <Loader2 className="h-5 w-5 animate-spin opacity-50" />
+          <Loader2 className="h-5 w-5 animate-spin text-muted" />
         </div>
       ) : (
         <TicketsView tickets={tickets} />

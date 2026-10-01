@@ -42,12 +42,32 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="flex flex-col items-center gap-2 text-center">
-          <Scale className="h-8 w-8 text-primary" />
-          <h1 className="text-xl font-semibold">Tickets Legal EPL</h1>
-          <p className="text-sm opacity-70">Inicia sesion para continuar</p>
+    <div className="min-h-screen grid lg:grid-cols-[1.1fr_1fr] bg-background">
+      <aside className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-sidebar text-sidebar-foreground p-14">
+        <div className="absolute -right-24 -top-24 h-[28rem] w-[28rem] rounded-full border border-accent/30" />
+        <div className="absolute -right-10 -top-10 h-[22rem] w-[22rem] rounded-full border border-accent/20" />
+        <div className="relative flex items-center gap-2.5">
+          <Scale className="h-6 w-6 text-accent-light" />
+          <span className="font-display text-xl font-semibold">Legal <span className="italic text-accent-light">EPL</span></span>
+        </div>
+        <div className="relative max-w-md stagger">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-accent-light">Area juridica</p>
+          <p className="font-display text-5xl leading-[1.05] font-semibold mt-4 text-white">
+            Cada solicitud, <span className="italic text-accent-light">con folio</span> y con plazo.
+          </p>
+          <p className="mt-6 text-sm leading-relaxed">
+            Seguimiento de tickets, niveles de servicio y documentacion en un solo expediente.
+          </p>
+        </div>
+        <p className="relative text-xs">Grupo EPL</p>
+      </aside>
+
+      <div className="flex items-center justify-center px-6 py-12">
+      <div className="w-full max-w-sm space-y-8 stagger">
+        <div className="space-y-2">
+          <Scale className="h-7 w-7 text-primary lg:hidden" />
+          <h1 className="page-rule text-4xl font-semibold">Bienvenido</h1>
+          <p className="text-sm text-muted pt-1">Inicia sesion para continuar con Tickets Legal EPL.</p>
         </div>
 
         {error && (
@@ -62,7 +82,7 @@ export default function LoginPage() {
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Continuar con Google
             </Button>
-            <p className="text-xs text-center opacity-60">
+            <p className="text-xs text-center text-muted">
               Usa tu correo de la empresa (Google Workspace).
             </p>
             <button
@@ -76,23 +96,23 @@ export default function LoginPage() {
         ) : (
           <form onSubmit={handleStaffSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1.5">Correo</label>
+              <label className="field-label">Correo</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full field"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5">Contraseña</label>
+              <label className="field-label">Contraseña</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full field"
               />
             </div>
             <Button type="submit" variant="primary" className="w-full" disabled={loading}>
@@ -102,12 +122,13 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => { setMostrarStaff(false); setError(null); }}
-              className="w-full text-center text-sm opacity-60 hover:opacity-100"
+              className="w-full text-center text-sm text-muted hover:text-foreground"
             >
               Volver a la opcion de solicitante
             </button>
           </form>
         )}
+      </div>
       </div>
     </div>
   );

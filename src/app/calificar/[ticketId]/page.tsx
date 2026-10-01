@@ -61,74 +61,95 @@ export default function CalificarPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md space-y-6">
-        <div className="flex flex-col items-center gap-2 text-center">
-          <Scale className="h-8 w-8 text-primary" />
-          <h1 className="text-xl font-semibold">Tickets Legal EPL</h1>
+    <div className="min-h-screen flex flex-col bg-background">
+      <header className="bg-sidebar text-sidebar-foreground">
+        <div className="mx-auto flex max-w-xl items-center gap-2.5 px-6 py-5">
+          <Scale className="h-5 w-5 text-accent-light" />
+          <span className="font-display text-lg font-semibold">Legal <span className="italic text-accent-light">EPL</span></span>
         </div>
+        <div className="h-[3px] bg-accent" />
+      </header>
 
-        {loading ? (
-          <div className="flex justify-center">
-            <Loader2 className="h-5 w-5 animate-spin opacity-50" />
+      <main className="flex-1 mx-auto w-full max-w-xl px-6 py-10 sm:py-14">
+        <div className="stagger space-y-8">
+          <div>
+            <p className="eyebrow text-muted">Encuesta de servicio</p>
+            <h1 className="page-rule text-4xl font-semibold mt-2">Tu opinion cuenta</h1>
           </div>
-        ) : error ? (
-          <div className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger text-center">
-            {error}
-          </div>
-        ) : enviado || info?.yaCalificado ? (
-          <div className="rounded-lg border border-border bg-card p-6 text-center space-y-2">
-            <CheckCircle2 className="h-8 w-8 text-success mx-auto" />
-            <p className="text-sm font-medium">
-              {enviado ? "¡Gracias por tu calificacion!" : "Este ticket ya fue calificado."}
-            </p>
-            {info?.yaCalificado && !enviado && (
-              <p className="text-sm opacity-70">Calificacion registrada: {info.satisfaccion} / 10</p>
-            )}
-          </div>
-        ) : (
-          <div className="rounded-lg border border-border bg-card p-6 space-y-4">
-            <div>
-              <p className="text-sm opacity-60">Ticket {info?.folio}</p>
-              <p className="text-sm font-medium">{info?.servicio}</p>
+
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-5 w-5 animate-spin text-muted" />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1.5">Califica tu experiencia</label>
-              <div className="grid grid-cols-5 sm:grid-cols-10 gap-1">
-                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setSatisfaccionSel(n)}
-                    className={cn(
-                      "h-9 rounded-md border text-sm font-medium transition-colors",
-                      satisfaccionSel === n ? "bg-primary text-primary-foreground border-primary" : "border-input hover:bg-surface"
-                    )}
-                  >
-                    {n}
-                  </button>
-                ))}
+          ) : error ? (
+            <div className="rounded-md border border-danger/30 border-l-[3px] border-l-danger bg-danger/10 px-4 py-3 text-sm text-danger">
+              {error}
+            </div>
+          ) : enviado || info?.yaCalificado ? (
+            <div className="section-card p-8 text-center space-y-3">
+              <CheckCircle2 className="h-10 w-10 text-success mx-auto" />
+              <p className="font-display text-2xl font-semibold">
+                {enviado ? "¡Gracias por tu calificacion!" : "Este ticket ya fue calificado."}
+              </p>
+              {info?.yaCalificado && !enviado && (
+                <p className="text-sm text-muted">
+                  Calificacion registrada: <span className="font-display text-lg font-semibold tabular-nums">{info.satisfaccion}</span> / 10
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="section-card p-6 sm:p-8 space-y-7">
+              <div className="border-b border-border pb-5">
+                <p className="eyebrow text-muted">Ticket</p>
+                <p className="font-display text-2xl font-semibold tabular-nums mt-1">{info?.folio}</p>
+                <p className="text-sm mt-1">{info?.servicio}</p>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1.5">Comentarios (opcional)</label>
-              <textarea
-                value={comentario}
-                onChange={(e) => setComentario(e.target.value)}
-                rows={3}
-                placeholder="Cuentanos mas sobre tu experiencia..."
-                className="w-full px-3 py-2 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
-              />
-            </div>
+              <div>
+                <label className="field-label">¿Que tan satisfecho quedaste con la atencion?</label>
+                <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5 mt-2">
+                  {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setSatisfaccionSel(n)}
+                      aria-pressed={satisfaccionSel === n}
+                      className={cn(
+                        "h-11 rounded-md border font-display text-lg font-semibold tabular-nums transition-all",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card",
+                        satisfaccionSel === n
+                          ? "bg-primary text-primary-foreground border-primary -translate-y-0.5 shadow-md"
+                          : "border-input bg-card hover:bg-accent/15 hover:border-accent"
+                      )}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex justify-between mt-2 text-xs text-muted">
+                  <span>Nada satisfecho</span>
+                  <span>Muy satisfecho</span>
+                </div>
+              </div>
 
-            <Button variant="success" className="w-full" onClick={handleEnviar} disabled={satisfaccionSel == null || enviando}>
-              {enviando ? "Enviando..." : "Enviar calificacion"}
-            </Button>
-          </div>
-        )}
-      </div>
+              <div>
+                <label className="field-label">Comentarios (opcional)</label>
+                <textarea
+                  value={comentario}
+                  onChange={(e) => setComentario(e.target.value)}
+                  rows={3}
+                  placeholder="Cuentanos mas sobre tu experiencia..."
+                  className="field w-full resize-y"
+                />
+              </div>
+
+              <Button variant="success" size="lg" className="w-full" onClick={handleEnviar} disabled={satisfaccionSel == null || enviando}>
+                {enviando ? "Enviando..." : "Enviar calificacion"}
+              </Button>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 }

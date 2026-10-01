@@ -81,7 +81,7 @@ function ColumnFilterButton({
         ref={btnRef}
         type="button"
         onClick={toggle}
-        className={cn("hover:opacity-100", selected.size > 0 ? "opacity-100 text-primary" : "opacity-40")}
+        className={cn("hover:text-foreground", selected.size > 0 ? "opacity-100 text-primary" : "text-muted")}
         title="Filtrar"
       >
         <ListFilter className="h-3 w-3" />
@@ -94,7 +94,7 @@ function ColumnFilterButton({
           className="bg-card text-card-foreground rounded-lg border border-border shadow-lg min-w-[200px] overflow-hidden"
         >
           <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-surface">
-            <span className="text-xs font-semibold uppercase tracking-wider opacity-70">Filtrar</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted">Filtrar</span>
             {selected.size > 0 && (
               <button type="button" onClick={onClear} className="text-xs font-normal normal-case text-primary hover:underline">
                 Limpiar
@@ -275,7 +275,7 @@ export function UsuariosPanel() {
       <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card p-10 text-center max-w-lg">
         <ShieldAlert className="h-6 w-6 text-danger" />
         <p className="text-sm font-medium">No tienes permiso para ver esta pagina.</p>
-        <p className="text-xs opacity-60">Solo cuentas con rol admin pueden gestionar usuarios.</p>
+        <p className="text-xs text-muted">Solo cuentas con rol admin pueden gestionar usuarios.</p>
       </div>
     );
   }
@@ -284,7 +284,7 @@ export function UsuariosPanel() {
     <div className="space-y-4 max-w-6xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 opacity-50 pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted pointer-events-none" />
           <input
             type="text"
             value={search}
@@ -307,13 +307,13 @@ export function UsuariosPanel() {
       )}
 
       {panel && (
-        <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-card p-5 space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">
+        <form onSubmit={handleSubmit} className="section-card p-5 space-y-4">
+          <h2 className="eyebrow">
             {panel.mode === "crear" ? "Agregar usuario de staff" : `Editar usuario — ${panel.user.nombre}`}
           </h2>
 
           {panel.mode === "crear" && (
-            <p className="text-xs opacity-60">
+            <p className="text-xs text-muted">
               Solo para cuentas de Legal/admin (correo + contrasena). Los solicitantes se registran solos al
               entrar con su cuenta de Google.
             </p>
@@ -321,17 +321,17 @@ export function UsuariosPanel() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1.5">Nombre</label>
+              <label className="field-label">Nombre</label>
               <input
                 type="text"
                 required
                 value={formNombre}
                 onChange={(e) => setFormNombre(e.target.value)}
-                className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full field"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5">Correo</label>
+              <label className="field-label">Correo</label>
               <input
                 type="email"
                 required
@@ -343,15 +343,15 @@ export function UsuariosPanel() {
                     ? "El correo de un solicitante se administra desde su cuenta de Google"
                     : undefined
                 }
-                className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                className="w-full field disabled:opacity-50"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5">Rol</label>
+              <label className="field-label">Rol</label>
               <select
                 value={formRole}
                 onChange={(e) => setFormRole(e.target.value as Role)}
-                className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full field"
               >
                 {(panel.mode === "crear" ? STAFF_ROLES : ROLE_OPTIONS).map((r) => (
                   <option key={r} value={r}>{ROLE_LABEL[r]}</option>
@@ -373,16 +373,16 @@ export function UsuariosPanel() {
             )}
             {panel.mode === "editar" && LEGAL_STAFF_ROLES.includes(formRole) && (
               <div>
-                <label className="block text-sm font-medium mb-1.5">Abogado del catalogo</label>
+                <label className="field-label">Abogado del catalogo</label>
                 <select
                   value={formAbogadoId}
                   onChange={(e) => setFormAbogadoId(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full field"
                 >
                   <option value="">Sin vincular</option>
                   {ABOGADOS.map((a) => <option key={a.id} value={a.id}>{a.nombre} — {a.puesto}</option>)}
                 </select>
-                <p className="text-xs opacity-60 mt-1">
+                <p className="text-xs text-muted mt-1">
                   Necesario para que le llegue la notificacion cuando le asignen un ticket.
                 </p>
               </div>
@@ -391,14 +391,14 @@ export function UsuariosPanel() {
 
           {panel.mode === "editar" && puedeSupervisar(formRole) && (
             <div>
-              <label className="block text-sm font-medium mb-1.5">Usuarios cuyos tickets puede ver</label>
+              <label className="field-label">Usuarios cuyos tickets puede ver</label>
               <SupervisadosPicker
                 usuarios={users}
                 propioUid={panel.user.uid}
                 value={formSupervisaUids}
                 onChange={setFormSupervisaUids}
               />
-              <p className="text-xs opacity-60 mt-1">
+              <p className="text-xs text-muted mt-1">
                 Solo lectura: los ve en su lista, en el detalle y en el dashboard, pero no puede editarlos.
               </p>
             </div>
@@ -419,7 +419,7 @@ export function UsuariosPanel() {
 
       {loading ? (
         <div className="flex items-center justify-center h-32">
-          <Loader2 className="h-5 w-5 animate-spin opacity-50" />
+          <Loader2 className="h-5 w-5 animate-spin text-muted" />
         </div>
       ) : (
         <div className="rounded-lg border border-border overflow-hidden bg-card">
@@ -428,18 +428,18 @@ export function UsuariosPanel() {
             <thead>
               <tr className="bg-surface border-b border-border">
                 {COLUMNS.map((col) => (
-                  <th key={col.key} className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider opacity-70">
+                  <th key={col.key} className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted">
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => toggleSort(col.key)}
-                        className="flex items-center gap-1 hover:opacity-100"
+                        className="flex items-center gap-1 hover:text-foreground"
                       >
                         {col.label}
                         {sort?.key === col.key ? (
                           sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
                         ) : (
-                          <ArrowUpDown className="h-3 w-3 opacity-40" />
+                          <ArrowUpDown className="h-3 w-3 text-muted" />
                         )}
                       </button>
                       {col.key === "role" && (
@@ -461,18 +461,18 @@ export function UsuariosPanel() {
                     </div>
                   </th>
                 ))}
-                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider opacity-70">Acciones</th>
+                <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((u, i) => (
                 <tr key={u.uid} className={cn("border-b border-border last:border-0", i % 2 === 1 && "bg-surface/30")}>
                   <td className="px-4 py-2.5">{u.nombre}</td>
-                  <td className="px-4 py-2.5 opacity-80">{u.email}</td>
+                  <td className="px-4 py-2.5 text-muted">{u.email}</td>
                   <td className="px-4 py-2.5">
                     <Badge tone="blue">{ROLE_LABEL[u.role]}</Badge>
                     {u.abogadoId && (
-                      <div className="text-[11px] opacity-50 mt-1">{findAbogado(u.abogadoId)?.nombre}</div>
+                      <div className="text-[11px] text-muted mt-1">{findAbogado(u.abogadoId)?.nombre}</div>
                     )}
                   </td>
                   <td className="px-4 py-2.5">
@@ -480,10 +480,10 @@ export function UsuariosPanel() {
                   </td>
                   <td className="px-4 py-2.5">
                     {u.uid === myUid ? (
-                      <span className="text-xs opacity-50">Tu cuenta</span>
+                      <span className="text-xs text-muted">Tu cuenta</span>
                     ) : confirmandoEliminarUid === u.uid ? (
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs opacity-70">¿Seguro?</span>
+                        <span className="text-xs text-muted">¿Seguro?</span>
                         <Button
                           variant="danger" size="sm"
                           onClick={() => handleEliminar(u.uid)}
@@ -518,7 +518,7 @@ export function UsuariosPanel() {
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center opacity-50">Sin resultados</td></tr>
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-muted">Sin resultados</td></tr>
               )}
             </tbody>
           </table>

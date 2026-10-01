@@ -306,12 +306,12 @@ export function NuevoTicketForm() {
 
   if (folioCreado) {
     return (
-      <div className="rounded-lg border border-border bg-card p-5 sm:p-8 max-w-xl">
+      <div className="section-card p-5 sm:p-8 max-w-xl">
         <div className="flex items-center gap-3">
           <CheckCircle2 className="h-8 w-8 text-success shrink-0" />
           <div>
             <h2 className="text-lg font-semibold">Solicitud creada: {folioCreado}</h2>
-            <p className="text-sm opacity-70 mt-0.5">
+            <p className="text-sm text-muted mt-0.5">
               Tu ticket ya quedo guardado y Mesa de Control lo puede ver.
               {files.length > 0 && ` Se adjuntaron ${files.length} archivo(s).`}
             </p>
@@ -333,19 +333,19 @@ export function NuevoTicketForm() {
     <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
       {/* Datos automaticos (no editables) */}
       <section className="rounded-lg border border-border bg-surface p-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
-        <div><span className="opacity-60">Fecha de solicitud: </span><span className="font-medium">{hoy}</span></div>
-        <div><span className="opacity-60">Solicitante: </span><span className="font-medium">{nombre}</span></div>
+        <div><span className="text-muted">Fecha de solicitud: </span><span className="font-medium">{hoy}</span></div>
+        <div><span className="text-muted">Solicitante: </span><span className="font-medium">{nombre}</span></div>
       </section>
 
-      <section className="rounded-lg border border-border bg-card p-6 space-y-5">
+      <section className="section-card p-6 space-y-5">
         <div>
-          <label className="block text-sm font-medium mb-1.5">
+          <label className="field-label">
             Area / Empresa solicitante <span className="text-danger">*</span>
           </label>
           <select
             value={form.areaEmpresa}
             onChange={(e) => set("areaEmpresa", e.target.value)}
-            className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full field"
           >
             <option value="">Selecciona un area o empresa...</option>
             {AREAS_EMPRESA.map((a) => <option key={a} value={a}>{a}</option>)}
@@ -364,15 +364,15 @@ export function NuevoTicketForm() {
           {servicioSeleccionado && (
             <div className="mt-3 flex flex-wrap items-center gap-3 rounded-md bg-surface px-3 py-2 text-sm">
               <CategoriaBadge categoria={servicioSeleccionado.categoria} />
-              <span className="opacity-70">Puesto responsable: <span className="font-medium opacity-100">{servicioSeleccionado.puestoResponsable}</span></span>
-              <span className="opacity-70">SLA interno: <span className="font-medium opacity-100">{servicioSeleccionado.slaInterno} dias habiles</span></span>
+              <span className="text-muted">Puesto responsable: <span className="font-medium opacity-100">{servicioSeleccionado.puestoResponsable}</span></span>
+              <span className="text-muted">SLA interno: <span className="font-medium opacity-100">{servicioSeleccionado.slaInterno} dias habiles</span></span>
             </div>
           )}
         </div>
 
         {servicioSeleccionado && (
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide opacity-70 mb-3">Sitio</p>
+            <p className="eyebrow mb-3">Sitio</p>
             <SitioSelector
               value={sitio}
               onChange={(v) => {
@@ -386,7 +386,7 @@ export function NuevoTicketForm() {
 
         {requiereFormato && (
           <div className="space-y-4">
-            <label className="block text-sm font-medium mb-1.5">
+            <label className="field-label">
               Subir Formato de Solicitud de Arrendamiento <span className="text-danger">*</span>
             </label>
             <a
@@ -403,7 +403,7 @@ export function NuevoTicketForm() {
               onRemove={handleRemoveFormato}
               multiple={false}
             />
-            <p className="text-xs opacity-60 mt-1.5">
+            <p className="text-xs text-muted mt-1.5">
               Descarga el formato oficial, llenalo, y sube aqui el mismo archivo — no se acepta otra plantilla.
             </p>
             {errors.formato && <p className="text-xs text-danger mt-1">{errors.formato}</p>}
@@ -411,7 +411,7 @@ export function NuevoTicketForm() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO.map((doc) => (
                 <div key={doc.key}>
-                  <label className="block text-sm font-medium mb-1.5">
+                  <label className="field-label">
                     {doc.label} <span className="text-danger">*</span>
                   </label>
                   <FileDropzone
@@ -429,60 +429,60 @@ export function NuevoTicketForm() {
 
         {esContrato && (
           <div className="space-y-4 rounded-md border border-border bg-surface/40 p-4">
-            <p className="text-sm font-semibold uppercase tracking-wide opacity-70">Datos del contrato / convenio</p>
+            <p className="eyebrow">Datos del contrato / convenio</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1.5">Domicilio <span className="text-danger">*</span></label>
+                <label className="field-label">Domicilio <span className="text-danger">*</span></label>
                 <textarea
                   value={contrato.domicilio}
                   onChange={(e) => setContrato("domicilio", e.target.value)}
                   onBlur={() => sanitizarContrato("domicilio", toTitleCase)}
                   rows={2}
-                  className="w-full px-3 py-2 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+                  className="field w-full resize-y"
                 />
                 {errors.domicilio && <p className="text-xs text-danger mt-1">{errors.domicilio}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1.5">Alta de Arrendador <span className="text-danger">*</span></label>
+                <label className="field-label">Alta de Arrendador <span className="text-danger">*</span></label>
                 <input
                   type="text"
                   value={contrato.altaArrendador}
                   onChange={(e) => setContrato("altaArrendador", e.target.value)}
                   onBlur={() => sanitizarContrato("altaArrendador", toTitleCase)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full field"
                 />
                 {errors.altaArrendador && <p className="text-xs text-danger mt-1">{errors.altaArrendador}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1.5">Solicitante <span className="text-danger">*</span></label>
+                <label className="field-label">Solicitante <span className="text-danger">*</span></label>
                 <input
                   type="text"
                   value={contrato.solicitante}
                   onChange={(e) => setContrato("solicitante", e.target.value)}
                   onBlur={() => sanitizarContrato("solicitante", toTitleCase)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full field"
                 />
                 {errors.solicitante && <p className="text-xs text-danger mt-1">{errors.solicitante}</p>}
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium mb-1.5">Periodo de arrendamiento <span className="text-danger">*</span></label>
+                <label className="field-label">Periodo de arrendamiento <span className="text-danger">*</span></label>
                 <div className="flex flex-wrap items-center gap-2">
                   <input
                     type="date"
                     value={contrato.periodoInicio}
                     onChange={(e) => setContrato("periodoInicio", e.target.value)}
-                    className="h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="field"
                   />
-                  <span className="text-sm opacity-60">a</span>
+                  <span className="text-sm text-muted">a</span>
                   <input
                     type="date"
                     value={contrato.periodoFin}
                     onChange={(e) => setContrato("periodoFin", e.target.value)}
-                    className="h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="field"
                   />
                 </div>
                 {(errors.periodoInicio || errors.periodoFin) && (
@@ -491,12 +491,12 @@ export function NuevoTicketForm() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1.5">Condiciones para pago <span className="text-danger">*</span></label>
+                <label className="field-label">Condiciones para pago <span className="text-danger">*</span></label>
                 <div className="flex gap-2">
                   <select
                     value={contrato.condicionesCodigo}
                     onChange={(e) => setContrato("condicionesCodigo", e.target.value)}
-                    className="w-24 h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="w-24 field"
                   >
                     <option value="">Codigo...</option>
                     {CONDICIONES_PAGO_CODIGOS.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -504,7 +504,7 @@ export function NuevoTicketForm() {
                   <select
                     value={contrato.condicionesTipo}
                     onChange={(e) => setContrato("condicionesTipo", e.target.value)}
-                    className="flex-1 h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="flex-1 field"
                   >
                     <option value="">Selecciona...</option>
                     {CONDICIONES_PAGO_TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -514,27 +514,27 @@ export function NuevoTicketForm() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1.5">Monto de pago (MXN) <span className="text-danger">*</span></label>
+                <label className="field-label">Monto de pago (MXN) <span className="text-danger">*</span></label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm opacity-60">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
                   <input
                     type="text"
                     inputMode="decimal"
                     value={contrato.montoPago}
                     onChange={(e) => setContrato("montoPago", formatMontoInput(e.target.value))}
-                    className="w-full h-10 pl-7 pr-14 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="field w-full pl-7 pr-14"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs opacity-50">MXN</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted">MXN</span>
                 </div>
                 {errors.montoPago && <p className="text-xs text-danger mt-1">{errors.montoPago}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1.5">Motivo <span className="text-danger">*</span></label>
+                <label className="field-label">Motivo <span className="text-danger">*</span></label>
                 <select
                   value={contrato.motivo}
                   onChange={(e) => setContrato("motivo", e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full field"
                 >
                   <option value="">Selecciona...</option>
                   {MOTIVO_CONTRATO_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -546,7 +546,7 @@ export function NuevoTicketForm() {
         )}
 
         <div>
-          <label className="block text-sm font-medium mb-1.5">
+          <label className="field-label">
             Descripcion de la solicitud <span className="text-danger">*</span>
           </label>
           <textarea
@@ -554,13 +554,13 @@ export function NuevoTicketForm() {
             onChange={(e) => set("descripcion", e.target.value)}
             rows={4}
             placeholder="Describe con el mayor detalle posible lo que necesitas..."
-            className="w-full px-3 py-2 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+            className="field w-full resize-y"
           />
           {errors.descripcion && <p className="text-xs text-danger mt-1">{errors.descripcion}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1.5">Documentacion adjunta</label>
+          <label className="field-label">Documentacion adjunta</label>
           <FileDropzone files={files} onFilesSelected={handleFilesSelected} onRemove={handleRemoveFile} />
         </div>
       </section>

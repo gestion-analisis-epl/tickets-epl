@@ -26,7 +26,7 @@ export function BarList({ items }: { items: BarItem[] }) {
                 style={{ width: `${pct}%`, backgroundColor: item.color, borderRadius: "0 4px 4px 0" }}
               />
             </div>
-            <span className="w-10 shrink-0 text-sm text-right tabular-nums opacity-80">{item.value}</span>
+            <span className="w-10 shrink-0 text-sm text-right tabular-nums text-muted">{item.value}</span>
           </div>
         );
       })}

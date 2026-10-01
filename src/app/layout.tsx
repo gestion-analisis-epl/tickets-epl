@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Fraunces, Hanken_Grotesk } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", weight: ["400", "500", "600", "700"] });
+const sans = Hanken_Grotesk({ subsets: ["latin"], variable: "--font-sans", weight: ["400", "500", "600", "700"] });
+const display = Fraunces({ subsets: ["latin"], variable: "--font-display", axes: ["opsz"] });
 
 export const metadata: Metadata = {
   title: "Tickets Legal EPL",
@@ -16,7 +17,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans`} suppressHydrationWarning>
+      <body className={`${sans.variable} ${display.variable} font-sans`} suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <AuthProvider>{children}</AuthProvider>
         </ThemeProvider>

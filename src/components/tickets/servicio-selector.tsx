@@ -48,26 +48,26 @@ export function ServicioSelector({ value, onChange, error, soloIds }: ServicioSe
     return (
       <>
         <div>
-          <label className="block text-sm font-medium mb-1.5">
+          <label className="field-label">
             Categoria <span className="text-danger">*</span>
           </label>
           <select
             value={categoriaActual}
             onChange={(e) => handleCategoriaChange(e.target.value)}
-            className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full field"
           >
             {categoriasPermitidas.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
 
         <div className="mt-4">
-          <label className="block text-sm font-medium mb-1.5">
+          <label className="field-label">
             Servicio <span className="text-danger">*</span>
           </label>
           <select
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full field"
           >
             <option value="">Selecciona un servicio...</option>
             {serviciosDeLaCategoriaPermitida.map((s) => <option key={s.id} value={s.id}>{s.servicio}</option>)}
@@ -83,13 +83,13 @@ export function ServicioSelector({ value, onChange, error, soloIds }: ServicioSe
   return (
     <>
       <div>
-        <label className="block text-sm font-medium mb-1.5">
+        <label className="field-label">
           Categoria <span className="text-danger">*</span>
         </label>
         <select
           value={categoria}
           onChange={(e) => handleCategoriaChange(e.target.value)}
-          className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="w-full field"
         >
           <option value="">Selecciona una categoria...</option>
           {categorias.map((c) => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
@@ -97,14 +97,14 @@ export function ServicioSelector({ value, onChange, error, soloIds }: ServicioSe
       </div>
 
       <div className="mt-4">
-        <label className="block text-sm font-medium mb-1.5">
+        <label className="field-label">
           Servicio <span className="text-danger">*</span>
         </label>
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={!categoria}
-          className="w-full h-10 px-3 rounded-md border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+          className="w-full field disabled:opacity-50"
         >
           <option value="">{categoria ? "Selecciona un servicio..." : "Primero elige una categoria"}</option>
           {serviciosDeLaCategoria.map((s) => <option key={s.id} value={s.id}>{s.servicio}</option>)}

@@ -26,8 +26,8 @@ export default function CatalogoPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Catalogo de servicios</h1>
-        <p className="text-sm mt-1 opacity-70">
+        <h1 className="page-rule text-3xl font-semibold">Catalogo de servicios</h1>
+        <p className="text-sm mt-1 text-muted">
           Los {servicios.length} servicios estandarizados del area Legal, con su puesto responsable y SLA.
         </p>
       </div>
@@ -38,7 +38,7 @@ export default function CatalogoPage() {
         </>
       ) : (
         <div className="flex items-center justify-center h-40">
-          <Loader2 className="h-5 w-5 animate-spin opacity-50" />
+          <Loader2 className="h-5 w-5 animate-spin text-muted" />
         </div>
       )}
     </div>

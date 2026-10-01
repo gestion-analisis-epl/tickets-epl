@@ -24,13 +24,13 @@ export default function DashboardPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-sm mt-1 opacity-70">Carga de trabajo y cumplimiento de SLA del area Legal, al momento.</p>
+        <h1 className="page-rule text-3xl font-semibold">Dashboard</h1>
+        <p className="text-sm mt-1 text-muted">Carga de trabajo y cumplimiento de SLA del area Legal, al momento.</p>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-40">
-          <Loader2 className="h-5 w-5 animate-spin opacity-50" />
+          <Loader2 className="h-5 w-5 animate-spin text-muted" />
         </div>
       ) : (
       <>
@@ -49,27 +49,27 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <section className="rounded-lg border border-border bg-card p-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70 mb-4">Tickets por estatus</h2>
+        <section className="section-card p-6">
+          <h2 className="eyebrow mb-4">Tickets por estatus</h2>
           <BarList
             items={stats.porEstatus.map((item, i) => ({ ...item, color: CHART_VARS[i % CHART_VARS.length] }))}
           />
         </section>
 
-        <section className="rounded-lg border border-border bg-card p-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70 mb-4">Tickets por categoria</h2>
+        <section className="section-card p-6">
+          <h2 className="eyebrow mb-4">Tickets por categoria</h2>
           <BarList
             items={stats.porCategoria.map((item, i) => ({ ...item, color: CHART_VARS[i % CHART_VARS.length] }))}
           />
         </section>
       </div>
 
-      <section className="rounded-lg border border-border bg-card p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70 mb-4">Carga por abogado</h2>
+      <section className="section-card p-6">
+        <h2 className="eyebrow mb-4">Carga por abogado</h2>
         {stats.porAbogado.length > 0 ? (
           <BarList items={stats.porAbogado.map((item) => ({ ...item, color: "hsl(var(--primary))" }))} />
         ) : (
-          <p className="text-sm opacity-50">Sin tickets asignados todavia.</p>
+          <p className="text-sm text-muted">Sin tickets asignados todavia.</p>
         )}
       </section>
       </>

@@ -101,12 +101,12 @@ export function Combobox({ value, options, onChange, placeholder = "Selecciona..
               onChange("");
               cerrar();
             }}
-            className="p-0.5 rounded opacity-50 hover:opacity-100"
+            className="p-0.5 rounded text-muted hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
           </button>
         )}
-        <ChevronDown className="h-4 w-4 opacity-50 pointer-events-none" />
+        <ChevronDown className="h-4 w-4 text-muted pointer-events-none" />
       </div>
 
       {abierto && (
@@ -116,7 +116,7 @@ export function Combobox({ value, options, onChange, placeholder = "Selecciona..
           className="absolute z-30 mt-1 max-h-60 w-full overflow-auto rounded-md border border-border bg-card py-1 text-sm shadow-lg"
         >
           {filtradas.length === 0 ? (
-            <li className="px-3 py-2 opacity-60">Sin resultados</li>
+            <li className="px-3 py-2 text-muted">Sin resultados</li>
           ) : (
             filtradas.map((o, i) => (
               <li
