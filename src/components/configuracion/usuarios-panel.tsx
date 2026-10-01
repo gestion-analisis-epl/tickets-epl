@@ -8,21 +8,23 @@ import {
   listUsers, crearUsuarioStaff, actualizarUsuario, eliminarUsuario,
   type UserRow, type ActualizarUsuarioInput,
 } from "@/lib/users";
-import { STAFF_ROLES, LEGAL_STAFF_ROLES, isAdminRole, type Role } from "@/types/user";
+import { STAFF_ROLES, LEGAL_STAFF_ROLES, isAdminRole, isSolicitanteRole, puedeSupervisar, type Role } from "@/types/user";
 import { ABOGADOS, findAbogado } from "@/lib/data/abogados";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SupervisadosPicker } from "./supervisados-picker";
 import { cn } from "@/lib/utils";
 
 const ROLE_LABEL: Record<Role, string> = {
   solicitante: "Solicitante",
+  gerente_area: "Gerente de Area",
   mesa_control: "Mesa de Control",
   abogado: "Abogado",
   gerente_juridico: "Gerente Juridico",
   admin: "Admin",
 };
 
-const ROLE_OPTIONS: Role[] = ["solicitante", "mesa_control", "abogado", "gerente_juridico", "admin"];
+const ROLE_OPTIONS: Role[] = ["solicitante", "gerente_area", "mesa_control", "abogado", "gerente_juridico", "admin"];
 
 type Panel = { mode: "crear" } | { mode: "editar"; user: UserRow } | null;
 
@@ -136,6 +138,7 @@ export function UsuariosPanel() {
   const [formRole, setFormRole] = useState<Role>("mesa_control");
   const [formActivo, setFormActivo] = useState(true);
   const [formAbogadoId, setFormAbogadoId] = useState("");
+  const [formSupervisaUids, setFormSupervisaUids] = useState<string[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -202,6 +205,7 @@ export function UsuariosPanel() {
     setFormRole("mesa_control");
     setFormActivo(true);
     setFormAbogadoId("");
+    setFormSupervisaUids([]);
     setFormError(null);
     setInfoMsg(null);
     setPanel({ mode: "crear" });
@@ -213,6 +217,7 @@ export function UsuariosPanel() {
     setFormRole(u.role);
     setFormActivo(u.activo);
     setFormAbogadoId(u.abogadoId ?? "");
+    setFormSupervisaUids(u.supervisaUids ?? []);
     setFormError(null);
     setInfoMsg(null);
     setPanel({ mode: "editar", user: u });
@@ -236,8 +241,9 @@ export function UsuariosPanel() {
         );
       } else if (panel?.mode === "editar") {
         const patch: ActualizarUsuarioInput = { nombre: formNombre.trim(), role: formRole, activo: formActivo };
-        if (panel.user.role !== "solicitante") patch.email = formEmail.trim();
+        if (!isSolicitanteRole(panel.user.role)) patch.email = formEmail.trim();
         patch.abogadoId = LEGAL_STAFF_ROLES.includes(formRole) ? (formAbogadoId || null) : null;
+        if (puedeSupervisar(formRole)) patch.supervisaUids = formSupervisaUids;
         await actualizarUsuario(panel.user.uid, patch);
         setInfoMsg("Cambios guardados.");
       }
@@ -329,11 +335,11 @@ export function UsuariosPanel() {
               <input
                 type="email"
                 required
-                disabled={panel.mode === "editar" && panel.user.role === "solicitante"}
+                disabled={panel.mode === "editar" && isSolicitanteRole(panel.user.role)}
                 value={formEmail}
                 onChange={(e) => setFormEmail(e.target.value)}
                 title={
-                  panel.mode === "editar" && panel.user.role === "solicitante"
+                  panel.mode === "editar" && isSolicitanteRole(panel.user.role)
                     ? "El correo de un solicitante se administra desde su cuenta de Google"
                     : undefined
                 }
@@ -382,6 +388,21 @@ export function UsuariosPanel() {
               </div>
             )}
           </div>
+
+          {panel.mode === "editar" && puedeSupervisar(formRole) && (
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Usuarios cuyos tickets puede ver</label>
+              <SupervisadosPicker
+                usuarios={users}
+                propioUid={panel.user.uid}
+                value={formSupervisaUids}
+                onChange={setFormSupervisaUids}
+              />
+              <p className="text-xs opacity-60 mt-1">
+                Solo lectura: los ve en su lista, en el detalle y en el dashboard, pero no puede editarlos.
+              </p>
+            </div>
+          )}
 
           {formError && <p className="text-sm text-danger">{formError}</p>}
 

@@ -6,6 +6,7 @@ import { db } from "@/lib/firebase";
 import { LEGAL_STAFF_ROLES } from "@/types/user";
 import type { Ticket } from "@/types/ticket";
 import type { TicketRepository, RepositoryError } from "@/domain/tickets/ticket-repository";
+import { combinarTickets, uidsConsultaTickets } from "@/domain/tickets/visibilidad-rules";
 
 function toRepositoryError(err: FirestoreError): RepositoryError {
   return { code: err.code };
@@ -71,18 +72,36 @@ export const firestoreTicketRepository: TicketRepository = {
     return snap.docs.map((d) => ({ ...d.data(), id: d.id }) as Ticket).filter((t) => !esTicketDePrueba(t));
   },
 
-  // Sin orderBy (evita un indice compuesto) — se ordena en JS.
-  subscribeMany({ uid, role }, callback) {
+  // Sin orderBy (evita un indice compuesto) — se ordena en JS. Un solicitante consulta por su uid;
+  // un gerente de area, ademas, una consulta por cada supervisado (las reglas exigen el filtro).
+  subscribeMany({ uid, role, supervisaUids }, callback) {
     const ticketsRef = collection(db, "tickets");
-    const q = role === "solicitante" ? query(ticketsRef, where("solicitanteId", "==", uid)) : query(ticketsRef);
+    const uids = uidsConsultaTickets({ uid, role, supervisaUids });
+    const consultas = uids ? uids.map((u) => query(ticketsRef, where("solicitanteId", "==", u))) : [query(ticketsRef)];
 
-    return onSnapshot(q, (snap) => {
-      const tickets = snap.docs
-        .map((d) => ({ ...d.data(), id: d.id }) as Ticket)
-        .filter((t) => !esTicketDePrueba(t));
-      tickets.sort((a, b) => (a.fechaSolicitud < b.fechaSolicitud ? 1 : -1));
-      callback(tickets);
-    });
+    const resultados: (Ticket[] | undefined)[] = consultas.map(() => undefined);
+    // Se emite hasta que todas las consultas respondieron, para no mostrar la lista a medias.
+    const emitir = () => {
+      if (resultados.some((r) => !r)) return;
+      callback(combinarTickets(resultados as Ticket[][]));
+    };
+
+    const cancelar = consultas.map((q, i) =>
+      onSnapshot(
+        q,
+        (snap) => {
+          resultados[i] = snap.docs.map((d) => ({ ...d.data(), id: d.id }) as Ticket).filter((t) => !esTicketDePrueba(t));
+          emitir();
+        },
+        (err) => {
+          // Si una consulta falla (p. ej. supervisado sin permiso) no se pierden las demas.
+          console.error("subscribeMany: consulta de tickets fallo", err);
+          resultados[i] = [];
+          emitir();
+        }
+      )
+    );
+    return () => cancelar.forEach((c) => c());
   },
 
   subscribeOne(id, callback, onError) {

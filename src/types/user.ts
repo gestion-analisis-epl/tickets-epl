@@ -1,4 +1,4 @@
-export type Role = "solicitante" | "mesa_control" | "abogado" | "gerente_juridico" | "admin";
+export type Role = "solicitante" | "gerente_area" | "mesa_control" | "abogado" | "gerente_juridico" | "admin";
 
 // Roles con cuenta de correo+contrasena, creables desde el panel de Usuarios.
 // "solicitante" no entra aqui: se autoregistra por Google (ver
@@ -16,6 +16,17 @@ export const LEGAL_STAFF_ROLES: Role[] = ["mesa_control", "abogado", "gerente_ju
 export const ADMIN_LIKE_ROLES: Role[] = ["admin", "gerente_juridico"];
 export function isAdminRole(role: Role | null | undefined): boolean {
   return !!role && (ADMIN_LIKE_ROLES as Role[]).includes(role);
+}
+
+// Roles que entran con su cuenta de Google y crean tickets propios (no son staff de Legal).
+// gerente_area ademas ve, sin poder editarlos, los tickets de los usuarios de su supervisaUids.
+export const SOLICITANTE_ROLES: Role[] = ["solicitante", "gerente_area"];
+export function isSolicitanteRole(role: Role | null | undefined): boolean {
+  return !!role && SOLICITANTE_ROLES.includes(role);
+}
+
+export function puedeSupervisar(role: Role | null | undefined): boolean {
+  return role === "gerente_area";
 }
 
 export interface AppUser {

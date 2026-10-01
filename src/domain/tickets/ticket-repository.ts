@@ -22,6 +22,6 @@ export interface TicketRepository {
   update(id: string, patch: Partial<Ticket>): Promise<void>;
   delete(id: string): Promise<void>;
   listCerrados(): Promise<Ticket[]>;
-  subscribeMany(filter: { uid: string; role: Role }, callback: (tickets: Ticket[]) => void): Unsubscribe;
+  subscribeMany(filter: { uid: string; role: Role; supervisaUids?: string[] }, callback: (tickets: Ticket[]) => void): Unsubscribe;
   subscribeOne(id: string, callback: (ticket: Ticket | null) => void, onError?: (err: RepositoryError) => void): Unsubscribe;
 }

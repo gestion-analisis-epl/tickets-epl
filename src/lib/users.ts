@@ -50,6 +50,7 @@ export interface ActualizarUsuarioInput {
   role?: Role;
   activo?: boolean; // tambien bloquea/desbloquea el login real (Auth.disabled)
   abogadoId?: string | null; // null para desvincular
+  supervisaUids?: string[]; // solo gerente_area
 }
 
 export async function actualizarUsuario(uid: string, input: ActualizarUsuarioInput): Promise<void> {

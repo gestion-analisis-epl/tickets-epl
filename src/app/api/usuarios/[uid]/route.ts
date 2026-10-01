@@ -3,7 +3,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 import { requireAdmin, ApiAuthError } from "@/lib/api-auth";
 import { ABOGADOS } from "@/lib/data/abogados";
-import type { Role } from "@/types/user";
+import { normalizarSupervisaUids } from "@/domain/users/supervision-rules";
+import { isSolicitanteRole, puedeSupervisar, type Role } from "@/types/user";
 
 export const runtime = "nodejs";
 
@@ -39,7 +40,7 @@ export async function PATCH(request: Request, { params }: Params) {
     }
 
     if (typeof body.email === "string" && body.email.trim()) {
-      if (current.data()?.role === "solicitante") {
+      if (isSolicitanteRole(current.data()?.role)) {
         return NextResponse.json(
           { error: "El correo de un solicitante se administra desde su cuenta de Google, no se puede editar aqui." },
           { status: 400 }
@@ -66,6 +67,22 @@ export async function PATCH(request: Request, { params }: Params) {
       } else {
         return NextResponse.json({ error: "Abogado del catalogo invalido." }, { status: 400 });
       }
+    }
+
+    // Solo un gerente de area tiene supervisados; al dejar de serlo se limpian.
+    const rolFinal = (typeof body.role === "string" ? body.role : current.data()?.role) as Role;
+    if (puedeSupervisar(rolFinal)) {
+      if ("supervisaUids" in body) {
+        const todos = await getAdminDb().collection("users").select().get();
+        const validacion = normalizarSupervisaUids(body.supervisaUids, {
+          propioUid: uid,
+          uidsExistentes: new Set(todos.docs.map((d) => d.id)),
+        });
+        if (!validacion.ok) return NextResponse.json({ error: validacion.error }, { status: 400 });
+        patchFirestore.supervisaUids = validacion.uids;
+      }
+    } else if (current.data()?.supervisaUids !== undefined) {
+      patchFirestore.supervisaUids = FieldValue.delete();
     }
 
     if (Object.keys(patchAuth).length > 0) {

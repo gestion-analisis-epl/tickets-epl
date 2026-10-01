@@ -7,6 +7,7 @@ import {
 import { auth } from "./firebase";
 import { dominioPermitido } from "./data/dominios-permitidos";
 import { ensureSolicitanteDoc, getUserDoc } from "./users";
+import { isSolicitanteRole } from "@/types/user";
 
 export class AuthActionError extends Error {}
 
@@ -44,7 +45,7 @@ export async function signInStaff(email: string, password: string) {
   const result = await signInWithEmailAndPassword(auth, email, password);
   const userDoc = await getUserDoc(result.user.uid);
 
-  if (!userDoc || userDoc.role === "solicitante") {
+  if (!userDoc || isSolicitanteRole(userDoc.role)) {
     await signOut(auth);
     throw new AuthActionError(
       "Esta cuenta no tiene un rol de Legal ni de admin asignado. Pide que te lo configuren antes de intentar de nuevo."
