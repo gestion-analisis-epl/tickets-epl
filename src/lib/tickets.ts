@@ -17,6 +17,7 @@ export const updateTicketAsignacion = ticketService.updateTicketAsignacion;
 export const reenviarNotificacionReasignacion = ticketService.reenviarNotificacionReasignacion;
 export const updateTicketSolicitud = ticketService.updateTicketSolicitud;
 export const updateTicketSitio = ticketService.updateTicketSitio;
+export const updateTicketExclusion = ticketService.updateTicketExclusion;
 export const deleteTicket = ticketService.deleteTicket;
 export const submitSatisfaccion = ticketService.submitSatisfaccion;
 export const backfillSlaHistorico = ticketService.backfillSlaHistorico;

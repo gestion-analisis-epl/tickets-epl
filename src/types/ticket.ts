@@ -95,4 +95,7 @@ export interface Ticket {
   tokenCalificacion: string | null;
 
   historialEstatus: HistorialEntry[];
+
+  // Ticket de prueba sacado a mano desde Mantenimiento: no aparece en tabla, kanban ni dashboard.
+  excluidoDelPipeline?: boolean;
 }

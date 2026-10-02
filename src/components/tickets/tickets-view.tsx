@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { LayoutGrid, Table2 } from "lucide-react";
 import { TicketsTable } from "@/components/tickets/tickets-table";
 import { TicketsKanban } from "@/components/tickets/tickets-kanban";
+import { useSessionStorage } from "@/hooks/use-session-storage";
 import { ABOGADOS } from "@/lib/data/abogados";
 import { ESTATUS_VALUES, type Estatus, type Ticket } from "@/types/ticket";
 import { cn } from "@/lib/utils";
@@ -13,9 +14,9 @@ type Vista = "tabla" | "kanban";
 const SIN_ASIGNAR = "__sin_asignar__";
 
 export function TicketsView({ tickets }: { tickets: Ticket[] }) {
-  const [vista, setVista] = useState<Vista>("tabla");
-  const [estatusFiltro, setEstatusFiltro] = useState<Estatus | null>(null);
-  const [abogadoFiltro, setAbogadoFiltro] = useState<string>("");
+  const [vista, setVista] = useSessionStorage<Vista>("tickets-view:vista", "tabla");
+  const [estatusFiltro, setEstatusFiltro] = useSessionStorage<Estatus | null>("tickets-view:estatus", null);
+  const [abogadoFiltro, setAbogadoFiltro] = useSessionStorage<string>("tickets-view:abogado", "");
 
   const conteos = useMemo(() => {
     const map = new Map<Estatus, number>();

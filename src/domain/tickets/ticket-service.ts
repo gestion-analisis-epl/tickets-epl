@@ -109,6 +109,10 @@ export function createTicketService(repo: TicketRepository, notifier: TicketNoti
     await repo.update(id, calcularPatchSitio(sitio, actorUid, new Date()));
   }
 
+  async function updateTicketExclusion(id: string, excluido: boolean): Promise<void> {
+    await repo.update(id, { excluidoDelPipeline: excluido });
+  }
+
   async function deleteTicket(id: string): Promise<void> {
     const current = await repo.getById(id);
     if (current) await deleteTicketDocuments(current.documentacion);
@@ -155,6 +159,7 @@ export function createTicketService(repo: TicketRepository, notifier: TicketNoti
     reenviarNotificacionReasignacion,
     updateTicketSolicitud,
     updateTicketSitio,
+    updateTicketExclusion,
     deleteTicket,
     submitSatisfaccion,
     backfillSlaHistorico,

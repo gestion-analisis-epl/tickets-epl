@@ -7,6 +7,7 @@ import { backfillSlaHistorico, reenviarNotificacionReasignacion, type BackfillRe
 import { enviarEmailNotificacion } from "@/lib/notificaciones";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
+import { ExcluirTicketsSection } from "./excluir-tickets-section";
 import { isAdminRole } from "@/types/user";
 
 interface ReenvioResultado {
@@ -163,8 +164,10 @@ export function MantenimientoPanel() {
   }
 
   return (
-    <div className="space-y-4 max-w-2xl">
-      <section className="section-card p-6 space-y-3">
+    <div className="space-y-4 max-w-5xl">
+      <ExcluirTicketsSection />
+
+      <section className="section-card p-6 space-y-3 max-w-2xl">
         <h2 className="eyebrow">Recalcular SLA historico</h2>
         <p className="text-sm text-muted">
           Recalcula <span className="font-medium">nivel de servicio</span> y{" "}
@@ -217,7 +220,7 @@ export function MantenimientoPanel() {
         )}
       </section>
 
-      <section className="section-card p-6 space-y-3">
+      <section className="section-card p-6 space-y-3 max-w-2xl">
         <h2 className="eyebrow">Reenviar aviso de reasignacion</h2>
         <p className="text-sm text-muted">
           Reenvia el correo y la notificacion de <span className="font-medium">reasignacion</span> (al abogado
@@ -249,7 +252,7 @@ export function MantenimientoPanel() {
         {reasignacionError && <p className="text-sm text-danger">{reasignacionError}</p>}
       </section>
 
-      <section className="section-card p-6 space-y-3">
+      <section className="section-card p-6 space-y-3 max-w-2xl">
         <h2 className="eyebrow">Correo de prueba</h2>
         <p className="text-sm text-muted">
           Dispara el mismo flujo de notificacion por correo que usan los tickets reales, sin necesidad de crear uno.
@@ -267,7 +270,7 @@ export function MantenimientoPanel() {
         )}
       </section>
 
-      <section className="section-card p-6 space-y-3">
+      <section className="section-card p-6 space-y-3 max-w-2xl">
         <h2 className="eyebrow">Reenvio retroactivo de correos</h2>
         <p className="text-sm text-muted">
           Recalcula y reenvia los avisos de correo (nuevo ticket, creacion, asignacion, cambio de estatus/cierre)

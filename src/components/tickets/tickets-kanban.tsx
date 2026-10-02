@@ -16,10 +16,13 @@ import { Badge, ESTATUS_TONE, TONE_SURFACE_CLASSES, CategoriaBadge } from "@/com
 import { cn } from "@/lib/utils";
 import { normalizar } from "@/lib/busqueda";
 import { etiquetaSitio, partesSitio } from "@/lib/ticket-derived";
+import { partesAbogado } from "@/lib/data/abogados";
+import { useSessionStorage } from "@/hooks/use-session-storage";
 
 function TicketCardBody({ ticket }: { ticket: Ticket }) {
   const servicio = findServicio(ticket.servicioId);
   const { clave, alias } = partesSitio(ticket);
+  const abogado = partesAbogado(ticket.abogadoAsignadoId);
   return (
     <>
       <div className="flex items-center justify-between gap-2">
@@ -37,7 +40,12 @@ function TicketCardBody({ ticket }: { ticket: Ticket }) {
       )}
       <p className="text-xs text-muted mt-0.5 truncate">{ticket.solicitanteNombre}</p>
       <div className="flex items-center justify-between mt-2 text-xs gap-2">
-        <span className="text-muted truncate">{ticket.abogadoAsignadoId ?? "Sin asignar"}</span>
+        <span className="text-muted truncate" title={[abogado.nombre, abogado.puesto, abogado.zona].filter(Boolean).join(" · ")}>
+          {abogado.nombre}
+          {(abogado.puesto || abogado.zona) && (
+            <span className="opacity-80"> · {[abogado.puesto, abogado.zona].filter(Boolean).join(" · ")}</span>
+          )}
+        </span>
         {ticket.nivelServicio != null && (
           <span className={cn("font-medium tabular-nums shrink-0", ticket.nivelServicio < 0 ? "text-danger" : "text-success")}>
             {ticket.nivelServicio > 0 ? `+${ticket.nivelServicio}` : ticket.nivelServicio}
@@ -136,7 +144,7 @@ export function TicketsKanban({ tickets }: { tickets: Ticket[] }) {
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [movingIds, setMovingIds] = useState<Set<string>>(new Set());
   const [dragError, setDragError] = useState<string | null>(null);
-  const [busqueda, setBusqueda] = useState("");
+  const [busqueda, setBusqueda] = useSessionStorage("tickets-kanban:search", "");
 
   const q = normalizar(busqueda).trim();
   const visibles = q

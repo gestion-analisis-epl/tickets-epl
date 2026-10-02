@@ -24,3 +24,12 @@ export function findAbogado(id: string | null | undefined): Abogado | undefined 
   if (!id) return undefined;
   return ABOGADOS.find((a) => a.id === id);
 }
+
+// Nombre, puesto y zona por separado, para columnas y filtros. Lo que no esta en el
+// catalogo (tickets historicos) se muestra tal cual en `nombre`.
+export function partesAbogado(id: string | null | undefined): { nombre: string; puesto: string; zona: string } {
+  if (!id) return { nombre: "Sin asignar", puesto: "", zona: "" };
+  const abogado = findAbogado(id);
+  if (!abogado) return { nombre: id, puesto: "", zona: "" };
+  return { nombre: abogado.nombre, puesto: abogado.puesto, zona: abogado.zona ?? "" };
+}

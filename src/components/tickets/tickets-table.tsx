@@ -31,6 +31,8 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import type { Ticket } from "@/types/ticket";
 import { findServicio } from "@/lib/catalogo";
 import { partesSitio } from "@/lib/ticket-derived";
+import { partesAbogado } from "@/lib/data/abogados";
+import { useSessionStorage } from "@/hooks/use-session-storage";
 import { formatFecha } from "@/lib/format-fecha";
 import { normalizar } from "@/lib/busqueda";
 import { multiSelectColumn, facetOptions, FILTRO_VACIO } from "@/lib/table-filter";
@@ -253,7 +255,9 @@ function getExportValue(columnId: string, t: Ticket): string | number {
     case "sitioAlias":                return partesSitio(t).alias;
     case "categoria":                 return t.categoria;
     case "estatus":                   return t.estatus;
-    case "abogadoAsignadoId":         return t.abogadoAsignadoId ?? "Sin asignar";
+    case "abogadoAsignadoId":         return partesAbogado(t.abogadoAsignadoId).nombre;
+    case "abogadoPuesto":             return partesAbogado(t.abogadoAsignadoId).puesto;
+    case "abogadoZona":               return partesAbogado(t.abogadoAsignadoId).zona;
     case "slaInterno":                return t.slaInterno;
     case "diasHabilesTranscurridos":  return t.diasHabilesTranscurridos ?? "";
     case "nivelServicio":             return t.nivelServicio ?? "";
@@ -268,10 +272,13 @@ const PAGE_SIZES = [10, 25, 50, 100];
 
 export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
   const router = useRouter();
-  const [sorting, setSorting]             = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [globalFilter, setGlobalFilter]   = useState("");
-  const [pagination, setPagination]       = useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+  const [sorting, setSorting]             = useSessionStorage<SortingState>("tickets-table:sorting", []);
+  const [columnFilters, setColumnFilters] = useSessionStorage<ColumnFiltersState>("tickets-table:filters", []);
+  const [globalFilter, setGlobalFilter]   = useSessionStorage("tickets-table:search", "");
+  const [pageSizeGuardado, setPageSizeGuardado] = useSessionStorage("tickets-table:page-size", 25);
+  const [pagination, setPagination]       = useState<PaginationState>({ pageIndex: 0, pageSize: pageSizeGuardado });
+  // La pagina se reinicia al volver (los filtros pueden haber cambiado el total); el tamano se conserva.
+  useEffect(() => { setPageSizeGuardado(pagination.pageSize); }, [pagination.pageSize, setPageSizeGuardado]);
   const [columnVisibility, setColumnVisibility] = useLocalStorage<VisibilityState>("tickets-table:visibility", {});
 
   const columns = useMemo(() => [
@@ -339,9 +346,9 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
       ...multiSelect(),
       cell: (info) => <EstatusBadge estatus={info.getValue()} />,
     }),
-    columnHelper.accessor((row) => row.abogadoAsignadoId ?? "Sin asignar", {
+    columnHelper.accessor((row) => partesAbogado(row.abogadoAsignadoId).nombre, {
       id: "abogadoAsignadoId",
-      header: "Abogado asignado",
+      header: "Abogado",
       size: 170, minSize: 130,
       ...multiSelect(),
       cell: (info) => {
@@ -350,6 +357,18 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
           ? <span className="text-muted">Sin asignar</span>
           : <span>{v}</span>;
       },
+    }),
+    columnHelper.accessor((row) => partesAbogado(row.abogadoAsignadoId).puesto || "—", {
+      id: "abogadoPuesto",
+      header: "Puesto",
+      size: 160, minSize: 110,
+      ...multiSelect(),
+    }),
+    columnHelper.accessor((row) => partesAbogado(row.abogadoAsignadoId).zona || "—", {
+      id: "abogadoZona",
+      header: "Zona",
+      size: 170, minSize: 110,
+      ...multiSelect(),
     }),
     columnHelper.accessor("slaInterno", {
       ...multiSelect(),
