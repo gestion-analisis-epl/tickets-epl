@@ -1,6 +1,7 @@
 import { enviarEmail } from "@/lib/email";
 import { getAdminDb } from "@/lib/firebase-admin";
 import type { TipoNotificacion } from "@/lib/notificaciones";
+import { gerentesQueSupervisan } from "@/domain/users/supervision-rules";
 import { formatearFecha, renderEmailNotificacion, type DatosTicketEmail } from "@/domain/notificaciones/email-template";
 
 export const TIPO_LABEL: Record<TipoNotificacion, string> = {
@@ -51,6 +52,12 @@ async function gerenteJuridicoYAdminEmails(): Promise<string[]> {
   const db = getAdminDb();
   const snap = await db.collection("users").where("role", "in", ["gerente_juridico", "admin"]).get();
   return snap.docs.map((d) => d.data()).filter((u) => u.activo && u.email).map((u) => u.email as string);
+}
+
+async function gerentesAreaEmails(solicitanteId: string): Promise<string[]> {
+  const db = getAdminDb();
+  const snap = await db.collection("users").where("role", "==", "gerente_area").get();
+  return gerentesQueSupervisan(snap.docs.map((d) => d.data()), solicitanteId);
 }
 
 async function abogadoAsignadoEmail(abogadoAsignadoId: string | null | undefined): Promise<string[]> {
@@ -177,9 +184,10 @@ async function enviarNotificacionEmailInterno(input: EnviarNotificacionEmailInpu
   if (!DESTINATARIOS_PRUEBA.length && input.tipo === "cierre" && calificarUrl) {
     const db = getAdminDb();
     const ticket = (await db.collection("tickets").doc(input.ticketId).get()).data();
-    const [legalAdmin, solicitante] = await Promise.all([
+    const [legalAdmin, solicitante, gerentesArea] = await Promise.all([
       gerenteJuridicoYAdminEmails(),
       ticket ? solicitanteEmail(ticket.solicitanteId) : Promise.resolve([]),
+      ticket ? gerentesAreaEmails(ticket.solicitanteId) : Promise.resolve([]),
     ]);
 
     if (legalAdmin.length === 0 && solicitante.length === 0) {
@@ -198,6 +206,11 @@ async function enviarNotificacionEmailInterno(input: EnviarNotificacionEmailInpu
     if (solicitante.length) {
       await enviarEmail({ to: solicitante.join(", "), subject, html: buildHtml(input, datosTicket, verTicketUrl, calificarUrl) });
       total += solicitante.length;
+    }
+    // Gerentes de area: solo lectura, sin link de calificacion. Sin supervisor es el caso normal.
+    if (gerentesArea.length) {
+      await enviarEmail({ to: gerentesArea.join(", "), subject, html: buildHtml(input, datosTicket, verTicketUrl, null) });
+      total += gerentesArea.length;
     }
     return total;
   }

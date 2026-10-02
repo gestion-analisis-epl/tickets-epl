@@ -16,3 +16,18 @@ export function normalizarSupervisaUids(
 
   return { ok: true, uids };
 }
+
+interface UsuarioSupervisor {
+  role?: string;
+  activo?: boolean;
+  email?: string;
+  supervisaUids?: string[];
+}
+
+// Correos de los gerentes de area activos que supervisan al solicitante de un ticket.
+export function gerentesQueSupervisan(usuarios: UsuarioSupervisor[], solicitanteId: string): string[] {
+  const emails = usuarios
+    .filter((u) => u.role === "gerente_area" && u.activo && u.email && u.supervisaUids?.includes(solicitanteId))
+    .map((u) => u.email as string);
+  return Array.from(new Set(emails));
+}
