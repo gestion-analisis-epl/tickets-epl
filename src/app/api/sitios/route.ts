@@ -3,6 +3,7 @@ import { verifyCallerToken, ApiAuthError } from "@/lib/api-auth";
 import { leerSitios } from "@/lib/sitios-server";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 // Catalogo de sitios (Google Sheets) para el selector de Clave / Alias / Vista.
 export async function GET(request: Request) {

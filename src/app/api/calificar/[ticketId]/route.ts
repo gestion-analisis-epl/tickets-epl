@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 interface Params {
   params: { ticketId: string };
