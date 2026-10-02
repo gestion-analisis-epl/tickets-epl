@@ -15,9 +15,11 @@ import { ESTATUS_VALUES, type Estatus, type Ticket } from "@/types/ticket";
 import { Badge, ESTATUS_TONE, TONE_SURFACE_CLASSES, CategoriaBadge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { normalizar } from "@/lib/busqueda";
+import { etiquetaSitio } from "@/lib/ticket-derived";
 
 function TicketCardBody({ ticket }: { ticket: Ticket }) {
   const servicio = findServicio(ticket.servicioId);
+  const sitio = etiquetaSitio(ticket);
   return (
     <>
       <div className="flex items-center justify-between gap-2">
@@ -27,6 +29,7 @@ function TicketCardBody({ ticket }: { ticket: Ticket }) {
       <p className="text-sm font-medium mt-1.5 truncate" title={servicio?.servicio}>
         {servicio?.servicio ?? ticket.servicioId}
       </p>
+      {sitio && <p className="text-xs text-muted mt-0.5 truncate" title={sitio}>{sitio}</p>}
       <p className="text-xs text-muted mt-0.5 truncate">{ticket.solicitanteNombre}</p>
       <div className="flex items-center justify-between mt-2 text-xs gap-2">
         <span className="text-muted truncate">{ticket.abogadoAsignadoId ?? "Sin asignar"}</span>
@@ -137,6 +140,7 @@ export function TicketsKanban({ tickets }: { tickets: Ticket[] }) {
           t.folio,
           t.solicitanteNombre,
           findServicio(t.servicioId)?.servicio ?? t.servicioId,
+          etiquetaSitio(t),
           t.categoria,
           t.estatus,
           t.abogadoAsignadoId ?? "Sin asignar",
@@ -188,7 +192,7 @@ export function TicketsKanban({ tickets }: { tickets: Ticket[] }) {
           type="text"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Buscar por folio, solicitante, servicio, categoria, estatus o abogado..."
+          placeholder="Buscar por folio, solicitante, servicio, sitio, categoria, estatus o abogado..."
           className="field w-full pl-9 pr-3"
         />
       </div>

@@ -40,16 +40,13 @@ describe("normalizarSupervisaUids", () => {
 describe("gerentesQueSupervisan", () => {
   const g = (o: object) => ({ role: "gerente_area", activo: true, email: "g@x.com", supervisaUids: ["s1"], ...o });
 
-  it("devuelve el correo de los gerentes de area que supervisan al solicitante", () => {
-    expect(gerentesQueSupervisan([g({ email: "a@x.com" }), g({ email: "b@x.com", supervisaUids: ["s2"] })], "s1")).toEqual(["a@x.com"]);
+  it("devuelve los gerentes de area que supervisan al solicitante", () => {
+    const a = g({ email: "a@x.com" });
+    expect(gerentesQueSupervisan([a, g({ email: "b@x.com", supervisaUids: ["s2"] })], "s1")).toEqual([a]);
   });
 
   it("ignora inactivos, sin correo, sin lista y otros roles", () => {
     const usuarios = [g({ activo: false }), g({ email: "" }), g({ supervisaUids: undefined }), g({ role: "admin" })];
     expect(gerentesQueSupervisan(usuarios, "s1")).toEqual([]);
-  });
-
-  it("no repite correos", () => {
-    expect(gerentesQueSupervisan([g({}), g({})], "s1")).toEqual(["g@x.com"]);
   });
 });

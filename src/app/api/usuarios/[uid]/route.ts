@@ -3,6 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 import { requireAdmin, ApiAuthError } from "@/lib/api-auth";
 import { ABOGADOS } from "@/lib/data/abogados";
+import { normalizarCorreosDesactivados } from "@/domain/notificaciones/preferencias-rules";
 import { normalizarSupervisaUids } from "@/domain/users/supervision-rules";
 import { isSolicitanteRole, puedeSupervisar, type Role } from "@/types/user";
 
@@ -83,6 +84,15 @@ export async function PATCH(request: Request, { params }: Params) {
       }
     } else if (current.data()?.supervisaUids !== undefined) {
       patchFirestore.supervisaUids = FieldValue.delete();
+    }
+
+    // Se recorta a los correos que el rol final realmente recibe (cambiar de rol limpia el resto).
+    if ("correosDesactivados" in body || typeof body.role === "string") {
+      const fuente = "correosDesactivados" in body ? body.correosDesactivados : current.data()?.correosDesactivados ?? [];
+      const validacion = normalizarCorreosDesactivados(fuente, rolFinal);
+      if (!validacion.ok) return NextResponse.json({ error: validacion.error }, { status: 400 });
+      if (validacion.tipos.length) patchFirestore.correosDesactivados = validacion.tipos;
+      else if (current.data()?.correosDesactivados !== undefined) patchFirestore.correosDesactivados = FieldValue.delete();
     }
 
     if (Object.keys(patchAuth).length > 0) {

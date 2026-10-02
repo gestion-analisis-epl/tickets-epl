@@ -3,6 +3,7 @@ import { auth } from "./firebase";
 import { firestoreUserRepository } from "@/infrastructure/firestore/user-repository";
 import { createUserService } from "@/domain/users/user-service";
 import type { UserDoc } from "@/domain/users/user";
+import type { TipoNotificacion } from "@/domain/notificaciones/notificacion";
 import type { Role } from "@/types/user";
 
 export type { UserDoc, UserRow } from "@/domain/users/user";
@@ -51,6 +52,7 @@ export interface ActualizarUsuarioInput {
   activo?: boolean; // tambien bloquea/desbloquea el login real (Auth.disabled)
   abogadoId?: string | null; // null para desvincular
   supervisaUids?: string[]; // solo gerente_area
+  correosDesactivados?: TipoNotificacion[];
 }
 
 export async function actualizarUsuario(uid: string, input: ActualizarUsuarioInput): Promise<void> {

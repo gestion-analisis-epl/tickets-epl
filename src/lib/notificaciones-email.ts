@@ -1,6 +1,7 @@
 import { enviarEmail } from "@/lib/email";
 import { getAdminDb } from "@/lib/firebase-admin";
 import type { TipoNotificacion } from "@/lib/notificaciones";
+import { filtrarDestinatarios } from "@/domain/notificaciones/preferencias-rules";
 import { gerentesQueSupervisan } from "@/domain/users/supervision-rules";
 import { formatearFecha, renderEmailNotificacion, type DatosTicketEmail } from "@/domain/notificaciones/email-template";
 
@@ -45,58 +46,80 @@ async function enviarAlerta(asunto: string, detalle: string): Promise<void> {
   }
 }
 
+// `omitidos`: usuarios que apagaron este correo desde el panel de admin. Si el destino queda
+// vacio solo por eso, no se alerta "sin destinatarios" (fue una decision, no una falla).
+interface Destino {
+  emails: string[];
+  omitidos: number;
+}
+
+const VACIO: Destino = { emails: [], omitidos: 0 };
+
 // Legal/admin que dan seguimiento operativo: solo gerente_juridico y admin
 // (mesa_control y abogado ya se enteran via el aviso de asignacion/cambio de
 // estatus, dirigido puntualmente al abogado vinculado al ticket).
-async function gerenteJuridicoYAdminEmails(): Promise<string[]> {
+async function gerenteJuridicoYAdminDestino(tipo: TipoNotificacion): Promise<Destino> {
   const db = getAdminDb();
   const snap = await db.collection("users").where("role", "in", ["gerente_juridico", "admin"]).get();
-  return snap.docs.map((d) => d.data()).filter((u) => u.activo && u.email).map((u) => u.email as string);
+  return filtrarDestinatarios(snap.docs.map((d) => d.data()), tipo);
 }
 
-async function gerentesAreaEmails(solicitanteId: string): Promise<string[]> {
+async function gerentesAreaDestino(solicitanteId: string): Promise<Destino> {
   const db = getAdminDb();
   const snap = await db.collection("users").where("role", "==", "gerente_area").get();
-  return gerentesQueSupervisan(snap.docs.map((d) => d.data()), solicitanteId);
+  return filtrarDestinatarios(gerentesQueSupervisan(snap.docs.map((d) => d.data()), solicitanteId), "cierre");
 }
 
-async function abogadoAsignadoEmail(abogadoAsignadoId: string | null | undefined): Promise<string[]> {
-  if (!abogadoAsignadoId) return [];
+async function abogadoAsignadoDestino(abogadoAsignadoId: string | null | undefined, tipo: TipoNotificacion): Promise<Destino> {
+  if (!abogadoAsignadoId) return VACIO;
   const db = getAdminDb();
   const snap = await db.collection("users").where("abogadoId", "==", abogadoAsignadoId).limit(1).get();
-  const email = snap.docs[0]?.data().email;
-  return email ? [email] : [];
+  return filtrarDestinatarios(snap.docs.map((d) => d.data()), tipo);
 }
 
-async function solicitanteEmail(solicitanteId: string): Promise<string[]> {
+// El cierre del solicitante lleva el link de calificacion: no se puede apagar.
+async function solicitanteDestino(solicitanteId: string, tipo: TipoNotificacion): Promise<Destino> {
   const db = getAdminDb();
   const solicitante = (await db.collection("users").doc(solicitanteId).get()).data();
-  return solicitante?.email ? [solicitante.email] : [];
+  if (!solicitante?.email) return VACIO;
+  if (tipo === "cierre") return { emails: [solicitante.email], omitidos: 0 };
+  return filtrarDestinatarios([{ ...solicitante, activo: true }], tipo);
 }
 
-export async function destinatariosReales(tipo: TipoNotificacion, ticketId: string): Promise<string[]> {
+function unir(...destinos: Destino[]): Destino {
+  return {
+    emails: Array.from(new Set(destinos.flatMap((d) => d.emails))),
+    omitidos: destinos.reduce((total, d) => total + d.omitidos, 0),
+  };
+}
+
+async function resolverDestinatarios(tipo: TipoNotificacion, ticketId: string): Promise<Destino> {
   if (tipo === "nuevo_ticket") {
-    return gerenteJuridicoYAdminEmails();
+    return gerenteJuridicoYAdminDestino(tipo);
   }
 
   const db = getAdminDb();
   const ticket = (await db.collection("tickets").doc(ticketId).get()).data();
-  if (!ticket) return [];
+  if (!ticket) return VACIO;
 
   if (tipo === "asignacion" || tipo === "reasignacion") {
-    return abogadoAsignadoEmail(ticket.abogadoAsignadoId);
+    return abogadoAsignadoDestino(ticket.abogadoAsignadoId, tipo);
   }
 
   if (tipo === "cambio_estatus" || tipo === "cierre") {
     const [legalAdmin, solicitante] = await Promise.all([
-      gerenteJuridicoYAdminEmails(),
-      solicitanteEmail(ticket.solicitanteId),
+      gerenteJuridicoYAdminDestino(tipo),
+      solicitanteDestino(ticket.solicitanteId, tipo),
     ]);
-    return Array.from(new Set([...legalAdmin, ...solicitante]));
+    return unir(legalAdmin, solicitante);
   }
 
   // creacion_solicitante, asignacion_solicitante, reasignacion_solicitante -> solo el solicitante.
-  return solicitanteEmail(ticket.solicitanteId);
+  return solicitanteDestino(ticket.solicitanteId, tipo);
+}
+
+export async function destinatariosReales(tipo: TipoNotificacion, ticketId: string): Promise<string[]> {
+  return (await resolverDestinatarios(tipo, ticketId)).emails;
 }
 
 export interface EnviarNotificacionEmailInput {
@@ -185,12 +208,13 @@ async function enviarNotificacionEmailInterno(input: EnviarNotificacionEmailInpu
     const db = getAdminDb();
     const ticket = (await db.collection("tickets").doc(input.ticketId).get()).data();
     const [legalAdmin, solicitante, gerentesArea] = await Promise.all([
-      gerenteJuridicoYAdminEmails(),
-      ticket ? solicitanteEmail(ticket.solicitanteId) : Promise.resolve([]),
-      ticket ? gerentesAreaEmails(ticket.solicitanteId) : Promise.resolve([]),
+      gerenteJuridicoYAdminDestino("cierre"),
+      ticket ? solicitanteDestino(ticket.solicitanteId, "cierre") : Promise.resolve(VACIO),
+      ticket ? gerentesAreaDestino(ticket.solicitanteId) : Promise.resolve(VACIO),
     ]);
 
-    if (legalAdmin.length === 0 && solicitante.length === 0) {
+    const sinNadie = [legalAdmin, solicitante].every((d) => d.emails.length === 0);
+    if (sinNadie && legalAdmin.omitidos === 0) {
       await enviarAlerta(
         `Sin destinatarios para "${TIPO_LABEL.cierre}"`,
         `Ticket ${input.ticketFolio} (${input.ticketId}): no se encontro correo de gerente_juridico/admin ni del solicitante.`
@@ -199,24 +223,20 @@ async function enviarNotificacionEmailInterno(input: EnviarNotificacionEmailInpu
     }
 
     let total = 0;
-    if (legalAdmin.length) {
-      await enviarEmail({ to: legalAdmin.join(", "), subject, html: buildHtml(input, datosTicket, verTicketUrl, null) });
-      total += legalAdmin.length;
-    }
-    if (solicitante.length) {
-      await enviarEmail({ to: solicitante.join(", "), subject, html: buildHtml(input, datosTicket, verTicketUrl, calificarUrl) });
-      total += solicitante.length;
-    }
-    // Gerentes de area: solo lectura, sin link de calificacion. Sin supervisor es el caso normal.
-    if (gerentesArea.length) {
-      await enviarEmail({ to: gerentesArea.join(", "), subject, html: buildHtml(input, datosTicket, verTicketUrl, null) });
-      total += gerentesArea.length;
+    const envios: [Destino, string | null][] = [[legalAdmin, null], [solicitante, calificarUrl], [gerentesArea, null]];
+    for (const [destino, linkCalificar] of envios) {
+      if (!destino.emails.length) continue;
+      await enviarEmail({ to: destino.emails.join(", "), subject, html: buildHtml(input, datosTicket, verTicketUrl, linkCalificar) });
+      total += destino.emails.length;
     }
     return total;
   }
 
-  const destinatarios = DESTINATARIOS_PRUEBA.length ? DESTINATARIOS_PRUEBA : await destinatariosReales(input.tipo, input.ticketId);
+  const { emails: destinatarios, omitidos } = DESTINATARIOS_PRUEBA.length
+    ? { emails: DESTINATARIOS_PRUEBA, omitidos: 0 }
+    : await resolverDestinatarios(input.tipo, input.ticketId);
   if (destinatarios.length === 0) {
+    if (omitidos > 0) return 0;
     await enviarAlerta(
       `Sin destinatarios para "${TIPO_LABEL[input.tipo] ?? input.tipo}"`,
       `Ticket ${input.ticketFolio} (${input.ticketId}): no se encontro a quien enviarle este correo.`

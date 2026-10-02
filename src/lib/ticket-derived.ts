@@ -17,3 +17,10 @@ export function withLiveDerivedFields(ticket: Ticket): Ticket {
   const dias = businessDaysBetween(new Date(ticket.fechaAsignacion), new Date());
   return { ...ticket, diasPipeline, diasHabilesTranscurridos: dias, nivelServicio: ticket.slaInterno - dias };
 }
+
+// "CLAVE — alias" del sitio del ticket; los previos al selector traen solo texto libre. "" si no tiene.
+export function etiquetaSitio(ticket: Ticket): string {
+  const sitio = ticket.sitioArrendamiento;
+  if (sitio) return [sitio.clave, sitio.alias].filter(Boolean).join(" — ");
+  return ticket.contratoArrendamiento?.sitio ?? "";
+}

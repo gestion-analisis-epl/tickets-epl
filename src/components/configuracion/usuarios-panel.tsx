@@ -8,6 +8,8 @@ import {
   listUsers, crearUsuarioStaff, actualizarUsuario, eliminarUsuario,
   type UserRow, type ActualizarUsuarioInput,
 } from "@/lib/users";
+import { ETIQUETA_CORREO, tiposCorreoEditables } from "@/domain/notificaciones/preferencias-rules";
+import type { TipoNotificacion } from "@/domain/notificaciones/notificacion";
 import { STAFF_ROLES, LEGAL_STAFF_ROLES, isAdminRole, isSolicitanteRole, puedeSupervisar, type Role } from "@/types/user";
 import { ABOGADOS, findAbogado } from "@/lib/data/abogados";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +43,13 @@ const COLUMNS: { key: ColumnKey; label: string }[] = [
 // Portal a document.body: el header vive dentro de un contenedor con
 // overflow-x-auto/overflow-hidden (scroll horizontal de la tabla), que
 // recorta cualquier dropdown posicionado con position:absolute adentro.
+
+// En gerente_area "cierre" es el de los tickets que supervisa; en admin/legal, el de todos.
+function etiquetaCorreo(role: Role, tipo: TipoNotificacion): string {
+  if (role === "gerente_area" && tipo === "cierre") return "Cierre de tickets de sus supervisados";
+  return ETIQUETA_CORREO[tipo];
+}
+
 function ColumnFilterButton({
   options, selected, onToggle, onClear,
 }: {
@@ -139,6 +148,7 @@ export function UsuariosPanel() {
   const [formActivo, setFormActivo] = useState(true);
   const [formAbogadoId, setFormAbogadoId] = useState("");
   const [formSupervisaUids, setFormSupervisaUids] = useState<string[]>([]);
+  const [formCorreosDesactivados, setFormCorreosDesactivados] = useState<TipoNotificacion[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -206,6 +216,7 @@ export function UsuariosPanel() {
     setFormActivo(true);
     setFormAbogadoId("");
     setFormSupervisaUids([]);
+    setFormCorreosDesactivados([]);
     setFormError(null);
     setInfoMsg(null);
     setPanel({ mode: "crear" });
@@ -218,6 +229,7 @@ export function UsuariosPanel() {
     setFormActivo(u.activo);
     setFormAbogadoId(u.abogadoId ?? "");
     setFormSupervisaUids(u.supervisaUids ?? []);
+    setFormCorreosDesactivados(u.correosDesactivados ?? []);
     setFormError(null);
     setInfoMsg(null);
     setPanel({ mode: "editar", user: u });
@@ -244,6 +256,7 @@ export function UsuariosPanel() {
         if (!isSolicitanteRole(panel.user.role)) patch.email = formEmail.trim();
         patch.abogadoId = LEGAL_STAFF_ROLES.includes(formRole) ? (formAbogadoId || null) : null;
         if (puedeSupervisar(formRole)) patch.supervisaUids = formSupervisaUids;
+        patch.correosDesactivados = formCorreosDesactivados;
         await actualizarUsuario(panel.user.uid, patch);
         setInfoMsg("Cambios guardados.");
       }
@@ -400,6 +413,32 @@ export function UsuariosPanel() {
               />
               <p className="text-xs text-muted mt-1">
                 Solo lectura: los ve en su lista, en el detalle y en el dashboard, pero no puede editarlos.
+              </p>
+            </div>
+          )}
+
+          {panel.mode === "editar" && tiposCorreoEditables(formRole).length > 0 && (
+            <div>
+              <label className="field-label">Correos que recibe</label>
+              <div className="space-y-1.5">
+                {tiposCorreoEditables(formRole).map((tipo) => (
+                  <label key={tipo} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!formCorreosDesactivados.includes(tipo)}
+                      onChange={(e) =>
+                        setFormCorreosDesactivados((prev) =>
+                          e.target.checked ? prev.filter((t) => t !== tipo) : [...prev, tipo]
+                        )
+                      }
+                      className="h-4 w-4 rounded border-border text-primary focus:ring-ring cursor-pointer"
+                    />
+                    <span className="text-sm">{etiquetaCorreo(formRole, tipo)}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-muted mt-1">
+                Desmarca los avisos que no quiera recibir. Solo se pueden apagar los que su rol recibe.
               </p>
             </div>
           )}

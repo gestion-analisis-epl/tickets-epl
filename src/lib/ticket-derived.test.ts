@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { withLiveDerivedFields } from "./ticket-derived";
+import { etiquetaSitio, withLiveDerivedFields } from "./ticket-derived";
 import { buildTicket } from "@/test/ticket-fixture";
 
 // "Hoy" fijo para que diasPipeline / diasHabilesTranscurridos sean deterministas:
@@ -67,5 +67,20 @@ describe("withLiveDerivedFields", () => {
     const abierto = buildTicket({ fechaAsignacion: null, diasPipeline: null });
     withLiveDerivedFields(abierto);
     expect(abierto.diasPipeline).toBeNull();
+  });
+});
+
+describe("etiquetaSitio", () => {
+  it("une clave y alias", () => {
+    expect(etiquetaSitio(buildTicket({ sitioArrendamiento: { clave: "AB01", alias: "Torre Norte" } }))).toBe("AB01 — Torre Norte");
+  });
+
+  it("usa el sitio en texto libre de los tickets previos al selector", () => {
+    const ticket = buildTicket({ sitioArrendamiento: undefined, contratoArrendamiento: { sitio: "Bodega vieja" } as never });
+    expect(etiquetaSitio(ticket)).toBe("Bodega vieja");
+  });
+
+  it("devuelve cadena vacia si el ticket no tiene sitio", () => {
+    expect(etiquetaSitio(buildTicket({ sitioArrendamiento: undefined, contratoArrendamiento: undefined }))).toBe("");
   });
 });
