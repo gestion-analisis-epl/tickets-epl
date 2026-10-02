@@ -57,3 +57,24 @@ export function computeDashboardStats(tickets: Ticket[], categorias: string[]): 
     porAbogado,
   };
 }
+
+export type KpiKey = "total" | "activos" | "sla" | "satisfaccion";
+
+const porFecha = (a: Ticket, b: Ticket) => a.fechaSolicitud.localeCompare(b.fechaSolicitud);
+
+export function ticketsParaKpi(tickets: Ticket[], kpi: KpiKey): Ticket[] {
+  switch (kpi) {
+    case "total":
+      return [...tickets].sort((a, b) => porFecha(b, a));
+    case "activos":
+      return tickets.filter((t) => t.estatus !== "Cierre").sort(porFecha);
+    case "sla":
+      return tickets
+        .filter((t) => t.estatus === "Cierre" && t.nivelServicio != null)
+        .sort((a, b) => a.nivelServicio! - b.nivelServicio!);
+    case "satisfaccion":
+      return tickets
+        .filter((t) => t.satisfaccion != null)
+        .sort((a, b) => a.satisfaccion! - b.satisfaccion!);
+  }
+}

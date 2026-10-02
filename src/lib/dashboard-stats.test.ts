@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeDashboardStats } from "./dashboard-stats";
+import { computeDashboardStats, ticketsParaKpi } from "./dashboard-stats";
 import { buildTicket } from "@/test/ticket-fixture";
 import type { Ticket } from "@/types/ticket";
 
@@ -107,5 +107,37 @@ describe("computeDashboardStats", () => {
       { label: "ab1", value: 3 },
       { label: "ab2", value: 1 },
     ]);
+  });
+});
+
+describe("ticketsParaKpi", () => {
+  const t1 = buildTicket({ id: "t1", estatus: "Cierre", nivelServicio: 2, satisfaccion: 8, fechaSolicitud: "2026-01-03T00:00:00Z" });
+  const t2 = buildTicket({ id: "t2", estatus: "Cierre", nivelServicio: -1, satisfaccion: 6, fechaSolicitud: "2026-01-02T00:00:00Z" });
+  const t3 = buildTicket({ id: "t3", estatus: "Cierre", nivelServicio: null, fechaSolicitud: "2026-01-01T00:00:00Z" });
+  const t4 = buildTicket({ id: "t4", estatus: "Proceso en tramite", fechaSolicitud: "2026-02-01T00:00:00Z" });
+  const t5 = buildTicket({ id: "t5", estatus: "Recepcion de solicitud", fechaSolicitud: "2026-01-15T00:00:00Z" });
+  const todos = [t1, t2, t3, t4, t5];
+  const ids = (ts: Ticket[]) => ts.map((t) => t.id);
+
+  it("total regresa todos, los mas recientes primero", () => {
+    expect(ids(ticketsParaKpi(todos, "total"))).toEqual(["t4", "t5", "t1", "t2", "t3"]);
+  });
+
+  it("activos excluye cerrados y pone primero los mas antiguos", () => {
+    expect(ids(ticketsParaKpi(todos, "activos"))).toEqual(["t5", "t4"]);
+  });
+
+  it("sla regresa cerrados con SLA calculado, incumplidos primero", () => {
+    expect(ids(ticketsParaKpi(todos, "sla"))).toEqual(["t2", "t1"]);
+  });
+
+  it("satisfaccion regresa los calificados, de menor a mayor nota", () => {
+    expect(ids(ticketsParaKpi(todos, "satisfaccion"))).toEqual(["t2", "t1"]);
+  });
+
+  it("no muta la lista original", () => {
+    const copia = [...todos];
+    ticketsParaKpi(todos, "total");
+    expect(todos).toEqual(copia);
   });
 });

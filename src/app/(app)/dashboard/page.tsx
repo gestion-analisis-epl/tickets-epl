@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { StatTile } from "@/components/dashboard/stat-tile";
+import { KpiDrawer } from "@/components/dashboard/kpi-drawer";
 import { BarList } from "@/components/dashboard/bar-list";
 import { useTickets } from "@/hooks/use-tickets";
-import { computeDashboardStats } from "@/lib/dashboard-stats";
+import { computeDashboardStats, type KpiKey } from "@/lib/dashboard-stats";
 import { useCategoriasStore } from "@/stores/categorias";
 
 const CHART_VARS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)", "var(--chart-6)", "var(--chart-7)"];
@@ -19,6 +21,7 @@ function slaStatus(pct: number | null): { color: "good" | "warning" | "critical"
 export default function DashboardPage() {
   const { tickets, loading } = useTickets();
   const categorias = useCategoriasStore((s) => s.categorias);
+  const [kpi, setKpi] = useState<KpiKey | null>(null);
   const stats = computeDashboardStats(tickets, categorias.map((c) => c.nombre));
 
   return (
@@ -35,18 +38,23 @@ export default function DashboardPage() {
       ) : (
       <>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatTile label="Total de tickets" value={stats.total} />
-        <StatTile label="Activos (no cerrados)" value={stats.activos} />
+        <StatTile label="Total de tickets" value={stats.total} onClick={() => setKpi("total")} active={kpi === "total"} />
+        <StatTile label="Activos (no cerrados)" value={stats.activos} onClick={() => setKpi("activos")} active={kpi === "activos"} />
         <StatTile
           label="Cumplimiento de SLA"
           value={stats.cumplimientoSLA != null ? `${stats.cumplimientoSLA}%` : "—"}
           status={slaStatus(stats.cumplimientoSLA)}
+          onClick={() => setKpi("sla")}
+          active={kpi === "sla"}
         />
         <StatTile
           label="Satisfaccion promedio"
           value={stats.satisfaccionPromedio != null ? `${stats.satisfaccionPromedio} / 10` : "—"}
+          onClick={() => setKpi("satisfaccion")}
+          active={kpi === "satisfaccion"}
         />
       </div>
+      <KpiDrawer kpi={kpi} tickets={tickets} onClose={() => setKpi(null)} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <section className="section-card p-6">
