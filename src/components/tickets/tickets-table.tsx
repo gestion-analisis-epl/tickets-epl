@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import type { Ticket } from "@/types/ticket";
 import { findServicio } from "@/lib/catalogo";
-import { etiquetaSitio } from "@/lib/ticket-derived";
+import { partesSitio } from "@/lib/ticket-derived";
 import { formatFecha } from "@/lib/format-fecha";
 import { normalizar } from "@/lib/busqueda";
 import { multiSelectColumn, facetOptions, FILTRO_VACIO } from "@/lib/table-filter";
@@ -249,7 +249,8 @@ function getExportValue(columnId: string, t: Ticket): string | number {
     case "solicitanteNombre":         return t.solicitanteNombre;
     case "areaEmpresa":               return t.areaEmpresa;
     case "servicio":                  return findServicio(t.servicioId)?.servicio ?? t.servicioId;
-    case "sitio":                     return etiquetaSitio(t);
+    case "sitioClave":                return partesSitio(t).clave;
+    case "sitioAlias":                return partesSitio(t).alias;
     case "categoria":                 return t.categoria;
     case "estatus":                   return t.estatus;
     case "abogadoAsignadoId":         return t.abogadoAsignadoId ?? "Sin asignar";
@@ -312,9 +313,16 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
         return <span className="truncate block">{servicio?.servicio ?? info.row.original.servicioId}</span>;
       },
     }),
-    columnHelper.accessor((row) => etiquetaSitio(row) || "—", {
-      id: "sitio",
-      header: "Sitio",
+    columnHelper.accessor((row) => partesSitio(row).clave || "—", {
+      id: "sitioClave",
+      header: "Clave sitio",
+      size: 120, minSize: 90,
+      ...multiSelect(),
+      cell: (info) => <span className="truncate block tabular-nums">{info.getValue()}</span>,
+    }),
+    columnHelper.accessor((row) => partesSitio(row).alias || "—", {
+      id: "sitioAlias",
+      header: "Alias sitio",
       size: 200, minSize: 130,
       ...multiSelect(),
       cell: (info) => <span className="truncate block">{info.getValue()}</span>,
@@ -458,7 +466,7 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
             type="text"
             value={globalFilter}
             onChange={(e) => setGlobalFilter(e.target.value)}
-            placeholder="Buscar por folio, solicitante, servicio, sitio, categoria, estatus o abogado..."
+            placeholder="Buscar por folio, solicitante, servicio, clave o alias de sitio, categoria, estatus o abogado..."
             className="field w-full pl-9 pr-3"
           />
         </div>

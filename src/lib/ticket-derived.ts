@@ -18,9 +18,15 @@ export function withLiveDerivedFields(ticket: Ticket): Ticket {
   return { ...ticket, diasPipeline, diasHabilesTranscurridos: dias, nivelServicio: ticket.slaInterno - dias };
 }
 
-// "CLAVE — alias" del sitio del ticket; los previos al selector traen solo texto libre. "" si no tiene.
-export function etiquetaSitio(ticket: Ticket): string {
+// Clave y alias del sitio del ticket; los previos al selector traen solo texto libre (va en el alias).
+export function partesSitio(ticket: Ticket): { clave: string; alias: string } {
   const sitio = ticket.sitioArrendamiento;
-  if (sitio) return [sitio.clave, sitio.alias].filter(Boolean).join(" — ");
-  return ticket.contratoArrendamiento?.sitio ?? "";
+  if (sitio) return { clave: sitio.clave ?? "", alias: sitio.alias ?? "" };
+  return { clave: "", alias: ticket.contratoArrendamiento?.sitio ?? "" };
+}
+
+// "CLAVE — alias", para busqueda y correos. "" si el ticket no tiene sitio.
+export function etiquetaSitio(ticket: Ticket): string {
+  const { clave, alias } = partesSitio(ticket);
+  return [clave, alias].filter(Boolean).join(" — ");
 }

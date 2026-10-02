@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { etiquetaSitio, withLiveDerivedFields } from "./ticket-derived";
+import { etiquetaSitio, partesSitio, withLiveDerivedFields } from "./ticket-derived";
 import { buildTicket } from "@/test/ticket-fixture";
 
 // "Hoy" fijo para que diasPipeline / diasHabilesTranscurridos sean deterministas:
@@ -82,5 +82,20 @@ describe("etiquetaSitio", () => {
 
   it("devuelve cadena vacia si el ticket no tiene sitio", () => {
     expect(etiquetaSitio(buildTicket({ sitioArrendamiento: undefined, contratoArrendamiento: undefined }))).toBe("");
+  });
+});
+
+describe("partesSitio", () => {
+  it("separa clave y alias", () => {
+    expect(partesSitio(buildTicket({ sitioArrendamiento: { clave: "AB01", alias: "Torre Norte" } }))).toEqual({ clave: "AB01", alias: "Torre Norte" });
+  });
+
+  it("pone el texto libre de los tickets previos en el alias", () => {
+    const ticket = buildTicket({ sitioArrendamiento: undefined, contratoArrendamiento: { sitio: "Bodega vieja" } as never });
+    expect(partesSitio(ticket)).toEqual({ clave: "", alias: "Bodega vieja" });
+  });
+
+  it("devuelve ambos vacios si no hay sitio", () => {
+    expect(partesSitio(buildTicket({ sitioArrendamiento: undefined, contratoArrendamiento: undefined }))).toEqual({ clave: "", alias: "" });
   });
 });
