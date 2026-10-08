@@ -47,7 +47,7 @@ export const TONE_SURFACE_CLASSES: Record<BadgeTone, string> = {
   red:    "bg-red-50/70 border-red-200 dark:bg-red-500/10 dark:border-red-500/20",
 };
 
-// ── Estatus del ticket (7 etapas, hoja Listas) ───────────────────────────────
+// ── Estatus del ticket (8 etapas, hoja Listas) ───────────────────────────────
 
 export const ESTATUS_TONE: Record<string, BadgeTone> = {
   "Recepcion de solicitud":                       "gray",
@@ -56,6 +56,7 @@ export const ESTATUS_TONE: Record<string, BadgeTone> = {
   "Asignacion de responsable":                     "indigo",
   "Proceso en tramite":                            "blue",
   "Validacion y presentacion de requerimiento":    "teal",
+  "Pre-Cierre":                                    "orange",
   "Cierre":                                        "green",
 };
 

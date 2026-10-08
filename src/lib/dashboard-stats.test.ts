@@ -110,6 +110,18 @@ describe("computeDashboardStats", () => {
   });
 });
 
+describe("Pre-Cierre", () => {
+  it("Pre-Cierre cuenta como activo y aparece en porEstatus", () => {
+    const stats = computeDashboardStats(
+      [buildTicket({ id: "a", estatus: "Pre-Cierre" }), buildTicket({ id: "b", estatus: "Cierre" })],
+      []
+    );
+    expect(stats.activos).toBe(1);
+    expect(stats.cerrados).toBe(1);
+    expect(stats.porEstatus.find((e) => e.label === "Pre-Cierre")?.value).toBe(1);
+  });
+});
+
 describe("ticketsParaKpi", () => {
   const t1 = buildTicket({ id: "t1", estatus: "Cierre", nivelServicio: 2, satisfaccion: 8, fechaSolicitud: "2026-01-03T00:00:00Z" });
   const t2 = buildTicket({ id: "t2", estatus: "Cierre", nivelServicio: -1, satisfaccion: 6, fechaSolicitud: "2026-01-02T00:00:00Z" });

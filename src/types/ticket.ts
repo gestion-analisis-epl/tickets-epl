@@ -7,6 +7,7 @@ export const ESTATUS_VALUES = [
   "Asignacion de responsable",
   "Proceso en tramite",
   "Validacion y presentacion de requerimiento",
+  "Pre-Cierre",
   "Cierre",
 ] as const;
 
