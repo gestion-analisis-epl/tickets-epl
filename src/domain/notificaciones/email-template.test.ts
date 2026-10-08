@@ -11,6 +11,7 @@ const TIPOS: TipoNotificacion[] = [
   "asignacion_solicitante",
   "reasignacion",
   "reasignacion_solicitante",
+  "pre_cierre",
 ];
 
 function datos(over: Partial<DatosEmailNotificacion> = {}): DatosEmailNotificacion {
@@ -122,5 +123,16 @@ describe("renderEmailNotificacion", () => {
 
   it("incluye el pie de correo automatico", () => {
     expect(renderEmailNotificacion(datos())).toContain("no respondas");
+  });
+
+  it("pre_cierre solo muestra sitio y solicitante", () => {
+    const html = renderEmailNotificacion({
+      tipo: "pre_cierre", mensaje: "El ticket JUR-0001 esta en Pre-Cierre.", folio: "JUR-0001",
+      verTicketUrl: "http://x/pre-cierre/t1", calificarUrl: null,
+      ticket: { sitio: "QRO01 — Centro", solicitante: "Ana", abogado: "NO DEBE VERSE", servicio: "NO DEBE VERSE" },
+    });
+    expect(html).toContain("QRO01");
+    expect(html).toContain("Ana");
+    expect(html).not.toContain("NO DEBE VERSE");
   });
 });

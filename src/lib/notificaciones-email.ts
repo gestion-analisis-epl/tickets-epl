@@ -14,6 +14,7 @@ export const TIPO_LABEL: Record<TipoNotificacion, string> = {
   asignacion_solicitante: "Responsable asignado",
   reasignacion: "Reasignacion de abogado",
   reasignacion_solicitante: "Tu ticket fue reasignado",
+  pre_cierre: "Ticket en Pre-Cierre",
 };
 
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -86,6 +87,12 @@ async function solicitanteDestino(solicitanteId: string, tipo: TipoNotificacion)
   return filtrarDestinatarios([{ ...solicitante, activo: true }], tipo);
 }
 
+async function jefesZonaDestino(tipo: TipoNotificacion): Promise<Destino> {
+  const db = getAdminDb();
+  const snap = await db.collection("users").where("role", "==", "jefe_zona").get();
+  return filtrarDestinatarios(snap.docs.map((d) => d.data()), tipo);
+}
+
 function unir(...destinos: Destino[]): Destino {
   return {
     emails: Array.from(new Set(destinos.flatMap((d) => d.emails))),
@@ -97,6 +104,7 @@ async function resolverDestinatarios(tipo: TipoNotificacion, ticketId: string): 
   if (tipo === "nuevo_ticket") {
     return gerenteJuridicoYAdminDestino(tipo);
   }
+  if (tipo === "pre_cierre") return jefesZonaDestino(tipo);
 
   const db = getAdminDb();
   const ticket = (await db.collection("tickets").doc(ticketId).get()).data();
@@ -197,7 +205,7 @@ export async function enviarNotificacionEmail(input: EnviarNotificacionEmailInpu
 }
 
 async function enviarNotificacionEmailInterno(input: EnviarNotificacionEmailInput): Promise<number> {
-  const verTicketUrl = `${APP_URL}/tickets/${input.ticketId}`;
+  const verTicketUrl = input.tipo === "pre_cierre" ? `${APP_URL}/pre-cierre/${input.ticketId}` : `${APP_URL}/tickets/${input.ticketId}`;
   const calificarUrl = input.tokenCalificacion ? `${APP_URL}/calificar/${input.ticketId}?token=${input.tokenCalificacion}` : null;
   const subject = `${TIPO_LABEL[input.tipo] ?? input.tipo} — ${input.ticketFolio}`;
   const datosTicket = await cargarDatosTicket(input.ticketId);

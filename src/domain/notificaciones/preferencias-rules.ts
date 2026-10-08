@@ -14,7 +14,7 @@ const CORREOS_POR_ROL: Record<Role, TipoNotificacion[]> = {
   solicitante: SOLICITANTE,
   // Como solicitante + el cierre de los tickets que supervisa.
   gerente_area: [...SOLICITANTE, "cierre"],
-  jefe_zona: [],
+  jefe_zona: ["pre_cierre"],
 };
 
 export const ETIQUETA_CORREO: Record<TipoNotificacion, string> = {
@@ -26,6 +26,7 @@ export const ETIQUETA_CORREO: Record<TipoNotificacion, string> = {
   creacion_solicitante: "Ticket creado",
   asignacion_solicitante: "Responsable asignado a su ticket",
   reasignacion_solicitante: "Su ticket fue reasignado",
+  pre_cierre: "Ticket en Pre-Cierre",
 };
 
 export function tiposCorreoEditables(role: Role): TipoNotificacion[] {

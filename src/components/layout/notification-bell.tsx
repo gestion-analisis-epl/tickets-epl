@@ -18,6 +18,7 @@ const TIPO_LABEL: Record<TipoNotificacion, string> = {
   asignacion_solicitante: "Responsable asignado",
   reasignacion: "Reasignacion",
   reasignacion_solicitante: "Ticket reasignado",
+  pre_cierre: "Ticket en Pre-Cierre",
 };
 
 const TIPO_ICON: Record<TipoNotificacion, React.ElementType> = {
@@ -29,12 +30,14 @@ const TIPO_ICON: Record<TipoNotificacion, React.ElementType> = {
   asignacion_solicitante: UserCheck,
   reasignacion: UserCheck,
   reasignacion_solicitante: UserCheck,
+  pre_cierre: ArrowRightCircle,
 };
 
 const TIPO_TONE: Record<TipoNotificacion, string> = {
   nuevo_ticket: "text-blue-600 bg-blue-50 border-blue-100 dark:text-blue-300 dark:bg-blue-500/10 dark:border-blue-500/20",
   asignacion: "text-indigo-600 bg-indigo-50 border-indigo-100 dark:text-indigo-300 dark:bg-indigo-500/10 dark:border-indigo-500/20",
   cambio_estatus: "text-amber-600 bg-amber-50 border-amber-100 dark:text-amber-300 dark:bg-amber-500/10 dark:border-amber-500/20",
+  pre_cierre: "text-amber-600 bg-amber-50 border-amber-100 dark:text-amber-300 dark:bg-amber-500/10 dark:border-amber-500/20",
   cierre: "text-success bg-success/10 border-success/20",
   creacion_solicitante: "text-blue-600 bg-blue-50 border-blue-100 dark:text-blue-300 dark:bg-blue-500/10 dark:border-blue-500/20",
   asignacion_solicitante: "text-indigo-600 bg-indigo-50 border-indigo-100 dark:text-indigo-300 dark:bg-indigo-500/10 dark:border-indigo-500/20",

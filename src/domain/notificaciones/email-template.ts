@@ -39,6 +39,7 @@ export const ACENTO_POR_TIPO: Record<TipoNotificacion, string> = {
   reasignacion: AMBAR,
   reasignacion_solicitante: AMBAR,
   cierre: VERDE,
+  pre_cierre: AMBAR,
 };
 
 const ETIQUETA_POR_TIPO: Record<TipoNotificacion, string> = {
@@ -50,6 +51,7 @@ const ETIQUETA_POR_TIPO: Record<TipoNotificacion, string> = {
   reasignacion: "Reasignacion de abogado",
   reasignacion_solicitante: "Tu ticket fue reasignado",
   cierre: "Cierre de ticket",
+  pre_cierre: "Ticket en Pre-Cierre",
 };
 
 const ETIQUETA_CAMPO: Record<CampoTicket, string> = {
@@ -74,6 +76,7 @@ const CAMPOS_POR_TIPO: Record<TipoNotificacion, CampoTicket[]> = {
   reasignacion_solicitante: ["abogado", "servicio", "categoria", "sitio", "fechaCompromiso"],
   cambio_estatus: ["estatus", "servicio", "abogado", "sitio"],
   cierre: ["estatus", "servicio", "abogado", "sitio", "fechaCierre"],
+  pre_cierre: ["sitio", "solicitante"],
 };
 
 // Texto sobre el acento: el ambar es claro, necesita texto oscuro (mismo criterio que --warning-foreground).

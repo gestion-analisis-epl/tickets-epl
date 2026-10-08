@@ -48,5 +48,11 @@ export const firestoreTicketNotifier: TicketNotifier = {
       crearNotificacion({ ticketId, ticketFolio: folio, tipo, mensaje, paraUid: solicitanteId, paraRoles: null }),
       enviarEmailNotificacion({ tipo, mensaje, ticketId, ticketFolio: folio, tokenCalificacion: tipo === "cierre" ? tokenCalificacion : undefined }),
     ]);
+
+    if (estatus === "Pre-Cierre") {
+      await enviarEmailNotificacion({
+        tipo: "pre_cierre", mensaje: `El ticket ${folio} esta en Pre-Cierre y espera tu visto bueno.`, ticketId, ticketFolio: folio,
+      });
+    }
   },
 };
