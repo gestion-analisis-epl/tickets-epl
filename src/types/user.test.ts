@@ -9,6 +9,7 @@ describe("isSolicitanteRole", () => {
     ["abogado", false],
     ["gerente_juridico", false],
     ["admin", false],
+    ["jefe_zona", false],
   ])("%s -> %s", (role, esperado) => {
     expect(isSolicitanteRole(role)).toBe(esperado);
   });

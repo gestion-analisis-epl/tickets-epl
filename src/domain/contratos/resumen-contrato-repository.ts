@@ -13,5 +13,6 @@ export interface ResumenContratoRepository {
     callback: (resumen: ResumenContrato | null) => void,
     onError?: (e: RepositoryError) => void
   ): () => void;
+  delete(ticketId: string): Promise<void>;
   registrarVistoBueno(ticketId: string, visto: VistoBueno): Promise<void>;
 }

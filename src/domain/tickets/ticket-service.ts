@@ -1,7 +1,7 @@
 import { deleteTicketDocuments } from "@/lib/storage";
 import type { Estatus, SitioArrendamiento, Ticket } from "@/types/ticket";
 import type { ResumenContratoRepository } from "@/domain/contratos/resumen-contrato-repository";
-import { accionResumen, construirResumenContrato } from "@/domain/contratos/contrato-rules";
+import { accionResumen, construirResumenContrato, ETAPAS_VISIBLES_JEFE_ZONA } from "@/domain/contratos/contrato-rules";
 import type { CatalogoLookup } from "@/domain/catalogo/catalogo-lookup";
 import type { TicketRepository } from "./ticket-repository";
 import type { TicketNotifier } from "./ticket-notifier";
@@ -59,6 +59,17 @@ export function createTicketService(
     if (accion === "actualizar-estatus") return resumenes.updateEstatus(ticket.id, ticket.estatus, ahora.toISOString());
     const previo = await resumenes.get(ticket.id);
     await resumenes.upsert(construirResumenContrato(ticket, ahora, previo));
+  }
+
+  // Best-effort: refresca el resumen cuando el ticket se edita estando en Pre-Cierre/Cierre.
+  async function refrescarResumenSiVisible(ticket: Ticket): Promise<void> {
+    if (!ETAPAS_VISIBLES_JEFE_ZONA.includes(ticket.estatus)) return;
+    try {
+      const previo = await resumenes.get(ticket.id);
+      await resumenes.upsert(construirResumenContrato(ticket, new Date(), previo));
+    } catch (err) {
+      console.error("No se pudo refrescar el resumen de contrato:", err);
+    }
   }
 
   async function updateTicketAsignacion(id: string, actorUid: string, input: AsignacionInput): Promise<void> {
@@ -122,14 +133,18 @@ export function createTicketService(
     const current = await repo.getById(id);
     if (!current) throw new Error("Ticket no encontrado.");
 
-    await repo.update(id, calcularPatchSolicitud(current, input, servicio));
+    const patch = calcularPatchSolicitud(current, input, servicio);
+    await repo.update(id, patch);
+    await refrescarResumenSiVisible({ ...current, ...patch } as Ticket);
   }
 
   async function updateTicketSitio(id: string, actorUid: string, sitio: SitioArrendamiento): Promise<void> {
     const current = await repo.getById(id);
     if (!current) throw new Error("Ticket no encontrado.");
 
-    await repo.update(id, calcularPatchSitio(sitio, actorUid, new Date()));
+    const patch = calcularPatchSitio(sitio, actorUid, new Date());
+    await repo.update(id, patch);
+    await refrescarResumenSiVisible({ ...current, ...patch } as Ticket);
   }
 
   async function updateTicketExclusion(id: string, excluido: boolean): Promise<void> {
@@ -140,6 +155,7 @@ export function createTicketService(
     const current = await repo.getById(id);
     if (current) await deleteTicketDocuments(current.documentacion);
     await repo.delete(id);
+    await resumenes.delete(id).catch((err) => console.error("No se pudo borrar el resumen de contrato:", err));
   }
 
   async function submitSatisfaccion(id: string, satisfaccion: number, comentario?: string): Promise<void> {

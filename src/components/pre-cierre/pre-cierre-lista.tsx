@@ -6,12 +6,21 @@ import { useResumenes } from "@/hooks/use-resumenes-contrato";
 import { Badge, EstatusBadge } from "@/components/ui/badge";
 
 export function PreCierreLista() {
-  const { resumenes, loading } = useResumenes();
+  const { resumenes, loading, error } = useResumenes();
 
   if (loading) {
     return (
       <div className="flex h-48 items-center justify-center">
         <Loader2 className="h-5 w-5 animate-spin text-muted" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-48 bg-card rounded-lg border border-border text-center">
+        <p className="text-sm font-medium text-danger">No se pudo cargar la lista</p>
+        <p className="text-xs text-muted mt-1">Si el problema continua, avisa a Mesa de Control.</p>
       </div>
     );
   }

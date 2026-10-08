@@ -31,7 +31,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setMobileNavOpen(false);
   }, [pathname]);
 
-  if (status !== "signed-in") {
+  const redirigiendoJefe = status === "signed-in" && esJefeZona(role) && !pathname.startsWith("/pre-cierre");
+
+  if (status !== "signed-in" || redirigiendoJefe) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted" />

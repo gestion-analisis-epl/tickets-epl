@@ -1,4 +1,4 @@
-import { collection, doc, query, where, onSnapshot, getDoc, setDoc, updateDoc, type FirestoreError } from "firebase/firestore";
+import { collection, doc, query, where, onSnapshot, getDoc, setDoc, updateDoc, deleteDoc, type FirestoreError } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { ResumenContrato } from "@/types/resumen-contrato";
 import type { RepositoryError } from "@/domain/tickets/ticket-repository";
@@ -40,6 +40,11 @@ export const firestoreResumenContratoRepository: ResumenContratoRepository = {
       (snap) => callback(snap.exists() ? (snap.data() as ResumenContrato) : null),
       onError ? (err) => onError(toRepositoryError(err)) : undefined
     );
+  },
+
+  // deleteDoc no falla si el documento no existe.
+  async delete(ticketId) {
+    await deleteDoc(doc(db, COLECCION, ticketId));
   },
 
   async registrarVistoBueno(ticketId, visto) {

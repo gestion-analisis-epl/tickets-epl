@@ -9,20 +9,25 @@ export function useResumenes() {
   const status = useAuthStore((s) => s.status);
   const [resumenes, setResumenes] = useState<ResumenContrato[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<"permission-denied" | "unknown" | null>(null);
 
   useEffect(() => {
     if (status !== "signed-in") return;
+    setError(null);
     const unsubscribe = subscribeResumenes(
       (data) => {
         setResumenes([...data].sort((a, b) => b.actualizadoEn.localeCompare(a.actualizadoEn)));
         setLoading(false);
       },
-      () => setLoading(false)
+      (err) => {
+        setError(err.code === "permission-denied" ? "permission-denied" : "unknown");
+        setLoading(false);
+      }
     );
     return unsubscribe;
   }, [status]);
 
-  return { resumenes, loading };
+  return { resumenes, loading, error };
 }
 
 export function useResumen(id: string) {
