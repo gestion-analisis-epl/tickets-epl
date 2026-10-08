@@ -7,16 +7,23 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { CatalogoProvider } from "@/components/providers/catalogo-provider";
 import { useAuthStore } from "@/stores/auth";
+import { esJefeZona } from "@/types/user";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const status = useAuthStore((s) => s.status);
+  const role = useAuthStore((s) => s.role);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     if (status === "signed-out") router.replace("/login");
   }, [status, router]);
+
+  // Comodidad de UI: la seguridad real son las reglas de Firestore.
+  useEffect(() => {
+    if (status === "signed-in" && esJefeZona(role) && !pathname.startsWith("/pre-cierre")) router.replace("/pre-cierre");
+  }, [status, role, pathname, router]);
 
   // Cierra el drawer movil al navegar (Link no dispara un unmount de este
   // layout, asi que sin esto se queda abierto al cambiar de pantalla).
