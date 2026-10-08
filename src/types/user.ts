@@ -1,9 +1,9 @@
-export type Role = "solicitante" | "gerente_area" | "mesa_control" | "abogado" | "gerente_juridico" | "admin";
+export type Role = "solicitante" | "gerente_area" | "mesa_control" | "abogado" | "gerente_juridico" | "admin" | "jefe_zona";
 
 // Roles con cuenta de correo+contrasena, creables desde el panel de Usuarios.
 // "solicitante" no entra aqui: se autoregistra por Google (ver
 // lib/users.ts ensureSolicitanteDoc), crearlo a mano duplicaria la cuenta.
-export const STAFF_ROLES: Role[] = ["mesa_control", "abogado", "gerente_juridico", "admin"];
+export const STAFF_ROLES: Role[] = ["mesa_control", "abogado", "gerente_juridico", "admin", "jefe_zona"];
 
 // Roles del flujo operativo de tickets — reciben la notificacion de "nuevo
 // ticket" y pueden enlazarse a un abogado del catalogo (ver lib/notificaciones.ts).
@@ -27,6 +27,12 @@ export function isSolicitanteRole(role: Role | null | undefined): boolean {
 
 export function puedeSupervisar(role: Role | null | undefined): boolean {
   return role === "gerente_area";
+}
+
+// Solo consulta tickets en Pre-Cierre/Cierre, a traves de resumenesContrato (ver firestore.rules).
+// No lee la coleccion tickets. Sincronizar a mano con firestore.rules isJefeZona().
+export function esJefeZona(role: Role | null | undefined): boolean {
+  return role === "jefe_zona";
 }
 
 export interface AppUser {

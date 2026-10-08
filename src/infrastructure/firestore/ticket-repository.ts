@@ -79,6 +79,11 @@ export const firestoreTicketRepository: TicketRepository = {
     const uids = uidsConsultaTickets({ uid, role, supervisaUids });
     const consultas = uids ? uids.map((u) => query(ticketsRef, where("solicitanteId", "==", u))) : [query(ticketsRef)];
 
+    if (consultas.length === 0) {
+      callback([]);
+      return () => {};
+    }
+
     const resultados: (Ticket[] | undefined)[] = consultas.map(() => undefined);
     // Se emite hasta que todas las consultas respondieron, para no mostrar la lista a medias.
     const emitir = () => {

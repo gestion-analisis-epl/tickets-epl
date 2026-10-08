@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isAdminRole, isSolicitanteRole, LEGAL_STAFF_ROLES, puedeSupervisar, STAFF_ROLES, type Role } from "./user";
+import { esJefeZona, isAdminRole, isSolicitanteRole, LEGAL_STAFF_ROLES, puedeSupervisar, STAFF_ROLES, type Role } from "./user";
 
 describe("isSolicitanteRole", () => {
   it.each<[Role, boolean]>([
@@ -40,5 +40,25 @@ describe("gerente_area no cambia otros grupos de roles", () => {
 
   it("no tiene permisos de admin", () => {
     expect(isAdminRole("gerente_area")).toBe(false);
+  });
+});
+
+describe("jefe_zona", () => {
+  it("esJefeZona solo es verdadero para ese rol", () => {
+    expect(esJefeZona("jefe_zona")).toBe(true);
+    expect(esJefeZona("gerente_area")).toBe(false);
+    expect(esJefeZona("admin")).toBe(false);
+    expect(esJefeZona(null)).toBe(false);
+    expect(esJefeZona(undefined)).toBe(false);
+  });
+
+  it("se crea con correo y contrasena desde el panel de Usuarios", () => {
+    expect(STAFF_ROLES).toContain("jefe_zona");
+  });
+
+  it("no es staff de Legal, ni admin, ni solicitante", () => {
+    expect(LEGAL_STAFF_ROLES).not.toContain("jefe_zona");
+    expect(isAdminRole("jefe_zona")).toBe(false);
+    expect(isSolicitanteRole("jefe_zona")).toBe(false);
   });
 });

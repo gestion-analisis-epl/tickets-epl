@@ -24,9 +24,10 @@ const ROLE_LABEL: Record<Role, string> = {
   abogado: "Abogado",
   gerente_juridico: "Gerente Juridico",
   admin: "Admin",
+  jefe_zona: "Jefe de Zona",
 };
 
-const ROLE_OPTIONS: Role[] = ["solicitante", "gerente_area", "mesa_control", "abogado", "gerente_juridico", "admin"];
+const ROLE_OPTIONS: Role[] = ["solicitante", "gerente_area", "mesa_control", "abogado", "gerente_juridico", "admin", "jefe_zona"];
 
 type Panel = { mode: "crear" } | { mode: "editar"; user: UserRow } | null;
 
