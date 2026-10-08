@@ -1,4 +1,5 @@
 import type { Categoria } from "./catalogo";
+import type { ResumenContratoTicket } from "./resumen-contrato";
 
 export const ESTATUS_VALUES = [
   "Recepcion de solicitud",
@@ -69,6 +70,7 @@ export interface Ticket {
   formatoArrendamientoUrl?: string;
   documentosArrendamiento?: DocumentosArrendamientoInput;
   contratoArrendamiento?: ContratoArrendamientoInput;
+  resumenContrato?: ResumenContratoTicket; // lo escribe el servidor (Plan B)
   // Los 4 servicios de arrendamiento. Ausente en tickets previos al selector.
   sitioArrendamiento?: SitioArrendamiento;
   // Se llenan solo cuando Mesa de Control / admin asigna el sitio a un ticket existente.
