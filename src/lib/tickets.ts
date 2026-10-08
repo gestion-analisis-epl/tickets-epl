@@ -1,5 +1,6 @@
 import { firestoreTicketRepository } from "@/infrastructure/firestore/ticket-repository";
 import { firestoreTicketNotifier } from "@/infrastructure/firestore/ticket-notifier";
+import { firestoreResumenContratoRepository } from "@/infrastructure/firestore/resumen-contrato-repository";
 import { createTicketService } from "@/domain/tickets/ticket-service";
 import { findServicio } from "./catalogo";
 
@@ -8,7 +9,7 @@ export type { AsignacionInput } from "@/domain/tickets/asignacion-rules";
 export type { SolicitudInput } from "@/domain/tickets/solicitud-rules";
 export type { BackfillResultado } from "@/domain/tickets/ticket-service";
 
-const ticketService = createTicketService(firestoreTicketRepository, firestoreTicketNotifier, { findServicio });
+const ticketService = createTicketService(firestoreTicketRepository, firestoreTicketNotifier, { findServicio }, firestoreResumenContratoRepository);
 
 export const createTicket = ticketService.createTicket;
 export const subscribeTickets = ticketService.subscribeTickets;

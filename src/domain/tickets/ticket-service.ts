@@ -1,5 +1,7 @@
 import { deleteTicketDocuments } from "@/lib/storage";
-import type { SitioArrendamiento, Ticket } from "@/types/ticket";
+import type { Estatus, SitioArrendamiento, Ticket } from "@/types/ticket";
+import type { ResumenContratoRepository } from "@/domain/contratos/resumen-contrato-repository";
+import { accionResumen, construirResumenContrato } from "@/domain/contratos/contrato-rules";
 import type { CatalogoLookup } from "@/domain/catalogo/catalogo-lookup";
 import type { TicketRepository } from "./ticket-repository";
 import type { TicketNotifier } from "./ticket-notifier";
@@ -15,7 +17,12 @@ export interface BackfillResultado {
   detalles: string[];
 }
 
-export function createTicketService(repo: TicketRepository, notifier: TicketNotifier, catalogo: CatalogoLookup) {
+export function createTicketService(
+  repo: TicketRepository,
+  notifier: TicketNotifier,
+  catalogo: CatalogoLookup,
+  resumenes: ResumenContratoRepository
+) {
   async function createTicket(input: NuevoTicketInput): Promise<{ id: string; folio: string }> {
     const servicio = catalogo.findServicio(input.servicioId);
     if (!servicio) throw new Error("Servicio no encontrado en el catalogo.");
@@ -45,6 +52,15 @@ export function createTicketService(repo: TicketRepository, notifier: TicketNoti
     return repo.subscribeOne(id, callback, onError);
   }
 
+  async function sincronizarResumen(ticket: Ticket, estatusPrevio: Estatus): Promise<void> {
+    const accion = accionResumen(estatusPrevio, ticket.estatus);
+    if (accion === "ninguna") return;
+    const ahora = new Date();
+    if (accion === "actualizar-estatus") return resumenes.updateEstatus(ticket.id, ticket.estatus, ahora.toISOString());
+    const previo = await resumenes.get(ticket.id);
+    await resumenes.upsert(construirResumenContrato(ticket, ahora, previo));
+  }
+
   async function updateTicketAsignacion(id: string, actorUid: string, input: AsignacionInput): Promise<void> {
     const current = await repo.getById(id);
     if (!current) throw new Error("Ticket no encontrado.");
@@ -52,7 +68,14 @@ export function createTicketService(repo: TicketRepository, notifier: TicketNoti
     const { patch, esNuevaAsignacion, esReasignacion, esCambioEstatus } = calcularPatchAsignacion(
       current, input, actorUid, new Date()
     );
+    const estatusPrevio = current.estatus;
     await repo.update(id, patch);
+
+    if (esCambioEstatus) {
+      await sincronizarResumen({ ...current, ...patch } as Ticket, estatusPrevio).catch((err) =>
+        console.error("No se pudo sincronizar el resumen de contrato:", err)
+      );
+    }
 
     // Best-effort: si fallan no bloquean el cambio, que ya se guardo.
     const avisos: Promise<unknown>[] = [];
