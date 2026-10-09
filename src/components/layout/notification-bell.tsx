@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, CheckCheck, Inbox, UserCheck, ArrowRightCircle, CheckCircle2 } from "lucide-react";
+import { Bell, CheckCheck, Inbox, UserCheck, ArrowRightCircle, CheckCircle2, MessageSquare, RotateCcw } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import { useNotificaciones } from "@/hooks/use-notificaciones";
 import { marcarLeida, marcarTodasLeidas, type Notificacion, type TipoNotificacion } from "@/lib/notificaciones";
 import { formatFecha } from "@/lib/format-fecha";
+import { rutaNotificacion } from "@/domain/notificaciones/ruta-notificacion";
 import { cn } from "@/lib/utils";
 
 const TIPO_LABEL: Record<TipoNotificacion, string> = {
@@ -19,6 +20,8 @@ const TIPO_LABEL: Record<TipoNotificacion, string> = {
   reasignacion: "Reasignacion",
   reasignacion_solicitante: "Ticket reasignado",
   pre_cierre: "Ticket en Pre-Cierre",
+  comentario_ticket: "Comentario",
+  cambios_solicitados: "Cambios solicitados",
 };
 
 const TIPO_ICON: Record<TipoNotificacion, React.ElementType> = {
@@ -31,6 +34,8 @@ const TIPO_ICON: Record<TipoNotificacion, React.ElementType> = {
   reasignacion: UserCheck,
   reasignacion_solicitante: UserCheck,
   pre_cierre: ArrowRightCircle,
+  comentario_ticket: MessageSquare,
+  cambios_solicitados: RotateCcw,
 };
 
 const TIPO_TONE: Record<TipoNotificacion, string> = {
@@ -43,12 +48,15 @@ const TIPO_TONE: Record<TipoNotificacion, string> = {
   asignacion_solicitante: "text-indigo-600 bg-indigo-50 border-indigo-100 dark:text-indigo-300 dark:bg-indigo-500/10 dark:border-indigo-500/20",
   reasignacion: "text-indigo-600 bg-indigo-50 border-indigo-100 dark:text-indigo-300 dark:bg-indigo-500/10 dark:border-indigo-500/20",
   reasignacion_solicitante: "text-indigo-600 bg-indigo-50 border-indigo-100 dark:text-indigo-300 dark:bg-indigo-500/10 dark:border-indigo-500/20",
+  comentario_ticket: "text-blue-600 bg-blue-50 border-blue-100 dark:text-blue-300 dark:bg-blue-500/10 dark:border-blue-500/20",
+  cambios_solicitados: "text-amber-600 bg-amber-50 border-amber-100 dark:text-amber-300 dark:bg-amber-500/10 dark:border-amber-500/20",
 };
 
 // Panel tipo navbar (absolute, sin portal) — a diferencia de un menu dentro
 // del sidebar colapsable, aqui no hay overflow-hidden que lo recorte.
 export function NotificationBell() {
   const uid = useAuthStore((s) => s.uid);
+  const role = useAuthStore((s) => s.role);
   const router = useRouter();
   const { notificaciones } = useNotificaciones();
   const [open, setOpen] = useState(false);
@@ -69,7 +77,7 @@ export function NotificationBell() {
   function handleClickNotif(n: Notificacion) {
     if (uid && !n.leidoPor.includes(uid)) marcarLeida(n.id, uid).catch(() => {});
     setOpen(false);
-    router.push(`/tickets/${n.ticketId}`);
+    router.push(rutaNotificacion(role, n.ticketId));
   }
 
   async function handleMarcarTodas() {

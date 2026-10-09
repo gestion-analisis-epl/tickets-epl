@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyCallerToken, ApiAuthError } from "@/lib/api-auth";
 import { enviarNotificacionEmail } from "@/lib/notificaciones-email";
 import type { TipoNotificacion } from "@/lib/notificaciones";
+import { esTipoSoloServidor } from "@/domain/notificaciones/conversacion-avisos";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,9 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const tipo = body.tipo as TipoNotificacion;
+    if (esTipoSoloServidor(tipo)) {
+      return NextResponse.json({ error: "Tipo de aviso no permitido." }, { status: 400 });
+    }
     const mensaje = String(body.mensaje ?? "");
     const ticketId = String(body.ticketId ?? "");
     const ticketFolio = String(body.ticketFolio ?? "");

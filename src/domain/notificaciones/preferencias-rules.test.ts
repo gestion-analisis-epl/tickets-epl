@@ -2,18 +2,25 @@ import { describe, expect, it } from "vitest";
 import { filtrarDestinatarios, normalizarCorreosDesactivados, recibeCorreo, tiposCorreoEditables } from "./preferencias-rules";
 
 describe("tiposCorreoEditables", () => {
-  it("el jefe de zona puede apagar el aviso de Pre-Cierre", () => {
-    expect(tiposCorreoEditables("jefe_zona")).toEqual(["pre_cierre"]);
-  });
-
-  it("sitios puede apagar el aviso de Pre-Cierre", () => {
-    expect(tiposCorreoEditables("sitios")).toEqual(["pre_cierre"]);
+  it("el jefe de zona puede apagar el aviso de Pre-Cierre y los comentarios", () => {
+    expect(tiposCorreoEditables("jefe_zona")).toEqual(["pre_cierre", "comentario_ticket"]);
   });
 
   it("ofrece a cada rol solo los correos que recibe hoy", () => {
-    expect(tiposCorreoEditables("admin")).toEqual(["nuevo_ticket", "cambio_estatus", "cierre"]);
-    expect(tiposCorreoEditables("abogado")).toEqual(["asignacion", "reasignacion"]);
-    expect(tiposCorreoEditables("mesa_control")).toEqual(["asignacion", "reasignacion"]);
+    expect(tiposCorreoEditables("admin")).toEqual(["nuevo_ticket", "cambio_estatus", "cierre", "comentario_ticket"]);
+    expect(tiposCorreoEditables("abogado")).toEqual(["asignacion", "reasignacion", "comentario_ticket", "cambios_solicitados"]);
+    expect(tiposCorreoEditables("mesa_control")).toEqual(["asignacion", "reasignacion", "comentario_ticket", "cambios_solicitados"]);
+  });
+
+  it("el rol sitios solo recibe el aviso de Pre-Cierre (no participa en la conversacion)", () => {
+    expect(tiposCorreoEditables("sitios")).toEqual(["pre_cierre"]);
+  });
+
+  it("los participantes de la conversacion pueden apagar sus avisos", () => {
+    for (const rol of ["solicitante", "gerente_area", "gerente_juridico"] as const) {
+      expect(tiposCorreoEditables(rol)).toContain("comentario_ticket");
+      expect(tiposCorreoEditables(rol)).toContain("cambios_solicitados");
+    }
   });
 
   it("no ofrece el cierre del solicitante (lleva el link de calificacion)", () => {

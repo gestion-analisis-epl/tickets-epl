@@ -12,6 +12,8 @@ const TIPOS: TipoNotificacion[] = [
   "reasignacion",
   "reasignacion_solicitante",
   "pre_cierre",
+  "comentario_ticket",
+  "cambios_solicitados",
 ];
 
 function datos(over: Partial<DatosEmailNotificacion> = {}): DatosEmailNotificacion {
@@ -123,6 +125,19 @@ describe("renderEmailNotificacion", () => {
 
   it("incluye el pie de correo automatico", () => {
     expect(renderEmailNotificacion(datos())).toContain("no respondas");
+  });
+
+  it("los avisos de la conversacion solo muestran datos minimos del ticket", () => {
+    const ticket = { solicitante: "Juana Perez", sitio: "QRO-001", abogado: "Karina Valenzuela", servicio: "Arrendamiento", estatus: "Proceso en tramite" };
+    const comentario = renderEmailNotificacion(datos({ tipo: "comentario_ticket", ticket }));
+    expect(comentario).toContain("QRO-001");
+    expect(comentario).toContain("Juana Perez");
+    expect(comentario).not.toContain("Karina Valenzuela");
+    expect(comentario).not.toContain("Arrendamiento");
+    const cambios = renderEmailNotificacion(datos({ tipo: "cambios_solicitados", ticket }));
+    expect(cambios).toContain("Karina Valenzuela");
+    expect(cambios).toContain("Proceso en tramite");
+    expect(cambios).not.toContain("Arrendamiento");
   });
 
   it("pre_cierre solo muestra sitio y solicitante", () => {

@@ -15,6 +15,8 @@ export const TIPO_LABEL: Record<TipoNotificacion, string> = {
   reasignacion: "Reasignacion de abogado",
   reasignacion_solicitante: "Tu ticket fue reasignado",
   pre_cierre: "Ticket en Pre-Cierre",
+  comentario_ticket: "Nuevo comentario",
+  cambios_solicitados: "Cambios solicitados",
 };
 
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";

@@ -3,7 +3,8 @@ import type { Role } from "@/types/user";
 export type TipoNotificacion =
   | "nuevo_ticket" | "asignacion" | "cambio_estatus" | "cierre"
   | "creacion_solicitante" | "asignacion_solicitante"
-  | "reasignacion" | "reasignacion_solicitante" | "pre_cierre";
+  | "reasignacion" | "reasignacion_solicitante" | "pre_cierre"
+  | "comentario_ticket" | "cambios_solicitados";
 
 export interface Notificacion {
   id: string;
