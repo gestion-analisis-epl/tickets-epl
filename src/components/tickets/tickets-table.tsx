@@ -386,7 +386,7 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
         return (
           <span className="tabular-nums">
             {v ?? "—"}
-            {v != null && slaEnPausa(info.row.original) && <span className="text-muted text-xs"> (SLA en pausa)</span>}
+            {v != null && slaEnPausa(info.row.original) && <span className="text-muted text-xs whitespace-nowrap"> (en pausa)</span>}
           </span>
         );
       },

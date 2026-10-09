@@ -91,4 +91,59 @@ describe("diasHabilesSla", () => {
     };
     expect(diasHabilesSla(t, new Date("2024-01-12T12:00:00"))).toBe(0);
   });
+
+  it("una pausa que empieza y termina el mismo dia calendario suma 0", () => {
+    const t = {
+      fechaAsignacion: ASIGNACION,
+      historialEstatus: [h("Pre-Cierre", "2024-01-10T10:00:00"), h("Recepcion de solicitud", "2024-01-10T15:00:00")],
+    };
+    const hasta = new Date("2024-01-12T12:00:00");
+    expect(diasHabilesEnPausa(t, hasta)).toBe(0);
+    expect(diasHabilesSla(t, hasta)).toBe(4);
+  });
+
+  it("entradas Pre-Cierre consecutivas se fusionan en una sola pausa", () => {
+    const t = {
+      fechaAsignacion: ASIGNACION,
+      historialEstatus: [
+        h("Pre-Cierre", "2024-01-09T10:00:00"),
+        h("Pre-Cierre", "2024-01-10T10:00:00"),
+        h("Recepcion de solicitud", "2024-01-11T10:00:00"),
+      ],
+    };
+    expect(diasHabilesEnPausa(t, new Date("2024-01-12T12:00:00"))).toBe(2);
+  });
+
+  it("historialEstatus undefined o null se trata como sin pausas y no lanza", () => {
+    const hasta = new Date("2024-01-12T12:00:00");
+    for (const historialEstatus of [undefined, null]) {
+      const t = { fechaAsignacion: ASIGNACION, historialEstatus } as unknown as Parameters<typeof diasHabilesSla>[0];
+      expect(diasHabilesEnPausa(t, hasta)).toBe(0);
+      expect(diasHabilesSla(t, hasta)).toBe(4);
+    }
+  });
+
+  it("ignora entradas Pre-Cierre con fecha invalida o ausente al iniciar una pausa", () => {
+    const t = {
+      fechaAsignacion: ASIGNACION,
+      historialEstatus: [
+        h("Pre-Cierre", "no-es-fecha"),
+        { estatus: "Pre-Cierre", uid: "u1" } as unknown as HistorialEntry,
+        h("Recepcion de solicitud", "2024-01-10T10:00:00"),
+      ],
+    };
+    const hasta = new Date("2024-01-12T12:00:00");
+    expect(diasHabilesEnPausa(t, hasta)).toBe(0);
+    expect(diasHabilesSla(t, hasta)).toBe(4);
+  });
+
+  it("si la entrada que cierra la pausa tiene fecha invalida, la pausa termina en `hasta`", () => {
+    const t = {
+      fechaAsignacion: ASIGNACION,
+      historialEstatus: [h("Pre-Cierre", "2024-01-10T10:00:00"), h("Recepcion de solicitud", "no-es-fecha")],
+    };
+    const hasta = new Date("2024-01-12T12:00:00");
+    expect(diasHabilesEnPausa(t, hasta)).toBe(2);
+    expect(diasHabilesSla(t, hasta)).toBe(2);
+  });
 });

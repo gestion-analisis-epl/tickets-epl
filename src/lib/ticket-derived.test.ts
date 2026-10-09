@@ -81,6 +81,17 @@ describe("withLiveDerivedFields", () => {
     expect(result.diasPipeline).toBe(5);
   });
 
+  it("un ticket legado sin historialEstatus no lanza y cuenta todos los dias", () => {
+    const legado = {
+      ...buildTicket({ estatus: "Proceso en tramite", fechaAsignacion: "2024-01-10T09:00:00", slaInterno: 5 }),
+      historialEstatus: undefined,
+    } as unknown as Parameters<typeof withLiveDerivedFields>[0];
+
+    const result = withLiveDerivedFields(legado);
+
+    expect(result.diasHabilesTranscurridos).toBe(3);
+  });
+
   it("no muta el ticket original al calcular los campos derivados", () => {
     const abierto = buildTicket({ fechaAsignacion: null, diasPipeline: null });
     withLiveDerivedFields(abierto);

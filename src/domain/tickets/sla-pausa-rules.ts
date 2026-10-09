@@ -14,20 +14,30 @@ export function slaEnPausa(ticket: Pick<Ticket, "estatus">): boolean {
 export function diasHabilesEnPausa(ticket: TicketSla, hasta: Date): number {
   if (!ticket.fechaAsignacion) return 0;
   const inicioSla = new Date(ticket.fechaAsignacion);
-  const historial = ticket.historialEstatus;
+  // El historial es append-only, por lo tanto cronologico.
+  const historial = ticket.historialEstatus ?? [];
+  const fechaDe = (i: number): Date | null => {
+    const fecha = historial[i]?.fecha;
+    if (!fecha) return null;
+    const d = new Date(fecha);
+    return Number.isNaN(d.getTime()) ? null : d;
+  };
 
   let total = 0;
   for (let i = 0; i < historial.length; i++) {
-    if (historial[i].estatus !== ESTATUS_PAUSA_SLA) continue;
+    if (historial[i]?.estatus !== ESTATUS_PAUSA_SLA) continue;
 
     let j = i + 1;
-    while (j < historial.length && historial[j].estatus === ESTATUS_PAUSA_SLA) j++;
+    while (j < historial.length && historial[j]?.estatus === ESTATUS_PAUSA_SLA) j++;
 
-    const fin = j < historial.length ? new Date(historial[j].fecha) : hasta;
-    const inicioPausa = new Date(historial[i].fecha);
+    const inicioPausa = fechaDe(i);
+    const finPausa = j < historial.length ? fechaDe(j) : null;
+    i = j - 1;
+    if (!inicioPausa) continue;
+
+    const fin = finPausa ?? hasta;
     const inicio = inicioPausa < inicioSla ? inicioSla : inicioPausa;
     if (fin > inicio) total += businessDaysBetween(inicio, fin);
-    i = j - 1;
   }
   return total;
 }
