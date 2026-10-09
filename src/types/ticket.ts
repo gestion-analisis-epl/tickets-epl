@@ -101,4 +101,7 @@ export interface Ticket {
 
   // Ticket de prueba sacado a mano desde Mantenimiento: no aparece en tabla, kanban ni dashboard.
   excluidoDelPipeline?: boolean;
+
+  // Se fija la primera vez que el ticket entra a Pre-Cierre: habilita la conversacion (ver conversacion-rules.ts).
+  conversacionAbiertaEn?: string; // ISO
 }

@@ -1,5 +1,6 @@
 import { addBusinessDays, businessDaysBetween } from "@/lib/business-days";
 import { diasHabilesSla } from "./sla-pausa-rules";
+import { debeAbrirConversacion } from "./conversacion-rules";
 import type { Estatus, HistorialEntry, Ticket } from "@/types/ticket";
 
 export interface AsignacionInput {
@@ -60,6 +61,10 @@ export function calcularPatchAsignacion(
   // El token se regenera cada vez que entra a Cierre, aunque ya se haya cerrado antes.
   if (input.estatus === "Cierre" && current.estatus !== "Cierre") {
     patch.tokenCalificacion = crypto.randomUUID();
+  }
+
+  if (debeAbrirConversacion(current, input.estatus)) {
+    patch.conversacionAbiertaEn = ahora.toISOString();
   }
 
   return {

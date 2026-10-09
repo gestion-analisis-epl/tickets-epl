@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { calcularPatchAsignacion } from "./asignacion-rules";
 import { addBusinessDays, businessDaysBetween } from "@/lib/business-days";
 import { buildTicket } from "@/test/ticket-fixture";
+import type { Estatus } from "@/types/ticket";
 
 describe("calcularPatchAsignacion", () => {
   it("el SLA arranca al asignar abogado por primera vez, no antes", () => {
@@ -181,5 +182,31 @@ describe("calcularPatchAsignacion", () => {
     expect(conCambio.patch.historialEstatus).toEqual([
       { estatus: "Asignacion de responsable", fecha: ahora.toISOString(), uid: "actor-1" },
     ]);
+  });
+});
+
+describe("conversacionAbiertaEn", () => {
+  const ahora = new Date("2026-10-09T15:00:00.000Z");
+  const a = (estatus: Estatus) => ({ estatus, abogadoAsignadoId: null, notasCierre: null });
+
+  it("se fija al entrar por primera vez a Pre-Cierre", () => {
+    const { patch } = calcularPatchAsignacion(buildTicket(), a("Pre-Cierre"), "u1", ahora);
+    expect(patch.conversacionAbiertaEn).toBe(ahora.toISOString());
+  });
+
+  it("no se reescribe si ya existe", () => {
+    const current = buildTicket({ conversacionAbiertaEn: "2026-10-01T00:00:00.000Z" });
+    const { patch } = calcularPatchAsignacion(current, a("Pre-Cierre"), "u1", ahora);
+    expect("conversacionAbiertaEn" in patch).toBe(false);
+  });
+
+  it("un ticket que ya estaba en Pre-Cierre la abre al salir", () => {
+    const { patch } = calcularPatchAsignacion(buildTicket({ estatus: "Pre-Cierre" }), a("Proceso en tramite"), "u1", ahora);
+    expect(patch.conversacionAbiertaEn).toBe(ahora.toISOString());
+  });
+
+  it("en etapas previas no se abre", () => {
+    const { patch } = calcularPatchAsignacion(buildTicket(), a("Proceso en tramite"), "u1", ahora);
+    expect("conversacionAbiertaEn" in patch).toBe(false);
   });
 });
