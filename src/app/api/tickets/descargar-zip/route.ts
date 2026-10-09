@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import JSZip from "jszip";
 import { verifyCallerToken, ApiAuthError } from "@/lib/api-auth";
 import { getAdminBucket } from "@/lib/firebase-admin";
+import { esUrlStorageSegura } from "@/lib/storage-ruta";
 
 export const runtime = "nodejs";
 
@@ -27,6 +28,10 @@ export async function POST(request: Request) {
     const urls: unknown = body.urls;
     if (!Array.isArray(urls) || urls.length === 0 || !urls.every((u) => typeof u === "string")) {
       return NextResponse.json({ error: "Faltan las URLs de los documentos a incluir." }, { status: 400 });
+    }
+
+    if (!(urls as string[]).every(esUrlStorageSegura)) {
+      return NextResponse.json({ error: "Alguna URL de documento no es de Firebase Storage." }, { status: 400 });
     }
 
     const bucket = getAdminBucket();

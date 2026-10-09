@@ -26,6 +26,7 @@ import { formatFecha, formatFechaSolo } from "@/lib/format-fecha";
 import { formatMonedaMXN } from "@/lib/text-format";
 import { DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO, SERVICIOS_ARRENDAMIENTO_IDS } from "@/lib/data/arrendamientos-temporal";
 import { isAdminRole } from "@/types/user";
+import { esUrlStorageSegura } from "@/lib/storage-ruta";
 
 function nombreArchivo(url: string): string {
   try {
@@ -34,6 +35,29 @@ function nombreArchivo(url: string): string {
   } catch {
     return url;
   }
+}
+
+function EnlaceDocumento({ url, etiqueta }: { url: string; etiqueta: string }) {
+  if (!esUrlStorageSegura(url)) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-sm text-muted">
+        <FileText className="h-3.5 w-3.5" />
+        {etiqueta}
+        <span className="text-xs">(enlace no valido)</span>
+      </span>
+    );
+  }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+    >
+      <FileText className="h-3.5 w-3.5" />
+      {etiqueta}
+    </a>
+  );
 }
 
 export function TicketDetail({ id }: { id: string }) {
@@ -358,15 +382,7 @@ export function TicketDetail({ id }: { id: string }) {
                 <ul className="space-y-1">
                   {docsExistentesForm.map((url) => (
                     <li key={url} className="flex items-center justify-between gap-2">
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-                      >
-                        <FileText className="h-3.5 w-3.5" />
-                        {nombreArchivo(url)}
-                      </a>
+                      <EnlaceDocumento url={url} etiqueta={nombreArchivo(url)} />
                       <button
                         type="button"
                         onClick={() => handleEliminarDocExistente(url)}
@@ -446,15 +462,7 @@ export function TicketDetail({ id }: { id: string }) {
                 <ul className="space-y-1">
                   {ticket.documentacion.map((url) => (
                     <li key={url}>
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-                      >
-                        <FileText className="h-3.5 w-3.5" />
-                        {nombreArchivo(url)}
-                      </a>
+                      <EnlaceDocumento url={url} etiqueta={nombreArchivo(url)} />
                     </li>
                   ))}
                 </ul>
@@ -505,15 +513,7 @@ export function TicketDetail({ id }: { id: string }) {
             {ticket.formatoArrendamientoUrl && (
               <div>
                 <p className="text-muted text-sm mb-1.5">Formato de solicitud de arrendamiento</p>
-                <a
-                  href={ticket.formatoArrendamientoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  {nombreArchivo(ticket.formatoArrendamientoUrl)}
-                </a>
+                <EnlaceDocumento url={ticket.formatoArrendamientoUrl} etiqueta={nombreArchivo(ticket.formatoArrendamientoUrl)} />
               </div>
             )}
 
@@ -526,15 +526,7 @@ export function TicketDetail({ id }: { id: string }) {
                     if (!url) return null;
                     return (
                       <li key={doc.key}>
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-                        >
-                          <FileText className="h-3.5 w-3.5" />
-                          {doc.label}
-                        </a>
+                        <EnlaceDocumento url={url} etiqueta={doc.label} />
                       </li>
                     );
                   })}
