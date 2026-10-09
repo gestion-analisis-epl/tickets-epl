@@ -9,6 +9,7 @@ import { auth } from "@/lib/firebase";
 import { useTicket } from "@/hooks/use-ticket";
 import { updateTicketAsignacion, updateTicketSolicitud, updateTicketSitio, submitSatisfaccion, deleteTicket } from "@/lib/tickets";
 import { findServicio } from "@/lib/catalogo";
+import { ResumenContratoCard } from "./resumen-contrato-card";
 import { ServicioSelector } from "./servicio-selector";
 import { SitioSelector, seleccionDeSitio } from "./sitio-selector";
 import { SELECCION_VACIA, type SeleccionSitio } from "@/domain/sitios/sitios-rules";
@@ -566,6 +567,8 @@ export function TicketDetail({ id }: { id: string }) {
           </>
         )}
       </section>
+
+      {puedeEditar && (ticket.contratoArrendamiento || ticket.resumenContrato) && <ResumenContratoCard ticket={ticket} />}
 
       {/* Asignacion / estatus (ambar, editable solo por Legal/admin) */}
       <section className="section-card p-6 space-y-4">

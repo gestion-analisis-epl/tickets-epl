@@ -8,6 +8,7 @@ import { enviarEmailNotificacion } from "@/lib/notificaciones";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { ExcluirTicketsSection } from "./excluir-tickets-section";
+import { ResumenesContratoSection } from "./resumenes-contrato-section";
 import { isAdminRole } from "@/types/user";
 
 interface ReenvioResultado {
@@ -166,6 +167,7 @@ export function MantenimientoPanel() {
   return (
     <div className="space-y-4 max-w-5xl">
       <ExcluirTicketsSection />
+      <ResumenesContratoSection />
 
       <section className="section-card p-6 space-y-3 max-w-2xl">
         <h2 className="eyebrow">Recalcular SLA historico</h2>
