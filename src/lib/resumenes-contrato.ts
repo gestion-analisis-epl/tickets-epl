@@ -4,6 +4,7 @@ import type { ResumenContrato } from "@/types/resumen-contrato";
 import type { ActorHistorial } from "@/types/historial";
 
 export const subscribeResumenes = repo.subscribeMany;
+export const subscribeResumenesTodos = repo.subscribeTodos;
 export const subscribeResumen = repo.subscribeOne;
 
 export async function registrarVistoBueno(ticketId: string, actor: ActorHistorial): Promise<void> {

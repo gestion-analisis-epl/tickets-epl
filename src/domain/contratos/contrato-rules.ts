@@ -2,6 +2,8 @@ import type { Estatus, Ticket } from "@/types/ticket";
 import { esArchivoContrato } from "./tipo-archivo";
 import type { ResumenContrato, ResumenContratoTicket } from "@/types/resumen-contrato";
 
+// Etapas en que se crea o refresca el resumen (accionResumen). La LECTURA del jefe de zona no se limita
+// a estas etapas: conserva los tickets que regresan a correccion (ver firestore.rules).
 export const ETAPAS_VISIBLES_JEFE_ZONA: readonly Estatus[] = ["Pre-Cierre", "Cierre"];
 
 const esEtapaVisible = (e: Estatus) => ETAPAS_VISIBLES_JEFE_ZONA.includes(e);

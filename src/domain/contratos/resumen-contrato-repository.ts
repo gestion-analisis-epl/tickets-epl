@@ -9,6 +9,9 @@ export interface ResumenContratoRepository {
   updateEstatus(ticketId: string, estatus: Estatus, actualizadoEn: string): Promise<void>;
   // Solo etapas visibles para el jefe de zona (las reglas de Firestore exigen ese filtro).
   subscribeMany(callback: (resumenes: ResumenContrato[]) => void, onError?: (e: RepositoryError) => void): () => void;
+  // Todos los resumenes existentes (tickets que ya entraron a Pre-Cierre), en cualquier etapa.
+  // Solo jefe de zona (las reglas no se lo permiten al rol sitios, que usa subscribeMany).
+  subscribeTodos(callback: (resumenes: ResumenContrato[]) => void, onError?: (e: RepositoryError) => void): () => void;
   subscribeOne(
     ticketId: string,
     callback: (resumen: ResumenContrato | null) => void,

@@ -1,4 +1,20 @@
-import type { Discrepancia, FormaPago } from "@/types/resumen-contrato";
+import type { Discrepancia, FormaPago, ResumenContrato } from "@/types/resumen-contrato";
+import type { Estatus } from "@/types/ticket";
+import { ETAPAS_VISIBLES_JEFE_ZONA } from "./contrato-rules";
+
+// El jefe de zona conserva sus tickets aunque regresen a una etapa anterior (p. ej. por "Pedir cambios").
+export function enCorreccion(estatus: Estatus): boolean {
+  return !ETAPAS_VISIBLES_JEFE_ZONA.includes(estatus);
+}
+
+const prioridad = (estatus: Estatus): number => (estatus === "Pre-Cierre" ? 0 : enCorreccion(estatus) ? 1 : 2);
+
+// Primero lo pendiente de visto bueno, luego lo que esta en correccion y al final lo cerrado.
+export function ordenarResumenesJefeZona(resumenes: ResumenContrato[]): ResumenContrato[] {
+  return [...resumenes].sort(
+    (a, b) => prioridad(a.estatus) - prioridad(b.estatus) || b.actualizadoEn.localeCompare(a.actualizadoEn)
+  );
+}
 
 export const NO_DISPONIBLE = "No disponible";
 

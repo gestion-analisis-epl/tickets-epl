@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/auth";
-import { subscribeResumenes, subscribeResumen } from "@/lib/resumenes-contrato";
+import { subscribeResumenes, subscribeResumenesTodos, subscribeResumen } from "@/lib/resumenes-contrato";
+import { ordenarResumenesJefeZona } from "@/domain/contratos/resumen-presentacion";
+import { esJefeZona } from "@/types/user";
 import type { ResumenContrato } from "@/types/resumen-contrato";
 
 export function useResumenes() {
   const status = useAuthStore((s) => s.status);
+  const role = useAuthStore((s) => s.role);
   const [resumenes, setResumenes] = useState<ResumenContrato[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<"permission-denied" | "unknown" | null>(null);
@@ -14,9 +17,12 @@ export function useResumenes() {
   useEffect(() => {
     if (status !== "signed-in") return;
     setError(null);
-    const unsubscribe = subscribeResumenes(
+    // Jefe de zona: todos sus resumenes (incluidos los en correccion). Cualquier otro rol (p. ej. sitios):
+    // la consulta filtrada por Pre-Cierre/Cierre que exigen sus reglas.
+    const suscribir = esJefeZona(role) ? subscribeResumenesTodos : subscribeResumenes;
+    const unsubscribe = suscribir(
       (data) => {
-        setResumenes([...data].sort((a, b) => b.actualizadoEn.localeCompare(a.actualizadoEn)));
+        setResumenes(ordenarResumenesJefeZona(data));
         setLoading(false);
       },
       (err) => {
@@ -25,7 +31,7 @@ export function useResumenes() {
       }
     );
     return unsubscribe;
-  }, [status]);
+  }, [status, role]);
 
   return { resumenes, loading, error };
 }

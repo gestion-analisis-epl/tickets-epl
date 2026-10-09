@@ -35,6 +35,15 @@ export const firestoreResumenContratoRepository: ResumenContratoRepository = {
     );
   },
 
+  // Sin filtro de etapa: solo el jefe de zona (ver firestore.rules). Sin orderBy: se ordena en JS.
+  subscribeTodos(callback, onError) {
+    return onSnapshot(
+      collection(db, COLECCION),
+      (snap) => callback(snap.docs.map((d) => d.data() as ResumenContrato)),
+      onError ? (err) => onError(toRepositoryError(err)) : undefined
+    );
+  },
+
   subscribeOne(ticketId, callback, onError) {
     return onSnapshot(
       doc(db, COLECCION, ticketId),

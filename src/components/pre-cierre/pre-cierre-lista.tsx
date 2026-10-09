@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { useResumenes } from "@/hooks/use-resumenes-contrato";
 import { Badge, EstatusBadge } from "@/components/ui/badge";
+import { enCorreccion } from "@/domain/contratos/resumen-presentacion";
 
 export function PreCierreLista() {
   const { resumenes, loading, error } = useResumenes();
@@ -29,7 +30,7 @@ export function PreCierreLista() {
     return (
       <div className="flex flex-col items-center justify-center h-48 bg-card rounded-lg border border-border text-center">
         <p className="text-sm font-medium text-muted">Sin tickets en Pre-Cierre</p>
-        <p className="text-xs text-muted mt-1">Aqui apareceran los contratos pendientes de visto bueno</p>
+        <p className="text-xs text-muted mt-1">Aqui apareceran los contratos pendientes de visto bueno y los que regresaron a correccion</p>
       </div>
     );
   }
@@ -55,7 +56,12 @@ export function PreCierreLista() {
                   {r.sitioClave ? `${r.sitioClave}${r.sitioAlias ? ` — ${r.sitioAlias}` : ""}` : <span className="text-muted">No disponible</span>}
                 </td>
                 <td className="px-4 py-3">{r.solicitante}</td>
-                <td className="px-4 py-3"><EstatusBadge estatus={r.estatus} /></td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <EstatusBadge estatus={r.estatus} />
+                    {enCorreccion(r.estatus) && <Badge tone="orange">En correccion</Badge>}
+                  </div>
+                </td>
                 <td className="px-4 py-3">
                   {r.vistoBueno ? <Badge tone="green">Dado por {r.vistoBueno.nombre}</Badge> : <Badge tone="gray">Pendiente</Badge>}
                 </td>
