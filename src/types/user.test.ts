@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { esJefeZona, isAdminRole, isSolicitanteRole, LEGAL_STAFF_ROLES, puedeSupervisar, STAFF_ROLES, type Role } from "./user";
+import { esJefeZona, esRolSoloResumen, esSitios, puedeDarVistoBueno, ROLES_SOLO_RESUMEN, isAdminRole, isSolicitanteRole, LEGAL_STAFF_ROLES, puedeSupervisar, STAFF_ROLES, type Role } from "./user";
 
 describe("isSolicitanteRole", () => {
   it.each<[Role, boolean]>([
@@ -10,6 +10,7 @@ describe("isSolicitanteRole", () => {
     ["gerente_juridico", false],
     ["admin", false],
     ["jefe_zona", false],
+    ["sitios", false],
   ])("%s -> %s", (role, esperado) => {
     expect(isSolicitanteRole(role)).toBe(esperado);
   });
@@ -61,5 +62,42 @@ describe("jefe_zona", () => {
     expect(LEGAL_STAFF_ROLES).not.toContain("jefe_zona");
     expect(isAdminRole("jefe_zona")).toBe(false);
     expect(isSolicitanteRole("jefe_zona")).toBe(false);
+  });
+});
+
+describe("sitios", () => {
+  it("esSitios solo es verdadero para ese rol", () => {
+    expect(esSitios("sitios")).toBe(true);
+    expect(esSitios("jefe_zona")).toBe(false);
+    expect(esSitios(null)).toBe(false);
+    expect(esSitios(undefined)).toBe(false);
+  });
+
+  it("se crea con correo y contrasena desde el panel de Usuarios", () => {
+    expect(STAFF_ROLES).toContain("sitios");
+  });
+
+  it("no es staff de Legal, ni admin, ni solicitante", () => {
+    expect(LEGAL_STAFF_ROLES).not.toContain("sitios");
+    expect(isAdminRole("sitios")).toBe(false);
+    expect(isSolicitanteRole("sitios")).toBe(false);
+  });
+});
+
+describe("roles de solo resumen", () => {
+  it("jefe_zona y sitios consultan solo el resumen del contrato", () => {
+    expect(ROLES_SOLO_RESUMEN).toEqual(["jefe_zona", "sitios"]);
+    expect(esRolSoloResumen("jefe_zona")).toBe(true);
+    expect(esRolSoloResumen("sitios")).toBe(true);
+    expect(esRolSoloResumen("admin")).toBe(false);
+    expect(esRolSoloResumen("gerente_area")).toBe(false);
+    expect(esRolSoloResumen(null)).toBe(false);
+  });
+
+  it("solo el jefe de zona da visto bueno", () => {
+    expect(puedeDarVistoBueno("jefe_zona")).toBe(true);
+    expect(puedeDarVistoBueno("sitios")).toBe(false);
+    expect(puedeDarVistoBueno("admin")).toBe(false);
+    expect(puedeDarVistoBueno(null)).toBe(false);
   });
 });

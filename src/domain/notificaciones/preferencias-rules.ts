@@ -15,6 +15,7 @@ const CORREOS_POR_ROL: Record<Role, TipoNotificacion[]> = {
   // Como solicitante + el cierre de los tickets que supervisa.
   gerente_area: [...SOLICITANTE, "cierre"],
   jefe_zona: ["pre_cierre"],
+  sitios: ["pre_cierre"],
 };
 
 export const ETIQUETA_CORREO: Record<TipoNotificacion, string> = {

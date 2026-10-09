@@ -1,11 +1,11 @@
-import { esJefeZona, isSolicitanteRole, puedeSupervisar, type Role } from "@/types/user";
+import { esRolSoloResumen, isSolicitanteRole, puedeSupervisar, type Role } from "@/types/user";
 import type { Ticket } from "@/types/ticket";
 
 // Uids cuyos tickets consulta el usuario, uno por consulta (las reglas de Firestore solo aprueban
 // una consulta si cada filtro se puede comprobar). null = todos (staff de Legal / admin);
-// [] = ninguna (jefe de zona: usa resumenesContrato).
+// [] = ninguna (jefe de zona y sitios: usan resumenesContrato).
 export function uidsConsultaTickets(filtro: { uid: string; role: Role; supervisaUids?: string[] }): string[] | null {
-  if (esJefeZona(filtro.role)) return [];
+  if (esRolSoloResumen(filtro.role)) return [];
   if (!isSolicitanteRole(filtro.role)) return null;
   const supervisados = puedeSupervisar(filtro.role) ? (filtro.supervisaUids ?? []) : [];
   return Array.from(new Set([filtro.uid, ...supervisados].filter(Boolean)));

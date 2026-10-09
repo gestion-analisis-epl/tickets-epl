@@ -26,6 +26,7 @@ describe("uidsConsultaTickets", () => {
 
   it("el jefe de zona no consulta tickets (usa resumenesContrato)", () => {
     expect(uidsConsultaTickets({ uid: "j1", role: "jefe_zona" })).toEqual([]);
+    expect(uidsConsultaTickets({ uid: "s1", role: "sitios" })).toEqual([]);
   });
 
   it.each(["mesa_control", "abogado", "gerente_juridico", "admin"] as const)(

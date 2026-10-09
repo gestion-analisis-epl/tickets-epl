@@ -21,14 +21,14 @@ interface NavItem {
   roles?: Role[]; // undefined = visible para todos los roles
 }
 
-const ROLES_SIN_JEFE_ZONA: Role[] = ["solicitante", "gerente_area", "mesa_control", "abogado", "gerente_juridico", "admin"];
+const ROLES_SIN_SOLO_RESUMEN: Role[] = ["solicitante", "gerente_area", "mesa_control", "abogado", "gerente_juridico", "admin"];
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Inicio",              href: "/",              icon: Home,          exact: true, roles: ROLES_SIN_JEFE_ZONA },
-  { label: "Dashboard",           href: "/dashboard",      icon: BarChart2,    roles: ROLES_SIN_JEFE_ZONA },
-  { label: "Tickets",             href: "/tickets",        icon: ClipboardList, roles: ROLES_SIN_JEFE_ZONA },
-  { label: "Nuevo ticket",        href: "/tickets/nuevo",  icon: PlusCircle,   roles: ROLES_SIN_JEFE_ZONA },
-  { label: "Pre-Cierre",          href: "/pre-cierre",     icon: ClipboardCheck, roles: ["jefe_zona"] },
+  { label: "Inicio",              href: "/",              icon: Home,          exact: true, roles: ROLES_SIN_SOLO_RESUMEN },
+  { label: "Dashboard",           href: "/dashboard",      icon: BarChart2,    roles: ROLES_SIN_SOLO_RESUMEN },
+  { label: "Tickets",             href: "/tickets",        icon: ClipboardList, roles: ROLES_SIN_SOLO_RESUMEN },
+  { label: "Nuevo ticket",        href: "/tickets/nuevo",  icon: PlusCircle,   roles: ROLES_SIN_SOLO_RESUMEN },
+  { label: "Pre-Cierre",          href: "/pre-cierre",     icon: ClipboardCheck, roles: ["jefe_zona", "sitios"] },
   { label: "Catalogo de servicios", href: "/catalogo",     icon: BookOpen,     roles: ["mesa_control", "abogado", "gerente_juridico", "admin"] },
 ];
 

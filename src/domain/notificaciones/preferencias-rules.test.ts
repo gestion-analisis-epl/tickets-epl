@@ -6,6 +6,10 @@ describe("tiposCorreoEditables", () => {
     expect(tiposCorreoEditables("jefe_zona")).toEqual(["pre_cierre"]);
   });
 
+  it("sitios puede apagar el aviso de Pre-Cierre", () => {
+    expect(tiposCorreoEditables("sitios")).toEqual(["pre_cierre"]);
+  });
+
   it("ofrece a cada rol solo los correos que recibe hoy", () => {
     expect(tiposCorreoEditables("admin")).toEqual(["nuevo_ticket", "cambio_estatus", "cierre"]);
     expect(tiposCorreoEditables("abogado")).toEqual(["asignacion", "reasignacion"]);

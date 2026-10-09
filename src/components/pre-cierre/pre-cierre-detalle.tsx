@@ -6,6 +6,7 @@ import { Loader2, ShieldAlert, Download, ArrowLeft, AlertTriangle } from "lucide
 import { useResumen } from "@/hooks/use-resumenes-contrato";
 import { registrarVistoBueno } from "@/lib/resumenes-contrato";
 import { useAuthStore } from "@/stores/auth";
+import { puedeDarVistoBueno } from "@/types/user";
 import { Button } from "@/components/ui/button";
 import { EstatusBadge } from "@/components/ui/badge";
 import { DosColumnas } from "@/components/layout/dos-columnas";
@@ -33,6 +34,7 @@ export function PreCierreDetalle({ id }: { id: string }) {
   const { resumen, loading, forbidden } = useResumen(id);
   const uid = useAuthStore((s) => s.uid);
   const nombre = useAuthStore((s) => s.nombre);
+  const role = useAuthStore((s) => s.role);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,7 +57,7 @@ export function PreCierreDetalle({ id }: { id: string }) {
   }
 
   const aviso = AVISO_ESTADO[resumen.estadoResumen];
-  const puedeDarVistoBueno = resumen.estatus === "Pre-Cierre" && !resumen.vistoBueno;
+  const mostrarVistoBueno = puedeDarVistoBueno(role) && resumen.estatus === "Pre-Cierre" && !resumen.vistoBueno;
 
   async function darVistoBueno() {
     if (!uid) return;
@@ -92,7 +94,7 @@ export function PreCierreDetalle({ id }: { id: string }) {
           <p className="text-sm font-medium">
             Visto bueno dado por {resumen.vistoBueno.nombre} el {formatFecha(resumen.vistoBueno.fecha, { conHora: true })}
           </p>
-        ) : puedeDarVistoBueno ? (
+        ) : mostrarVistoBueno ? (
           <>
             <Button variant="success" onClick={darVistoBueno} disabled={guardando}>
               {guardando && <Loader2 className="h-4 w-4 animate-spin" />}

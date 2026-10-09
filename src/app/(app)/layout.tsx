@@ -7,7 +7,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { CatalogoProvider } from "@/components/providers/catalogo-provider";
 import { useAuthStore } from "@/stores/auth";
-import { esJefeZona } from "@/types/user";
+import { esRolSoloResumen } from "@/types/user";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -22,7 +22,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   // Comodidad de UI: la seguridad real son las reglas de Firestore.
   useEffect(() => {
-    if (status === "signed-in" && esJefeZona(role) && !pathname.startsWith("/pre-cierre")) router.replace("/pre-cierre");
+    if (status === "signed-in" && esRolSoloResumen(role) && !pathname.startsWith("/pre-cierre")) router.replace("/pre-cierre");
   }, [status, role, pathname, router]);
 
   // Cierra el drawer movil al navegar (Link no dispara un unmount de este
@@ -31,7 +31,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setMobileNavOpen(false);
   }, [pathname]);
 
-  const redirigiendoJefe = status === "signed-in" && esJefeZona(role) && !pathname.startsWith("/pre-cierre");
+  const redirigiendoJefe = status === "signed-in" && esRolSoloResumen(role) && !pathname.startsWith("/pre-cierre");
 
   if (status !== "signed-in" || redirigiendoJefe) {
     return (

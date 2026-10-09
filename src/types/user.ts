@@ -1,9 +1,9 @@
-export type Role = "solicitante" | "gerente_area" | "mesa_control" | "abogado" | "gerente_juridico" | "admin" | "jefe_zona";
+export type Role = "solicitante" | "gerente_area" | "mesa_control" | "abogado" | "gerente_juridico" | "admin" | "jefe_zona" | "sitios";
 
 // Roles con cuenta de correo+contrasena, creables desde el panel de Usuarios.
 // "solicitante" no entra aqui: se autoregistra por Google (ver
 // lib/users.ts ensureSolicitanteDoc), crearlo a mano duplicaria la cuenta.
-export const STAFF_ROLES: Role[] = ["mesa_control", "abogado", "gerente_juridico", "admin", "jefe_zona"];
+export const STAFF_ROLES: Role[] = ["mesa_control", "abogado", "gerente_juridico", "admin", "jefe_zona", "sitios"];
 
 // Roles del flujo operativo de tickets — reciben la notificacion de "nuevo
 // ticket" y pueden enlazarse a un abogado del catalogo (ver lib/notificaciones.ts).
@@ -33,6 +33,23 @@ export function puedeSupervisar(role: Role | null | undefined): boolean {
 // No lee la coleccion tickets. Sincronizar a mano con firestore.rules isJefeZona().
 export function esJefeZona(role: Role | null | undefined): boolean {
   return role === "jefe_zona";
+}
+
+// Solo lectura del resumen del contrato en Pre-Cierre/Cierre. No lee tickets, historial ni
+// conversacion. Sincronizar a mano con firestore.rules isSitios().
+export function esSitios(role: Role | null | undefined): boolean {
+  return role === "sitios";
+}
+
+// Roles que solo consultan resumenesContrato (sin acceso a la coleccion tickets).
+export const ROLES_SOLO_RESUMEN: Role[] = ["jefe_zona", "sitios"];
+export function esRolSoloResumen(role: Role | null | undefined): boolean {
+  return !!role && ROLES_SOLO_RESUMEN.includes(role);
+}
+
+// Sitios es de solo lectura: unicamente el jefe de zona da el visto bueno.
+export function puedeDarVistoBueno(role: Role | null | undefined): boolean {
+  return esJefeZona(role);
 }
 
 export interface AppUser {

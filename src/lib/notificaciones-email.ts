@@ -87,9 +87,9 @@ async function solicitanteDestino(solicitanteId: string, tipo: TipoNotificacion)
   return filtrarDestinatarios([{ ...solicitante, activo: true }], tipo);
 }
 
-async function jefesZonaDestino(tipo: TipoNotificacion): Promise<Destino> {
+async function jefesZonaYSitiosDestino(tipo: TipoNotificacion): Promise<Destino> {
   const db = getAdminDb();
-  const snap = await db.collection("users").where("role", "==", "jefe_zona").get();
+  const snap = await db.collection("users").where("role", "in", ["jefe_zona", "sitios"]).get();
   return filtrarDestinatarios(snap.docs.map((d) => d.data()), tipo);
 }
 
@@ -104,7 +104,7 @@ async function resolverDestinatarios(tipo: TipoNotificacion, ticketId: string): 
   if (tipo === "nuevo_ticket") {
     return gerenteJuridicoYAdminDestino(tipo);
   }
-  if (tipo === "pre_cierre") return jefesZonaDestino(tipo);
+  if (tipo === "pre_cierre") return jefesZonaYSitiosDestino(tipo);
 
   const db = getAdminDb();
   const ticket = (await db.collection("tickets").doc(ticketId).get()).data();
