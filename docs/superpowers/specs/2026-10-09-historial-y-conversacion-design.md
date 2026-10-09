@@ -25,6 +25,9 @@ Se construye en dos planes: **Plan C (historial)** y **Plan D (conversación)**.
 | Admin en Pre-Cierre | Puede reasignar el abogado (cambio de proceso, permitido) |
 | Avisos | Correo + campana a los demás participantes, con interruptor de correo por usuario. El correo **no incluye el texto** del comentario |
 | Diseño de pantalla | El resumen del contrato va en una columna derecha, en el detalle del ticket y en `/pre-cierre/[id]`; la conversación ocupará la columna izquierda del jefe de zona |
+| Abogado asignado | Se identifica por `users.abogadoId == tickets.abogadoAsignadoId`, sin importar el rol: si el ticket está asignado a la persona de Mesa de Control del catálogo, ella es la responsable, ve el historial y participa en el hilo. Mesa de Control en general queda fuera (confirmado por el usuario) |
+| Rol Sitios (`sitios`, solo lectura, se implementa aparte) | Lee `resumenesContrato` solo con estatus Pre-Cierre o Cierre (filtro estricto; no recibe la lectura ampliada del jefe de zona). No participa en la conversación: no lee historial ni comentarios, no comenta, no da visto bueno ni pide cambios. Recibe solo el correo `pre_cierre`; no está entre los destinatarios de avisos de comentarios |
+| Acceso del jefe de zona tras regresar de Pre-Cierre | Conserva el acceso al resumen y al hilo de los tickets que ya entraron a Pre-Cierre (existe su resumen), en cualquier etapa; puede escribir mientras el hilo esté abierto y el estatus no sea Cierre. Su lista muestra también los tickets "en corrección" (confirmado por el usuario) |
 
 ## Parte 1 — Historial de cambios (Plan C)
 
@@ -62,7 +65,7 @@ Un administrador técnico que escriba directo a Firestore, sin pasar por la app,
 ### Habilitación
 - Al entrar por primera vez a Pre-Cierre, el servicio fija `conversacionAbiertaEn` (ISO) en el ticket, dentro de `updateTicketAsignacion`.
 - Se puede escribir si `conversacionAbiertaEn` existe **o** el estatus actual es Pre-Cierre (cubre tickets que ya estaban ahí al desplegar), y el estatus no es Cierre.
-- Lectura: participantes mientras el hilo exista; el jefe de zona solo cuando `resumenesContrato/{id}.estatus` sea Pre-Cierre o Cierre (misma visibilidad que su resumen).
+- Lectura: participantes mientras el hilo exista; el jefe de zona lee el hilo y el resumen mientras exista el resumen (ticket que ya entró a Pre-Cierre), en cualquier etapa; escribe cuando el hilo está abierto y el estatus no es Cierre.
 
 ### Modelo
 Subcolección `tickets/{ticketId}/comentarios/{comentarioId}`:
@@ -126,4 +129,5 @@ Errores al jefe de zona con mensajes genéricos; el detalle va al log del servid
 - Las reglas de Firestore y de Storage siguen ignoradas en git: los cambios de `firestore.rules` viven solo en el disco del equipo y deben desplegarse a mano tras probarse.
 - Mesa de Control, que hoy puede modificar tickets, queda fuera del hilo y del historial; si se necesita que lea ambos, se agrega después.
 - `gerente_area` (supervisor de áreas) no participa; si se necesita, es un cambio posterior.
+- Los tickets que regresan de Pre-Cierre a una etapa anterior (por "Pedir cambios" o por Legal) siguen visibles para los jefes de zona (resumen e hilo). Mientras están "en corrección" el resumen solo actualiza su estatus; los datos del contrato se recalculan cuando el ticket vuelve a Pre-Cierre.
 - Confirmados por el usuario y fijados aquí: "Pedir cambios" regresa a "Proceso en tramite" y el admin puede reasignar durante Pre-Cierre.
