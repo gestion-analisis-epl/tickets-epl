@@ -37,6 +37,7 @@ import { formatFecha } from "@/lib/format-fecha";
 import { normalizar } from "@/lib/busqueda";
 import { multiSelectColumn, facetOptions, FILTRO_VACIO } from "@/lib/table-filter";
 import { EstatusBadge, CategoriaBadge } from "@/components/ui/badge";
+import { slaEnPausa } from "@/domain/tickets/sla-pausa-rules";
 
 // ── Filters ───────────────────────────────────────────────────────────────────
 
@@ -382,7 +383,12 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
       size: 130, minSize: 110,
       cell: (info) => {
         const v = info.getValue();
-        return <span className="tabular-nums">{v ?? "—"}</span>;
+        return (
+          <span className="tabular-nums">
+            {v ?? "—"}
+            {v != null && slaEnPausa(info.row.original) && <span className="text-muted text-xs"> (SLA en pausa)</span>}
+          </span>
+        );
       },
     }),
     columnHelper.accessor("nivelServicio", {

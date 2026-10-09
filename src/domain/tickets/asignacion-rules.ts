@@ -1,4 +1,5 @@
 import { addBusinessDays, businessDaysBetween } from "@/lib/business-days";
+import { diasHabilesSla } from "./sla-pausa-rules";
 import type { Estatus, HistorialEntry, Ticket } from "@/types/ticket";
 
 export interface AsignacionInput {
@@ -37,6 +38,10 @@ export function calcularPatchAsignacion(
     patch.fechaCompromiso = addBusinessDays(ahora, current.slaInterno).toISOString();
   }
 
+  const historialEntry: HistorialEntry = { estatus: input.estatus, fecha: ahora.toISOString(), uid: actorUid };
+  patch.historialEstatus =
+    input.estatus !== current.estatus ? [...current.historialEstatus, historialEntry] : current.historialEstatus;
+
   if (input.estatus === "Cierre" && !current.fechaCierre) {
     // Si se asigna y cierra en la misma accion, usar la fecha recien fijada.
     const fechaAsignacionEfectiva = patch.fechaAsignacion ?? current.fechaAsignacion;
@@ -45,7 +50,8 @@ export function calcularPatchAsignacion(
     patch.diasPipeline = businessDaysBetween(new Date(current.fechaSolicitud), ahora);
 
     if (fechaAsignacionEfectiva) {
-      const dias = businessDaysBetween(new Date(fechaAsignacionEfectiva), ahora);
+      // El tiempo en Pre-Cierre (pausa del SLA) no cuenta; diasPipeline si.
+      const dias = diasHabilesSla({ fechaAsignacion: fechaAsignacionEfectiva, historialEstatus: patch.historialEstatus }, ahora);
       patch.diasHabilesTranscurridos = dias;
       patch.nivelServicio = current.slaInterno - dias;
     }
@@ -55,10 +61,6 @@ export function calcularPatchAsignacion(
   if (input.estatus === "Cierre" && current.estatus !== "Cierre") {
     patch.tokenCalificacion = crypto.randomUUID();
   }
-
-  const historialEntry: HistorialEntry = { estatus: input.estatus, fecha: ahora.toISOString(), uid: actorUid };
-  patch.historialEstatus =
-    input.estatus !== current.estatus ? [...current.historialEstatus, historialEntry] : current.historialEstatus;
 
   return {
     patch,

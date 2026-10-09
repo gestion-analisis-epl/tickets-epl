@@ -27,6 +27,7 @@ import { formatMonedaMXN } from "@/lib/text-format";
 import { DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO, SERVICIOS_ARRENDAMIENTO_IDS } from "@/lib/data/arrendamientos-temporal";
 import { isAdminRole } from "@/types/user";
 import { esUrlStorageSegura } from "@/lib/storage-ruta";
+import { slaEnPausa } from "@/domain/tickets/sla-pausa-rules";
 
 function nombreArchivo(url: string): string {
   try {
@@ -436,6 +437,7 @@ export function TicketDetail({ id }: { id: string }) {
                   <dd className={cn("font-medium tabular-nums", ticket.nivelServicio < 0 ? "text-danger" : "text-success")}>
                     {ticket.nivelServicio > 0 ? `+${ticket.nivelServicio}` : ticket.nivelServicio}
                     {" "}({ticket.diasHabilesTranscurridos} dias transcurridos)
+                    {slaEnPausa(ticket) && <span className="text-muted font-normal"> (SLA en pausa)</span>}
                   </dd>
                 )}
               </div>

@@ -63,6 +63,24 @@ describe("withLiveDerivedFields", () => {
     expect(result.nivelServicio).toBe(2);
   });
 
+  it("en Pre-Cierre el SLA esta pausado: los dias quedan congelados", () => {
+    const enPreCierre = buildTicket({
+      estatus: "Pre-Cierre",
+      fechaSolicitud: "2024-01-08T12:00:00.000Z",
+      fechaAsignacion: "2024-01-08T09:00:00",
+      slaInterno: 5,
+      historialEstatus: [{ estatus: "Pre-Cierre", fecha: "2024-01-10T10:00:00", uid: "u1" }],
+    });
+
+    const result = withLiveDerivedFields(enPreCierre);
+
+    // Lunes 08 -> Miercoles 10 = 2 dias; el resto (hasta hoy, lunes 15) es pausa
+    expect(result.diasHabilesTranscurridos).toBe(2);
+    expect(result.nivelServicio).toBe(3);
+    // diasPipeline sigue contando el tiempo total
+    expect(result.diasPipeline).toBe(5);
+  });
+
   it("no muta el ticket original al calcular los campos derivados", () => {
     const abierto = buildTicket({ fechaAsignacion: null, diasPipeline: null });
     withLiveDerivedFields(abierto);

@@ -1,4 +1,5 @@
 import { businessDaysBetween } from "@/lib/business-days";
+import { diasHabilesSla } from "./sla-pausa-rules";
 import type { Ticket } from "@/types/ticket";
 
 export type BackfillCalculo =
@@ -15,6 +16,6 @@ export function calcularBackfill(t: Ticket): BackfillCalculo {
     return { omitido: false, diasPipeline, diasHabilesTranscurridos: null, nivelServicio: null };
   }
 
-  const dias = businessDaysBetween(new Date(t.fechaAsignacion), new Date(t.fechaCierre));
+  const dias = diasHabilesSla(t, new Date(t.fechaCierre));
   return { omitido: false, diasPipeline, diasHabilesTranscurridos: dias, nivelServicio: t.slaInterno - dias };
 }

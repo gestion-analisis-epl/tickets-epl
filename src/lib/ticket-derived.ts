@@ -1,4 +1,5 @@
 import { businessDaysBetween } from "./business-days";
+import { diasHabilesSla } from "@/domain/tickets/sla-pausa-rules";
 import type { Ticket } from "@/types/ticket";
 
 // Mientras el ticket sigue abierto, pipeline y SLA se recalculan contra HOY
@@ -14,7 +15,7 @@ export function withLiveDerivedFields(ticket: Ticket): Ticket {
     return { ...ticket, diasPipeline, diasHabilesTranscurridos: null, nivelServicio: null };
   }
 
-  const dias = businessDaysBetween(new Date(ticket.fechaAsignacion), new Date());
+  const dias = diasHabilesSla(ticket, new Date());
   return { ...ticket, diasPipeline, diasHabilesTranscurridos: dias, nivelServicio: ticket.slaInterno - dias };
 }
 

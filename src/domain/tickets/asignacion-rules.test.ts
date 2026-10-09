@@ -88,6 +88,31 @@ describe("calcularPatchAsignacion", () => {
     expect(esCambioEstatus).toBe(true);
   });
 
+  it("cerrar desde Pre-Cierre excluye el tiempo en Pre-Cierre del SLA pero no de diasPipeline", () => {
+    const current = buildTicket({
+      fechaSolicitud: "2024-01-08T12:00:00", // Lunes
+      fechaAsignacion: "2024-01-08T12:00:00",
+      slaInterno: 5,
+      estatus: "Pre-Cierre",
+      abogadoAsignadoId: "ab1",
+      fechaCierre: null,
+      historialEstatus: [{ estatus: "Pre-Cierre", fecha: "2024-01-10T10:00:00", uid: "u1" }],
+    });
+    const ahora = new Date("2024-01-15T12:00:00"); // Lunes
+
+    const { patch } = calcularPatchAsignacion(
+      current,
+      { estatus: "Cierre", abogadoAsignadoId: "ab1", notasCierre: "listo" },
+      "actor-1",
+      ahora
+    );
+
+    expect(patch.diasPipeline).toBe(5);
+    expect(patch.diasHabilesTranscurridos).toBe(2);
+    expect(patch.nivelServicio).toBe(3);
+    expect(patch.historialEstatus?.at(-1)?.estatus).toBe("Cierre");
+  });
+
   it("re-cerrar un ticket ya cerrado no recalcula el SLA congelado, pero si regenera el token si se habia reabierto", () => {
     const current = buildTicket({
       estatus: "Proceso en tramite", // reabierto despues de un primer cierre
