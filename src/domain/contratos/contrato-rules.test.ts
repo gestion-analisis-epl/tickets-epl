@@ -110,4 +110,25 @@ describe("construirResumenContrato", () => {
     expect(r.discrepancias).toHaveLength(1);
     expect(r.estadoResumen).toBe("listo");
   });
+
+  it("usa la URL con la que se genero el resumen aunque no coincida con el patron", () => {
+    const elegido = url("2_otro.docx");
+    const ticket = buildTicket({
+      estatus: "Pre-Cierre",
+      documentacion: [url("1_QRO01_CONTRATO_ARRENDAMIENTO.docx"), elegido],
+      resumenContrato: { estado: "listo", extraccion: null, discrepancias: [], contratoNombre: "otro.docx", generadoEn: null, contratoUrl: elegido },
+    });
+    const r = construirResumenContrato(ticket, ahora);
+    expect(r.contratoUrl).toBe(elegido);
+    expect(r.contratoNombre).toBe("otro.docx");
+  });
+
+  it("sin contratoUrl en el resumen de Gemini conserva el contrato encontrado", () => {
+    const ticket = buildTicket({
+      estatus: "Pre-Cierre",
+      documentacion: [url("1_QRO01_CONTRATO_ARRENDAMIENTO.docx")],
+      resumenContrato: { estado: "error", extraccion: null, discrepancias: [], contratoNombre: null, generadoEn: null },
+    });
+    expect(construirResumenContrato(ticket, ahora).contratoUrl).toBe(ticket.documentacion[0]);
+  });
 });

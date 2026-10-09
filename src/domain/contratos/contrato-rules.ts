@@ -34,7 +34,7 @@ export function accionResumen(estatusPrevio: Estatus, estatusNuevo: Estatus): "u
 export function construirResumenContrato(ticket: Ticket, ahora: Date, previo?: ResumenContrato | null): ResumenContrato {
   const contrato = ticket.contratoArrendamiento;
   const gemini = ticket.resumenContrato;
-  const contratoUrl = encontrarContrato(ticket.documentacion);
+  const contratoUrl = gemini?.contratoUrl ?? encontrarContrato(ticket.documentacion);
   const extraccion = gemini?.estado === "listo" ? gemini.extraccion : null;
 
   return {

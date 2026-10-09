@@ -29,6 +29,7 @@ export interface ResumenContratoTicket {
   extraccion: ExtraccionContrato | null;
   discrepancias: Discrepancia[];
   contratoNombre: string | null;
+  contratoUrl?: string | null; // URL realmente usada (puede ser un docx elegido a mano)
   generadoEn: string | null; // ISO
   error?: string;
 }
