@@ -11,14 +11,20 @@ const TIMEOUT_MS = 45_000;
 
 const nulo = (type: Type) => ({ type, nullable: true });
 
-const ESQUEMA = {
+const PROPIEDADES = {
+  sitio: nulo(Type.STRING), codigo: nulo(Type.STRING), domicilio: nulo(Type.STRING),
+  altaArrendador: nulo(Type.STRING), solicitante: nulo(Type.STRING),
+  periodoInicio: nulo(Type.STRING), periodoFin: nulo(Type.STRING),
+  condicionesPago: nulo(Type.STRING), montoPagoAnual: nulo(Type.NUMBER), formaPago: nulo(Type.STRING),
+};
+
+// Todas las claves son obligatorias (aunque admiten null): sin `required` el modelo omitia campos
+// en vez de devolver null y la tarjeta mostraba "No consta" aunque el contrato los trajera.
+export const ESQUEMA_EXTRACCION = {
   type: Type.OBJECT,
-  properties: {
-    sitio: nulo(Type.STRING), codigo: nulo(Type.STRING), domicilio: nulo(Type.STRING),
-    altaArrendador: nulo(Type.STRING), solicitante: nulo(Type.STRING),
-    periodoInicio: nulo(Type.STRING), periodoFin: nulo(Type.STRING),
-    condicionesPago: nulo(Type.STRING), montoPagoAnual: nulo(Type.NUMBER), formaPago: nulo(Type.STRING),
-  },
+  properties: PROPIEDADES,
+  required: Object.keys(PROPIEDADES),
+  propertyOrdering: Object.keys(PROPIEDADES),
 };
 
 // Los errores del SDK pueden traer la URL de la peticion (con la llave) o fragmentos del
@@ -44,7 +50,7 @@ export async function llamarGemini(contenido: ContenidoGemini): Promise<string> 
       config: {
         systemInstruction: INSTRUCCIONES_EXTRACCION,
         responseMimeType: "application/json",
-        responseSchema: ESQUEMA,
+        responseSchema: ESQUEMA_EXTRACCION,
         temperature: 0,
         httpOptions: { timeout: TIMEOUT_MS },
       },
