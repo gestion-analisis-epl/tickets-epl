@@ -18,18 +18,13 @@ export const DOMINIOS_PERMITIDOS = [
   "luminadigital.com.mx",
   "maopublicidad.com.mx",
   "serviciomsc.com.mx",
+  "gmail.com",
   "kronosambiental.mx",
   "sapanuncios.com",
   "thebestmarketing.com",
 ];
 
-// Correos individuales autorizados fuera de los dominios del grupo (en minusculas). Tambien duplicada
-// en firestore.rules (emailDominioPermitido).
-export const EMAILS_AUTORIZADOS = ["xxales11xx@gmail.com"];
-
 export function dominioPermitido(email: string): boolean {
-  const normalizado = email.trim().toLowerCase();
-  if (EMAILS_AUTORIZADOS.includes(normalizado)) return true;
-  const dominio = normalizado.split("@")[1];
+  const dominio = email.split("@")[1]?.toLowerCase();
   return !!dominio && DOMINIOS_PERMITIDOS.includes(dominio);
 }
