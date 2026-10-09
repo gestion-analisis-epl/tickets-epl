@@ -1,7 +1,8 @@
-import { collection, doc, query, where, onSnapshot, getDoc, setDoc, updateDoc, deleteDoc, type FirestoreError } from "firebase/firestore";
+import { collection, doc, query, where, onSnapshot, getDoc, setDoc, updateDoc, deleteDoc, writeBatch, type FirestoreError } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { ResumenContrato } from "@/types/resumen-contrato";
 import type { RepositoryError } from "@/domain/tickets/ticket-repository";
+import { nuevaEntradaHistorialRef } from "./historial-repository";
 import type { ResumenContratoRepository } from "@/domain/contratos/resumen-contrato-repository";
 import { ETAPAS_VISIBLES_JEFE_ZONA } from "@/domain/contratos/contrato-rules";
 
@@ -47,7 +48,10 @@ export const firestoreResumenContratoRepository: ResumenContratoRepository = {
     await deleteDoc(doc(db, COLECCION, ticketId));
   },
 
-  async registrarVistoBueno(ticketId, visto) {
-    await updateDoc(doc(db, COLECCION, ticketId), { vistoBueno: visto });
+  async registrarVistoBueno(ticketId, visto, entrada) {
+    const batch = writeBatch(db);
+    batch.update(doc(db, COLECCION, ticketId), { vistoBueno: visto });
+    batch.set(nuevaEntradaHistorialRef(ticketId), entrada);
+    await batch.commit();
   },
 };

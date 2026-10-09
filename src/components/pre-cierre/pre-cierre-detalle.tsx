@@ -7,6 +7,7 @@ import { useResumen } from "@/hooks/use-resumenes-contrato";
 import { registrarVistoBueno } from "@/lib/resumenes-contrato";
 import { useAuthStore } from "@/stores/auth";
 import { puedeDarVistoBueno } from "@/types/user";
+import { actorDesdeSesion } from "@/domain/tickets/historial-rules";
 import { Button } from "@/components/ui/button";
 import { EstatusBadge } from "@/components/ui/badge";
 import { DosColumnas } from "@/components/layout/dos-columnas";
@@ -60,11 +61,12 @@ export function PreCierreDetalle({ id }: { id: string }) {
   const mostrarVistoBueno = puedeDarVistoBueno(role) && resumen.estatus === "Pre-Cierre" && !resumen.vistoBueno;
 
   async function darVistoBueno() {
-    if (!uid) return;
+    const actor = actorDesdeSesion({ uid, nombre, role });
+    if (!actor) return;
     setGuardando(true);
     setError(null);
     try {
-      await registrarVistoBueno(id, { uid, nombre: nombre ?? "" });
+      await registrarVistoBueno(id, actor);
     } catch {
       setError("No se pudo registrar el visto bueno. Intenta de nuevo.");
     } finally {

@@ -1,5 +1,6 @@
 import type { Estatus } from "@/types/ticket";
 import type { ResumenContrato, VistoBueno } from "@/types/resumen-contrato";
+import type { EntradaHistorial } from "@/types/historial";
 import type { RepositoryError } from "@/domain/tickets/ticket-repository";
 
 export interface ResumenContratoRepository {
@@ -14,5 +15,6 @@ export interface ResumenContratoRepository {
     onError?: (e: RepositoryError) => void
   ): () => void;
   delete(ticketId: string): Promise<void>;
-  registrarVistoBueno(ticketId: string, visto: VistoBueno): Promise<void>;
+  // Visto bueno y su entrada de historial en un solo lote.
+  registrarVistoBueno(ticketId: string, visto: VistoBueno, entrada: EntradaHistorial): Promise<void>;
 }
