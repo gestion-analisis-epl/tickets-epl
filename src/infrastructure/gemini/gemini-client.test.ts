@@ -7,7 +7,7 @@ describe("ESQUEMA_EXTRACCION", () => {
   const claves = Object.keys(ESQUEMA_EXTRACCION.properties);
 
   it("declara los 10 campos del resumen", () => {
-    expect(claves.sort()).toEqual(
+    expect([...claves].sort()).toEqual(
       [
         "altaArrendador", "codigo", "condicionesPago", "domicilio", "formaPago",
         "montoPagoAnual", "periodoFin", "periodoInicio", "sitio", "solicitante",
