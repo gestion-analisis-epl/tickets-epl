@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/storage", () => ({ deleteTicketDocuments: async () => {} }));
 import { createTicketService } from "./ticket-service";
+import { MENSAJE_BLOQUEO_PRE_CIERRE } from "./etapa-permisos-rules";
 import { buildTicket } from "@/test/ticket-fixture";
 import type { Ticket } from "@/types/ticket";
 import type { ActorHistorial, EntradaHistorial } from "@/types/historial";
@@ -126,9 +127,9 @@ describe("carrera con la generacion de Gemini", () => {
 });
 
 describe("refresco del resumen al editar el ticket", () => {
-  it("editar la documentacion en Pre-Cierre refresca contratoUrl y conserva el visto bueno", async () => {
+  it("editar la documentacion en Cierre refresca contratoUrl y conserva el visto bueno", async () => {
     const { service, resumenes } = montar(buildTicket({ id: "t1" }));
-    await service.updateTicketAsignacion("t1", actor, input("Pre-Cierre"));
+    await service.updateTicketAsignacion("t1", actor, input("Cierre"));
     expect(resumenes.get("t1")?.contratoUrl).toBeNull();
     resumenes.get("t1")!.vistoBueno = { uid: "j1", nombre: "Jefe", fecha: "2026-10-08T00:00:00.000Z" };
     await service.updateTicketSolicitud("t1", actor, solicitud);
@@ -152,7 +153,7 @@ describe("refresco del resumen al editar el ticket", () => {
   });
 
   it("si el resumen falla, la edicion guardada no se pierde", async () => {
-    const ticket = buildTicket({ id: "t1", estatus: "Pre-Cierre" });
+    const ticket = buildTicket({ id: "t1", estatus: "Cierre" });
     const { service } = montar(ticket, { resumenesRoto: true });
     vi.spyOn(console, "error").mockImplementation(() => {});
     await expect(service.updateTicketSolicitud("t1", actor, solicitud)).resolves.toBeUndefined();
@@ -254,5 +255,21 @@ describe("historial en el mismo lote que el cambio", () => {
     await expect(service.updateTicketAsignacion("t1", actor, input("Proceso en tramite"))).rejects.toThrow("lote rechazado");
     expect(ticket.estatus).toBe("Recepcion de solicitud");
     expect(avisos).toEqual([]);
+  });
+});
+
+describe("bloqueo de la solicitud en Pre-Cierre", () => {
+  it("rechaza editar la solicitud y el sitio sin escribir nada", async () => {
+    const { service, lotes } = montar(buildTicket({ id: "t1", estatus: "Pre-Cierre" }));
+    await expect(service.updateTicketSolicitud("t1", actor, solicitud)).rejects.toThrow(MENSAJE_BLOQUEO_PRE_CIERRE);
+    await expect(service.updateTicketSitio("t1", actorMesa, { clave: "K1", alias: "S" })).rejects.toThrow(MENSAJE_BLOQUEO_PRE_CIERRE);
+    expect(lotes).toEqual([]);
+  });
+
+  it("en Pre-Cierre si se permiten los cambios de proceso", async () => {
+    const { service, lotes } = montar(buildTicket({ id: "t1", estatus: "Pre-Cierre" }));
+    await service.updateTicketExclusion("t1", actor, true);
+    await service.updateTicketAsignacion("t1", actor, input("Cierre"));
+    expect(lotes).toHaveLength(2);
   });
 });

@@ -30,6 +30,7 @@ import { DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO, SERVICIOS_ARRENDAMIENTO_IDS } from
 import { isAdminRole } from "@/types/user";
 import { esUrlStorageSegura } from "@/lib/storage-ruta";
 import { slaEnPausa } from "@/domain/tickets/sla-pausa-rules";
+import { bloqueadoPorPreCierre, solicitudEditable } from "@/domain/tickets/etapa-permisos-rules";
 import { actorDesdeSesion, puedeVerHistorial } from "@/domain/tickets/historial-rules";
 
 function nombreArchivo(url: string): string {
@@ -139,12 +140,12 @@ export function TicketDetail({ id }: { id: string }) {
   const servicio = findServicio(ticket.servicioId);
   const esDueno = ticket.solicitanteId === uid;
   const puedeCalificar = esDueno && ticket.estatus === "Cierre" && ticket.satisfaccion == null;
-  // Area/servicio/descripcion: solo el dueno o admin, mientras no este Cerrada.
-  const puedeEditarSolicitud = (esDueno || isAdminRole(role)) && ticket.estatus !== "Cierre";
+  // Area/servicio/descripcion: solo el dueno o admin, antes de Pre-Cierre (ver etapa-permisos-rules.ts).
+  const puedeEditarSolicitud = (esDueno || isAdminRole(role)) && solicitudEditable(ticket.estatus);
   // Documentacion: ademas del dueno/admin, el abogado asignado a ESTE ticket
   // y gerente_juridico (ya cubierto por isAdminRole) pueden subir/borrar archivos.
   const esAbogadoAsignado = role === "abogado" && !!abogadoId && abogadoId === ticket.abogadoAsignadoId;
-  const puedeEditarDocumentos = (puedeEditarSolicitud || esAbogadoAsignado) && ticket.estatus !== "Cierre";
+  const puedeEditarDocumentos = (puedeEditarSolicitud || esAbogadoAsignado) && solicitudEditable(ticket.estatus);
   const todaLaDocumentacion = [
     ...ticket.documentacion,
     ...(ticket.formatoArrendamientoUrl ? [ticket.formatoArrendamientoUrl] : []),
@@ -154,7 +155,7 @@ export function TicketDetail({ id }: { id: string }) {
   const esArrendamiento = SERVICIOS_ARRENDAMIENTO_IDS.includes(ticket.servicioId);
   const sitioCompleto = !!(sitioForm.clave && sitioForm.alias);
   // Asignar el sitio a un ticket existente: solo Mesa de Control y admins.
-  const puedeCambiarSitio = puedeActualizarSitio(role, ticket);
+  const puedeCambiarSitio = puedeActualizarSitio(role, ticket) && !bloqueadoPorPreCierre(ticket.estatus);
   // Admin/Gerente Juridico y el abogado asignado (misma condicion que firestore.rules).
   const verHistorial = puedeVerHistorial({ role, abogadoId }, ticket);
 
@@ -350,6 +351,11 @@ export function TicketDetail({ id }: { id: string }) {
             </Button>
           )}
         </div>
+        {bloqueadoPorPreCierre(ticket.estatus) && (
+          <p className="text-xs text-muted">
+            En Pre-Cierre la solicitud, los documentos y el sitio estan bloqueados. Las correcciones se piden en la conversacion.
+          </p>
+        )}
 
         {editingSolicitud ? (
           <div className="space-y-4">

@@ -11,6 +11,7 @@ import { calcularPatchSolicitud, type SolicitudInput } from "./solicitud-rules";
 import { calcularBackfill } from "./backfill-rules";
 import { calcularPatchSitio } from "./sitio-rules";
 import type { ActorHistorial } from "@/types/historial";
+import { bloqueadoPorPreCierre, MENSAJE_BLOQUEO_PRE_CIERRE } from "./etapa-permisos-rules";
 import { entradaExclusion, entradaSitio, entradasAsignacion, entradasSolicitud } from "./historial-rules";
 
 export interface BackfillResultado {
@@ -140,6 +141,7 @@ export function createTicketService(
 
     const current = await repo.getById(id);
     if (!current) throw new Error("Ticket no encontrado.");
+    if (bloqueadoPorPreCierre(current.estatus)) throw new Error(MENSAJE_BLOQUEO_PRE_CIERRE);
 
     const ahora = new Date();
     const patch = calcularPatchSolicitud(current, input, servicio);
@@ -151,6 +153,7 @@ export function createTicketService(
   async function updateTicketSitio(id: string, actor: ActorHistorial, sitio: SitioArrendamiento): Promise<void> {
     const current = await repo.getById(id);
     if (!current) throw new Error("Ticket no encontrado.");
+    if (bloqueadoPorPreCierre(current.estatus)) throw new Error(MENSAJE_BLOQUEO_PRE_CIERRE);
 
     const ahora = new Date();
     const patch = calcularPatchSitio(sitio, actor.uid, ahora);
