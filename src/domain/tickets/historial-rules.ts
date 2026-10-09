@@ -1,7 +1,7 @@
-import type { Estatus, Ticket } from "@/types/ticket";
-import type { Role } from "@/types/user";
+import type { Estatus, HistorialEntry, Ticket } from "@/types/ticket";
+import { isAdminRole, type Role } from "@/types/user";
 import type { VistoBueno } from "@/types/resumen-contrato";
-import type { ActorHistorial, CambioCampo, EntradaHistorial, TipoHistorial } from "@/types/historial";
+import type { ActorHistorial, CambioCampo, EntradaHistorial, EntradaHistorialGuardada, TipoHistorial } from "@/types/historial";
 import { nombreDeUrl } from "@/domain/contratos/contrato-rules";
 import { findAbogado } from "@/lib/data/abogados";
 
@@ -224,3 +224,30 @@ export const ETIQUETA_TIPO_HISTORIAL: Record<TipoHistorial, string> = {
   comentario_editado: "Comentario editado",
   comentario_eliminado: "Comentario eliminado",
 };
+
+export type ItemLineaTiempo =
+  | { origen: "historial"; fecha: string; entrada: EntradaHistorialGuardada }
+  | { origen: "estatus"; fecha: string; estatus: Estatus };
+
+// Tickets previos al historial: su historialEstatus se muestra al final, sin detalle de campos.
+// Lo posterior a la primera entrada ya esta en el historial (tipo "estatus"), no se repite.
+export function lineaDeTiempo(entradas: EntradaHistorialGuardada[], historialEstatus: HistorialEntry[]): ItemLineaTiempo[] {
+  const nuevas: ItemLineaTiempo[] = [...entradas]
+    .sort((a, b) => b.fecha.localeCompare(a.fecha))
+    .map((entrada) => ({ origen: "historial" as const, fecha: entrada.fecha, entrada }));
+  const primera = entradas.reduce<string | null>((min, e) => (min === null || e.fecha < min ? e.fecha : min), null);
+  const previas: ItemLineaTiempo[] = (historialEstatus ?? [])
+    .filter((h) => primera === null || h.fecha < primera)
+    .sort((a, b) => b.fecha.localeCompare(a.fecha))
+    .map((h) => ({ origen: "estatus" as const, fecha: h.fecha, estatus: h.estatus }));
+  return [...nuevas, ...previas];
+}
+
+// Espejo de "allow read" de tickets/{id}/historial en firestore.rules (isAdmin o abogado asignado).
+export function puedeVerHistorial(
+  sesion: { role: Role; abogadoId: string | null },
+  ticket: Pick<Ticket, "abogadoAsignadoId">
+): boolean {
+  if (isAdminRole(sesion.role)) return true;
+  return !!sesion.abogadoId && sesion.abogadoId === ticket.abogadoAsignadoId;
+}

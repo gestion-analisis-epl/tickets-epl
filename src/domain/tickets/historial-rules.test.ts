@@ -12,11 +12,13 @@ import {
   entradasSolicitud,
   entradaVistoBueno,
   ETIQUETA_TIPO_HISTORIAL,
+  lineaDeTiempo,
+  puedeVerHistorial,
   textoDeValor,
   textoDocumentos,
   type CampoVigilado,
 } from "./historial-rules";
-import { TIPOS_HISTORIAL, type ActorHistorial } from "@/types/historial";
+import { TIPOS_HISTORIAL, type ActorHistorial, type EntradaHistorialGuardada } from "@/types/historial";
 import { buildTicket } from "@/test/ticket-fixture";
 
 const url = (nombre: string) =>
@@ -207,5 +209,54 @@ describe("actorDesdeSesion y etiquetas", () => {
 
   it("todos los tipos tienen etiqueta", () => {
     for (const tipo of TIPOS_HISTORIAL) expect(ETIQUETA_TIPO_HISTORIAL[tipo]).toBeTruthy();
+  });
+});
+
+describe("lineaDeTiempo", () => {
+  const entrada = (id: string, fecha: string): EntradaHistorialGuardada => ({
+    id, fecha, actorUid: "u1", actorNombre: "Ana", actorRol: "admin", tipo: "estatus", cambios: [],
+  });
+
+  it("entradas en orden descendente y, al final, el historial de estatus previo al despliegue", () => {
+    const items = lineaDeTiempo(
+      [entrada("a", "2026-10-09T10:00:00.000Z"), entrada("b", "2026-10-10T10:00:00.000Z")],
+      [
+        { estatus: "Asignacion de responsable", fecha: "2026-10-01T10:00:00.000Z", uid: "x" },
+        { estatus: "Proceso en tramite", fecha: "2026-10-02T10:00:00.000Z", uid: "x" },
+        { estatus: "Pre-Cierre", fecha: "2026-10-09T10:00:00.000Z", uid: "x" },
+      ]
+    );
+    expect(items.map((i) => (i.origen === "historial" ? i.entrada.id : i.estatus))).toEqual([
+      "b", "a", "Proceso en tramite", "Asignacion de responsable",
+    ]);
+  });
+
+  it("sin entradas muestra todo el historial de estatus", () => {
+    const items = lineaDeTiempo([], [{ estatus: "Cierre", fecha: "2026-10-01T10:00:00.000Z", uid: "x" }]);
+    expect(items).toEqual([{ origen: "estatus", fecha: "2026-10-01T10:00:00.000Z", estatus: "Cierre" }]);
+  });
+});
+
+describe("puedeVerHistorial", () => {
+  const ticket = { abogadoAsignadoId: "Karina Valenzuela - Abogado Corporativo" };
+
+  it("admin y gerente juridico siempre", () => {
+    expect(puedeVerHistorial({ role: "admin", abogadoId: null }, ticket)).toBe(true);
+    expect(puedeVerHistorial({ role: "gerente_juridico", abogadoId: null }, ticket)).toBe(true);
+  });
+
+  it("el abogado asignado si; otro abogado no", () => {
+    expect(puedeVerHistorial({ role: "abogado", abogadoId: "Karina Valenzuela - Abogado Corporativo" }, ticket)).toBe(true);
+    expect(puedeVerHistorial({ role: "abogado", abogadoId: "Jessica Valadez - Abogado Comercial" }, ticket)).toBe(false);
+  });
+
+  it("mesa de control, solicitante y jefe de zona no", () => {
+    expect(puedeVerHistorial({ role: "mesa_control", abogadoId: null }, ticket)).toBe(false);
+    expect(puedeVerHistorial({ role: "solicitante", abogadoId: null }, ticket)).toBe(false);
+    expect(puedeVerHistorial({ role: "jefe_zona", abogadoId: null }, ticket)).toBe(false);
+  });
+
+  it("sin abogado asignado nadie entra por esa via", () => {
+    expect(puedeVerHistorial({ role: "abogado", abogadoId: null }, { abogadoAsignadoId: null })).toBe(false);
   });
 });
