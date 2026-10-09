@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generarResumenContrato, puedeGenerarResumen, type DepsResumen } from "./resumir-contrato-service";
+import { generarResumenContrato, puedeGenerarResumen, ValidacionResumenError, type DepsResumen } from "./resumir-contrato-service";
 import { buildTicket } from "@/test/ticket-fixture";
 import type { ResumenContratoTicket } from "@/types/resumen-contrato";
 import type { Ticket } from "@/types/ticket";
@@ -86,6 +86,18 @@ describe("generarResumenContrato", () => {
     await expect(generarResumenContrato(depsPdf, "t1", pdf)).rejects.toThrow("docx");
   });
 
+  it("los fallos de validacion son ValidacionResumenError", async () => {
+    const { deps } = montar();
+    await expect(generarResumenContrato(deps, "t1", url("9_ajeno.docx"))).rejects.toBeInstanceOf(ValidacionResumenError);
+  });
+
+  it("el registro pendiente lleva solicitadoEn", async () => {
+    const { deps, guardados } = montar();
+    await generarResumenContrato(deps, "t1");
+    expect(guardados[0].estado).toBe("pendiente");
+    expect(guardados[0].solicitadoEn).toBe("2026-10-08T12:00:00.000Z");
+  });
+
   it("un ticket inexistente lanza", async () => {
     const { deps } = montar({}, null);
     await expect(generarResumenContrato(deps, "t1")).rejects.toThrow("no encontrado");
@@ -111,6 +123,19 @@ describe("puedeGenerarResumen", () => {
     expect(puedeGenerarResumen({ uid: "dueno", role: "solicitante" }, listo).permitido).toBe(false);
     const fallo = buildTicket({ solicitanteId: "dueno", resumenContrato: { estado: "error", extraccion: null, discrepancias: [], contratoNombre: null, generadoEn: null } });
     expect(puedeGenerarResumen({ uid: "dueno", role: "solicitante" }, fallo).permitido).toBe(true);
+  });
+
+  it("el dueno puede reintentar un pendiente atascado pero no uno reciente", () => {
+    const ahora = new Date("2026-10-08T12:00:00.000Z");
+    const base = { extraccion: null, discrepancias: [], contratoNombre: null, generadoEn: null, estado: "pendiente" as const };
+    const viejo = buildTicket({ solicitanteId: "dueno", resumenContrato: { ...base, solicitadoEn: "2026-10-08T11:00:00.000Z" } });
+    const sinMarca = buildTicket({ solicitanteId: "dueno", resumenContrato: base });
+    const reciente = buildTicket({ solicitanteId: "dueno", resumenContrato: { ...base, solicitadoEn: "2026-10-08T11:59:00.000Z" } });
+    const dueno = { uid: "dueno", role: "solicitante" as const };
+    expect(puedeGenerarResumen(dueno, viejo, ahora).permitido).toBe(true);
+    expect(puedeGenerarResumen(dueno, sinMarca, ahora).permitido).toBe(true);
+    expect(puedeGenerarResumen(dueno, reciente, ahora).permitido).toBe(false);
+    expect(puedeGenerarResumen({ uid: "x", role: "abogado" }, reciente, ahora).permitido).toBe(true);
   });
 
   it("otro solicitante o el jefe de zona no pueden", () => {

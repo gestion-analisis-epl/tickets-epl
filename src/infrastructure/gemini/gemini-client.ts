@@ -4,6 +4,8 @@ import { INSTRUCCIONES_EXTRACCION } from "@/domain/contratos/extraccion-rules";
 // Confirmar en AI Studio que este modelo sigue vigente; se puede sobrescribir con GEMINI_MODEL.
 const MODELO_PREDETERMINADO = "gemini-2.5-flash";
 
+const TIMEOUT_MS = 45_000;
+
 const nulo = (type: Type) => ({ type, nullable: true });
 
 const ESQUEMA = {
@@ -41,6 +43,8 @@ export async function llamarGemini(contenido: string): Promise<string> {
         responseMimeType: "application/json",
         responseSchema: ESQUEMA,
         temperature: 0,
+        thinkingConfig: { thinkingBudget: 0 },
+        httpOptions: { timeout: TIMEOUT_MS },
       },
     });
     texto = respuesta.text;

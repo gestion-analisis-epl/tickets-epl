@@ -34,7 +34,22 @@ describe("textosEquivalentes", () => {
     expect(textosEquivalentes("Av. Constituyentes 100, Col. Centro, Queretaro", "Calle Reforma 55, Col. Juarez, Leon")).toBe(false);
   });
   it("ignora la razon social SA de CV", () => {
-    expect(textosEquivalentes("Inmuebles del Bajio S.A. de C.V.", "Inmuebles del Bajio")).toBe(true);
+    expect(textosEquivalentes("Inmuebles del Bajio S.A. de C.V.", "Inmuebles del Bajio", "nombre")).toBe(true);
+  });
+  it("tolera codigo postal y datos extra en el contrato", () => {
+    expect(textosEquivalentes("Av. Constituyentes 100, Centro", "Av. Constituyentes 100, Col. Centro, C.P. 76000")).toBe(true);
+    expect(textosEquivalentes("Av. Constituyentes 100, Centro", "Av. Constituyentes 100 Int. 4, Col. Centro, C.P. 76000")).toBe(true);
+  });
+  it("sigue marcando otro numero exterior aunque haya codigo postal", () => {
+    expect(textosEquivalentes("Av. Constituyentes 100, Centro", "Av. Constituyentes 200, Col. Centro, C.P. 76000")).toBe(false);
+  });
+  it("trata 100-A y 100-B como numeros distintos", () => {
+    expect(textosEquivalentes("Av. Constituyentes 100-A, Centro", "Av. Constituyentes 100-B, Centro")).toBe(false);
+    expect(textosEquivalentes("Av. Constituyentes 100-A, Centro", "Av. Constituyentes 100A, Centro")).toBe(true);
+  });
+  it("nombres: usa el conjunto mayor como denominador", () => {
+    expect(textosEquivalentes("Maria Lopez Ruiz", "Maria Lopez Hernandez", "nombre")).toBe(false);
+    expect(textosEquivalentes("Juan", "Juan Perez Garcia", "nombre")).toBe(false);
   });
 });
 
@@ -52,6 +67,11 @@ describe("calcularDiscrepancias", () => {
   it("marca arrendador distinto", () => {
     const d = calcularDiscrepancias(ticketCon({}), { ...vacia, altaArrendador: "Maria Lopez Ruiz" });
     expect(d.map((x) => x.campo)).toEqual(["arrendador"]);
+  });
+
+  it("marca arrendador con un apellido distinto y no marca la razon social", () => {
+    expect(calcularDiscrepancias(ticketCon({ altaArrendador: "Maria Lopez Ruiz" }), { ...vacia, altaArrendador: "Maria Lopez Hernandez" }).map((x) => x.campo)).toEqual(["arrendador"]);
+    expect(calcularDiscrepancias(ticketCon({ altaArrendador: "Inmuebles del Bajio S.A. de C.V." }), { ...vacia, altaArrendador: "Inmuebles del Bajio" })).toEqual([]);
   });
 
   it("marca periodo si cambia inicio o fin", () => {

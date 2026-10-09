@@ -9,6 +9,7 @@ import { useAuthStore } from "@/stores/auth";
 import { Button } from "@/components/ui/button";
 import { EstatusBadge } from "@/components/ui/badge";
 import { formatFecha, formatFechaSolo } from "@/lib/format-fecha";
+import { esUrlStorageSegura } from "@/lib/storage-ruta";
 import { formaPagoLabel, formatMonto, textoDiscrepancia, textoODisponible } from "@/domain/contratos/resumen-presentacion";
 import type { EstadoResumen } from "@/types/resumen-contrato";
 
@@ -118,7 +119,10 @@ export function PreCierreDetalle({ id }: { id: string }) {
           <Campo label="Forma de pago">{formaPagoLabel(resumen.formaPago)}</Campo>
         </dl>
 
-        {resumen.contratoUrl && (
+        {resumen.contratoUrl && !esUrlStorageSegura(resumen.contratoUrl) && resumen.contratoNombre && (
+          <p className="text-sm">Contrato original: {resumen.contratoNombre}</p>
+        )}
+        {resumen.contratoUrl && esUrlStorageSegura(resumen.contratoUrl) && (
           <a
             href={resumen.contratoUrl}
             target="_blank"

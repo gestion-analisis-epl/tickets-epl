@@ -1,5 +1,5 @@
 import type { Ticket } from "@/types/ticket";
-import { encontrarContrato, nombreDeUrl } from "./contrato-rules";
+import { encontrarContrato, nombreDeUrl, resumenReintentable } from "./contrato-rules";
 
 type TicketConDocs = Pick<Ticket, "documentacion" | "resumenContrato">;
 
@@ -19,6 +19,7 @@ export function archivoPorDefecto(ticket: TicketConDocs): string {
   return encontrarContrato(ticket.documentacion) ?? docxs[0] ?? "";
 }
 
-export function ticketsPendientesDeResumen<T extends TicketConDocs>(tickets: T[]): T[] {
-  return tickets.filter((t) => !t.resumenContrato && encontrarContrato(t.documentacion) !== null);
+// Sin resumen, con error o con un "pendiente" atascado.
+export function ticketsPendientesDeResumen<T extends TicketConDocs>(tickets: T[], ahora: Date = new Date()): T[] {
+  return tickets.filter((t) => resumenReintentable(t.resumenContrato, ahora) && encontrarContrato(t.documentacion) !== null);
 }

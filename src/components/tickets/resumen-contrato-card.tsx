@@ -32,7 +32,9 @@ function fechaContrato(valor: string | null): string {
 export function ResumenContratoCard({ ticket }: { ticket: Ticket }) {
   const resumen = ticket.resumenContrato;
   const docxs = docxsDeDocumentacion(ticket.documentacion);
-  const [elegido, setElegido] = useState(() => archivoPorDefecto(ticket));
+  const [elegidoManual, setElegido] = useState(() => archivoPorDefecto(ticket));
+  // Si el archivo elegido ya no esta en la documentacion, se vuelve al predeterminado.
+  const elegido = docxs.includes(elegidoManual) ? elegidoManual : archivoPorDefecto(ticket);
   const [generando, setGenerando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

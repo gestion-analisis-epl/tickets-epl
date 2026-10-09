@@ -47,4 +47,12 @@ describe("ticketsPendientesDeResumen", () => {
     const c = buildTicket({ id: "c", documentacion: [pdf] });
     expect(ticketsPendientesDeResumen([a, b, c]).map((t) => t.id)).toEqual(["a"]);
   });
+  it("incluye resumenes con error y pendientes atascados, no los recientes", () => {
+    const ahora = new Date("2026-10-08T12:00:00.000Z");
+    const err = buildTicket({ id: "e", documentacion: [contrato], resumenContrato: { ...resumen, estado: "error" } });
+    const viejo = buildTicket({ id: "v", documentacion: [contrato], resumenContrato: { ...resumen, estado: "pendiente", solicitadoEn: "2026-10-08T11:00:00.000Z" } });
+    const sinMarca = buildTicket({ id: "s", documentacion: [contrato], resumenContrato: { ...resumen, estado: "pendiente" } });
+    const reciente = buildTicket({ id: "r", documentacion: [contrato], resumenContrato: { ...resumen, estado: "pendiente", solicitadoEn: "2026-10-08T11:59:00.000Z" } });
+    expect(ticketsPendientesDeResumen([err, viejo, sinMarca, reciente], ahora).map((t) => t.id)).toEqual(["e", "v", "s"]);
+  });
 });

@@ -1,5 +1,5 @@
 import type { Estatus, Ticket } from "@/types/ticket";
-import type { ResumenContrato } from "@/types/resumen-contrato";
+import type { ResumenContrato, ResumenContratoTicket } from "@/types/resumen-contrato";
 
 export const ETAPAS_VISIBLES_JEFE_ZONA: readonly Estatus[] = ["Pre-Cierre", "Cierre"];
 
@@ -25,6 +25,22 @@ export function encontrarContrato(documentacion: string[]): string | null {
   );
 }
 
+export const MINUTOS_PENDIENTE_OBSOLETO = 5;
+
+// Un "pendiente" sin marca de tiempo o con mas de 5 minutos se considera atascado.
+export function esPendienteObsoleto(resumen: ResumenContratoTicket | undefined, ahora: Date): boolean {
+  if (resumen?.estado !== "pendiente") return false;
+  if (!resumen.solicitadoEn) return true;
+  const inicio = Date.parse(resumen.solicitadoEn);
+  if (Number.isNaN(inicio)) return true;
+  return ahora.getTime() - inicio > MINUTOS_PENDIENTE_OBSOLETO * 60_000;
+}
+
+// Sin resumen, con error o atascado en "pendiente": hay que (re)generarlo.
+export function resumenReintentable(resumen: ResumenContratoTicket | undefined, ahora: Date): boolean {
+  return !resumen || resumen.estado === "error" || esPendienteObsoleto(resumen, ahora);
+}
+
 export function accionResumen(estatusPrevio: Estatus, estatusNuevo: Estatus): "upsert" | "actualizar-estatus" | "ninguna" {
   if (esEtapaVisible(estatusNuevo)) return "upsert";
   if (esEtapaVisible(estatusPrevio)) return "actualizar-estatus";
@@ -34,7 +50,8 @@ export function accionResumen(estatusPrevio: Estatus, estatusNuevo: Estatus): "u
 export function construirResumenContrato(ticket: Ticket, ahora: Date, previo?: ResumenContrato | null): ResumenContrato {
   const contrato = ticket.contratoArrendamiento;
   const gemini = ticket.resumenContrato;
-  const contratoUrl = gemini?.contratoUrl ?? encontrarContrato(ticket.documentacion);
+  const urlGemini = gemini?.contratoUrl && ticket.documentacion.includes(gemini.contratoUrl) ? gemini.contratoUrl : null;
+  const contratoUrl = urlGemini ?? encontrarContrato(ticket.documentacion);
   const extraccion = gemini?.estado === "listo" ? gemini.extraccion : null;
 
   return {

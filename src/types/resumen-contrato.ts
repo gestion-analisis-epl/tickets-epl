@@ -31,6 +31,7 @@ export interface ResumenContratoTicket {
   contratoNombre: string | null;
   contratoUrl?: string | null; // URL realmente usada (puede ser un docx elegido a mano)
   generadoEn: string | null; // ISO
+  solicitadoEn?: string | null; // ISO; solo en "pendiente", para detectar solicitudes atascadas
   error?: string;
 }
 

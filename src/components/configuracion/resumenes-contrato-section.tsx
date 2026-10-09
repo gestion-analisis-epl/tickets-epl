@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Square, Sparkles } from "lucide-react";
 import { useTickets } from "@/hooks/use-tickets";
 import { solicitarResumenContrato } from "@/lib/contratos";
@@ -25,6 +25,15 @@ export function ResumenesContratoSection() {
   const [total, setTotal] = useState(0);
   const [resultado, setResultado] = useState<ResultadoBackfill | null>(null);
   const detenerRef = useRef(false);
+  const montadoRef = useRef(true);
+
+  useEffect(() => {
+    montadoRef.current = true;
+    return () => {
+      montadoRef.current = false;
+      detenerRef.current = true;
+    };
+  }, []);
 
   async function handleCorrer() {
     // Se congela la lista: la suscripcion en vivo la ira achicando mientras se procesa.
@@ -46,7 +55,7 @@ export function ResumenesContratoSection() {
         break;
       }
       const t = lista[i];
-      setProgreso(i + 1);
+      if (montadoRef.current) setProgreso(i + 1);
       try {
         const estado = await solicitarResumenContrato(t.id, encontrarContrato(t.documentacion) ?? undefined);
         if (estado === "error") fallos.push({ folio: t.folio, mensaje: "Gemini no pudo extraer los datos." });
@@ -56,6 +65,7 @@ export function ResumenesContratoSection() {
       }
     }
 
+    if (!montadoRef.current) return;
     setResultado({ exitos, fallos, detenido, total: lista.length });
     setCorriendo(false);
   }
@@ -64,8 +74,8 @@ export function ResumenesContratoSection() {
     <section className="section-card p-6 space-y-3 max-w-2xl">
       <h2 className="eyebrow">Resumenes de contrato pendientes</h2>
       <p className="text-sm text-muted">
-        Genera con IA el resumen de los tickets que tienen un contrato de arrendamiento adjunto pero aun no tienen
-        resumen. Se procesan de uno en uno.{" "}
+        Genera con IA el resumen de los tickets que tienen un contrato de arrendamiento adjunto y aun no tienen
+        resumen, o cuyo resumen fallo o quedo atascado en pendiente. Se procesan de uno en uno.{" "}
         {!loading && <>Pendientes ahora: <span className="font-medium">{pendientes.length}</span>.</>}
       </p>
 

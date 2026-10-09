@@ -4,7 +4,7 @@ import { getAdminBucket, getAdminDb } from "@/lib/firebase-admin";
 import { extraerTextoDocx } from "@/lib/docx-texto";
 import { rutaDeUrlStorage, sinUndefined } from "@/lib/storage-ruta";
 import { llamarGemini } from "@/infrastructure/gemini/gemini-client";
-import { generarResumenContrato, puedeGenerarResumen, type DepsResumen } from "@/domain/contratos/resumir-contrato-service";
+import { generarResumenContrato, puedeGenerarResumen, ValidacionResumenError, type DepsResumen } from "@/domain/contratos/resumir-contrato-service";
 import { construirResumenContrato } from "@/domain/contratos/contrato-rules";
 import type { Ticket } from "@/types/ticket";
 import type { ResumenContrato } from "@/types/resumen-contrato";
@@ -18,11 +18,17 @@ async function cargarTicket(id: string): Promise<Ticket | null> {
   return snap.exists ? ({ ...snap.data(), id: snap.id } as Ticket) : null;
 }
 
+// Mismo limite que MAX_FILE_SIZE_BYTES de lib/storage.ts (modulo de cliente, no se importa en el servidor).
+const MAX_BYTES_DESCARGA = 20 * 1024 * 1024;
+
 async function descargar(url: string): Promise<Buffer> {
   const ruta = rutaDeUrlStorage(url);
   if (!ruta) throw new Error("URL de documento invalida.");
   try {
-    const [buffer] = await getAdminBucket().file(ruta).download();
+    const file = getAdminBucket().file(ruta);
+    const [metadata] = await file.getMetadata();
+    if (Number(metadata.size) > MAX_BYTES_DESCARGA) throw new Error("excede el limite");
+    const [buffer] = await file.download();
     return buffer;
   } catch {
     throw new Error("No se pudo descargar el documento.");
@@ -61,6 +67,7 @@ export async function POST(request: Request) {
     const resumen = await generarResumenContrato(deps, ticketId, permiso.puedeElegirArchivo ? archivoUrl : undefined);
     return NextResponse.json({ estado: resumen.estado });
   } catch (err) {
+    if (err instanceof ValidacionResumenError) return NextResponse.json({ error: err.message }, { status: 400 });
     if (err instanceof ApiAuthError) return NextResponse.json({ error: err.message }, { status: err.status });
     // No se registra el error crudo: puede traer datos del contrato o credenciales.
     console.error("POST /api/contratos/resumir fallo.");

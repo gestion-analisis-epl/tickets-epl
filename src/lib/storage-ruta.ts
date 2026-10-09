@@ -8,6 +8,16 @@ export function rutaDeUrlStorage(url: string): string | null {
   }
 }
 
+// Solo se enlazan descargas servidas por Firebase Storage (https); cualquier otra URL se muestra como texto.
+export function esUrlStorageSegura(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && u.hostname === "firebasestorage.googleapis.com";
+  } catch {
+    return false;
+  }
+}
+
 // Firestore Admin rechaza valores undefined; los elimina de forma profunda (objetos y arreglos).
 export function sinUndefined<T>(valor: T): T {
   return JSON.parse(JSON.stringify(valor)) as T;

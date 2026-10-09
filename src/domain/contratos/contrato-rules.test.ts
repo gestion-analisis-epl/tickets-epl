@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { accionResumen, construirResumenContrato, encontrarContrato, nombreDeUrl } from "./contrato-rules";
+import { accionResumen, construirResumenContrato, encontrarContrato, esPendienteObsoleto, nombreDeUrl, resumenReintentable } from "./contrato-rules";
 import { buildTicket } from "@/test/ticket-fixture";
+import type { ResumenContratoTicket } from "@/types/resumen-contrato";
 
 const url = (nombre: string) =>
   `https://firebasestorage.googleapis.com/v0/b/tickets-epl-legal/o/tickets%2Ft1%2F${encodeURIComponent(nombre)}?alt=media&token=abc`;
@@ -123,6 +124,15 @@ describe("construirResumenContrato", () => {
     expect(r.contratoNombre).toBe("otro.docx");
   });
 
+  it("ignora una contratoUrl que ya no esta en la documentacion", () => {
+    const ticket = buildTicket({
+      estatus: "Pre-Cierre",
+      documentacion: [url("1_QRO01_CONTRATO_ARRENDAMIENTO.docx")],
+      resumenContrato: { estado: "listo", extraccion: null, discrepancias: [], contratoNombre: "x", generadoEn: null, contratoUrl: "https://evil.test/x.docx" },
+    });
+    expect(construirResumenContrato(ticket, ahora).contratoUrl).toBe(ticket.documentacion[0]);
+  });
+
   it("sin contratoUrl en el resumen de Gemini conserva el contrato encontrado", () => {
     const ticket = buildTicket({
       estatus: "Pre-Cierre",
@@ -130,5 +140,28 @@ describe("construirResumenContrato", () => {
       resumenContrato: { estado: "error", extraccion: null, discrepancias: [], contratoNombre: null, generadoEn: null },
     });
     expect(construirResumenContrato(ticket, ahora).contratoUrl).toBe(ticket.documentacion[0]);
+  });
+});
+
+describe("pendiente obsoleto y reintento", () => {
+  const base: Omit<ResumenContratoTicket, "estado"> = { extraccion: null, discrepancias: [], contratoNombre: null, generadoEn: null };
+  const ahora = new Date("2026-10-08T12:00:00.000Z");
+  const pendiente = (solicitadoEn?: string | null) => ({ ...base, estado: "pendiente" as const, solicitadoEn });
+
+  it("pendiente reciente no es obsoleto; de mas de 5 minutos o sin marca si", () => {
+    expect(esPendienteObsoleto(pendiente("2026-10-08T11:57:00.000Z"), ahora)).toBe(false);
+    expect(esPendienteObsoleto(pendiente("2026-10-08T11:54:00.000Z"), ahora)).toBe(true);
+    expect(esPendienteObsoleto(pendiente(), ahora)).toBe(true);
+    expect(esPendienteObsoleto(pendiente(null), ahora)).toBe(true);
+    expect(esPendienteObsoleto({ ...base, estado: "listo" }, ahora)).toBe(false);
+    expect(esPendienteObsoleto(undefined, ahora)).toBe(false);
+  });
+
+  it("es reintentable sin resumen, con error o con pendiente obsoleto", () => {
+    expect(resumenReintentable(undefined, ahora)).toBe(true);
+    expect(resumenReintentable({ ...base, estado: "error" }, ahora)).toBe(true);
+    expect(resumenReintentable(pendiente("2026-10-08T11:00:00.000Z"), ahora)).toBe(true);
+    expect(resumenReintentable(pendiente("2026-10-08T11:59:00.000Z"), ahora)).toBe(false);
+    expect(resumenReintentable({ ...base, estado: "listo" }, ahora)).toBe(false);
   });
 });

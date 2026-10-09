@@ -57,16 +57,21 @@ export function createTicketService(
     if (accion === "ninguna") return;
     const ahora = new Date();
     if (accion === "actualizar-estatus") return resumenes.updateEstatus(ticket.id, ticket.estatus, ahora.toISOString());
+    // Se relee el ticket: la ruta de Gemini pudo escribir el resumen mientras tanto.
+    const fresco = await repo.getById(ticket.id);
+    const vigente = fresco ? ({ ...ticket, resumenContrato: fresco.resumenContrato } as Ticket) : ticket;
     const previo = await resumenes.get(ticket.id);
-    await resumenes.upsert(construirResumenContrato(ticket, ahora, previo));
+    await resumenes.upsert(construirResumenContrato(vigente, ahora, previo));
   }
 
   // Best-effort: refresca el resumen cuando el ticket se edita estando en Pre-Cierre/Cierre.
   async function refrescarResumenSiVisible(ticket: Ticket): Promise<void> {
     if (!ETAPAS_VISIBLES_JEFE_ZONA.includes(ticket.estatus)) return;
     try {
+      const fresco = await repo.getById(ticket.id);
+      const vigente = fresco ? ({ ...ticket, resumenContrato: fresco.resumenContrato } as Ticket) : ticket;
       const previo = await resumenes.get(ticket.id);
-      await resumenes.upsert(construirResumenContrato(ticket, new Date(), previo));
+      await resumenes.upsert(construirResumenContrato(vigente, new Date(), previo));
     } catch (err) {
       console.error("No se pudo refrescar el resumen de contrato:", err);
     }

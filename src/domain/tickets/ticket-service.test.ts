@@ -23,12 +23,15 @@ function notifierFake(avisos: string[] = []): TicketNotifier {
   };
 }
 
-function montar(ticket: Ticket, opts: { resumenesRoto?: boolean } = {}) {
+function montar(ticket: Ticket, opts: { resumenesRoto?: boolean; lecturas?: Ticket[] } = {}) {
   const resumenes = new Map<string, ResumenContrato>();
   const avisos: string[] = [];
   const borrados: string[] = [];
   const repo: RepoFake = {
-    getById: async () => ({ ...ticket }),
+    getById: async () => {
+      const siguiente = opts.lecturas?.shift();
+      return { ...(siguiente ?? ticket) };
+    },
     update: async (_: string, patch: Partial<Ticket>) => { Object.assign(ticket, patch); },
     delete: async () => {},
   };
@@ -94,6 +97,18 @@ describe("sincronizacion del resumen de contrato", () => {
 
 const CONTRATO_URL = "https://x.test/o/tickets%2Ft1%2F123_CONTRATO_ARRENDAMIENTO.docx?alt=media";
 const solicitud = { areaEmpresa: "A", servicioId: "s", descripcion: "d", documentacion: [CONTRATO_URL] };
+
+describe("carrera con la generacion de Gemini", () => {
+  const listo = { estado: "listo" as const, extraccion: null, discrepancias: [], contratoNombre: null, generadoEn: null };
+
+  it("al cambiar de estatus usa el resumenContrato mas reciente del ticket", async () => {
+    const base = buildTicket({ id: "t1", resumenContrato: { ...listo, estado: "pendiente" } });
+    const fresco = buildTicket({ id: "t1", resumenContrato: { ...listo, estado: "listo", discrepancias: [{ campo: "periodo", valorTicket: "a", valorContrato: "b" }] } });
+    const { service, resumenes } = montar(base, { lecturas: [{ ...base }, fresco] });
+    await service.updateTicketAsignacion("t1", "u1", input("Pre-Cierre"));
+    expect(resumenes.get("t1")?.discrepancias).toHaveLength(1);
+  });
+});
 
 describe("refresco del resumen al editar el ticket", () => {
   it("editar la documentacion en Pre-Cierre refresca contratoUrl y conserva el visto bueno", async () => {

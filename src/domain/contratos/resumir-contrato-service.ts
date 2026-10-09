@@ -1,7 +1,7 @@
 import { isAdminRole, LEGAL_STAFF_ROLES, type Role } from "@/types/user";
 import type { Ticket } from "@/types/ticket";
 import type { ResumenContratoTicket } from "@/types/resumen-contrato";
-import { encontrarContrato, nombreDeUrl } from "./contrato-rules";
+import { encontrarContrato, nombreDeUrl, resumenReintentable } from "./contrato-rules";
 import { construirContenido, parsearExtraccion } from "./extraccion-rules";
 import { calcularDiscrepancias } from "./discrepancias-rules";
 
@@ -17,11 +17,12 @@ export interface DepsResumen {
 const MENSAJE_ERROR = "No se pudo generar el resumen.";
 const MIN_CARACTERES_UTILES = 50;
 
-export function puedeGenerarResumen(actor: { uid: string; role: Role }, ticket: Ticket): { permitido: boolean; puedeElegirArchivo: boolean } {
+export class ValidacionResumenError extends Error {}
+
+export function puedeGenerarResumen(actor: { uid: string; role: Role }, ticket: Ticket, ahora: Date = new Date()): { permitido: boolean; puedeElegirArchivo: boolean } {
   if (LEGAL_STAFF_ROLES.includes(actor.role) || isAdminRole(actor.role)) return { permitido: true, puedeElegirArchivo: true };
   const esDueno = actor.uid === ticket.solicitanteId;
-  const estado = ticket.resumenContrato?.estado;
-  return { permitido: esDueno && (!estado || estado === "error"), puedeElegirArchivo: false };
+  return { permitido: esDueno && resumenReintentable(ticket.resumenContrato, ahora), puedeElegirArchivo: false };
 }
 
 export async function generarResumenContrato(deps: DepsResumen, ticketId: string, archivoUrl?: string): Promise<ResumenContratoTicket> {
@@ -29,8 +30,8 @@ export async function generarResumenContrato(deps: DepsResumen, ticketId: string
   if (!ticket) throw new Error("Ticket no encontrado.");
 
   if (archivoUrl) {
-    if (!ticket.documentacion.includes(archivoUrl)) throw new Error("El archivo no pertenece al ticket.");
-    if (!nombreDeUrl(archivoUrl).toLowerCase().endsWith(".docx")) throw new Error("Solo se admiten archivos docx.");
+    if (!ticket.documentacion.includes(archivoUrl)) throw new ValidacionResumenError("El archivo no pertenece al ticket.");
+    if (!nombreDeUrl(archivoUrl).toLowerCase().endsWith(".docx")) throw new ValidacionResumenError("Solo se admiten archivos docx.");
   }
   const url = archivoUrl ?? encontrarContrato(ticket.documentacion);
 
@@ -43,7 +44,9 @@ export async function generarResumenContrato(deps: DepsResumen, ticketId: string
   }
 
   const contratoNombre = nombreDeUrl(url);
-  await deps.guardar(ticketId, { estado: "pendiente", extraccion: null, discrepancias: [], contratoNombre, contratoUrl: url, generadoEn: null });
+  await deps.guardar(ticketId, {
+    estado: "pendiente", extraccion: null, discrepancias: [], contratoNombre, contratoUrl: url, generadoEn: null, solicitadoEn: deps.ahora().toISOString(),
+  });
 
   try {
     const texto = await deps.extraerTexto(await deps.descargar(url));
