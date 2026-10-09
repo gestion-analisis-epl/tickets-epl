@@ -3,8 +3,9 @@ import { INSTRUCCIONES_EXTRACCION } from "@/domain/contratos/extraccion-rules";
 import { aContents } from "./contenido-gemini";
 import type { ContenidoGemini } from "@/domain/contratos/resumir-contrato-service";
 
-// Confirmar en AI Studio que este modelo sigue vigente; se puede sobrescribir con GEMINI_MODEL.
-const MODELO_PREDETERMINADO = "gemini-2.5-flash";
+// Los modelos se retiran (gemini-2.5-flash ya responde 404 a cuentas nuevas): si falla con
+// HTTP 404, elegir uno vigente de AI Studio y fijarlo con GEMINI_MODEL sin tocar el codigo.
+const MODELO_PREDETERMINADO = "gemini-3.8-flash";
 
 const TIMEOUT_MS = 45_000;
 
@@ -45,7 +46,6 @@ export async function llamarGemini(contenido: ContenidoGemini): Promise<string> 
         responseMimeType: "application/json",
         responseSchema: ESQUEMA,
         temperature: 0,
-        thinkingConfig: { thinkingBudget: 0 },
         httpOptions: { timeout: TIMEOUT_MS },
       },
     });
