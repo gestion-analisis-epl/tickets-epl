@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { INSTRUCCIONES_EXTRACCION } from "@/domain/contratos/extraccion-rules";
+import { aContents } from "./contenido-gemini";
 import type { ContenidoGemini } from "@/domain/contratos/resumir-contrato-service";
 
 // Confirmar en AI Studio que este modelo sigue vigente; se puede sobrescribir con GEMINI_MODEL.
@@ -27,13 +28,6 @@ function estatusDe(err: unknown): number | null {
     if (typeof status === "number") return status;
   }
   return null;
-}
-
-const INSTRUCCION_PDF = "Extrae los datos del contrato PDF adjunto.";
-
-function aContents(contenido: ContenidoGemini) {
-  if (contenido.tipo === "texto") return contenido.texto;
-  return [{ role: "user", parts: [{ inlineData: { mimeType: "application/pdf", data: contenido.base64 } }, { text: INSTRUCCION_PDF }] }];
 }
 
 export async function llamarGemini(contenido: ContenidoGemini): Promise<string> {

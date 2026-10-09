@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { verifyCallerToken, ApiAuthError } from "@/lib/api-auth";
 import { getAdminBucket, getAdminDb } from "@/lib/firebase-admin";
-import { extraerTextoDocx } from "@/lib/docx-texto";
+import { prepararContenido } from "@/lib/preparar-contenido";
 import { rutaDeUrlStorage, sinUndefined } from "@/lib/storage-ruta";
 import { llamarGemini } from "@/infrastructure/gemini/gemini-client";
-import { generarResumenContrato, puedeGenerarResumen, ValidacionResumenError, type ContenidoGemini, type DepsResumen } from "@/domain/contratos/resumir-contrato-service";
+import { generarResumenContrato, puedeGenerarResumen, ValidacionResumenError, type DepsResumen } from "@/domain/contratos/resumir-contrato-service";
 import { construirResumenContrato } from "@/domain/contratos/contrato-rules";
-import type { TipoContrato } from "@/domain/contratos/tipo-archivo";
+import { tipoContrato } from "@/domain/contratos/tipo-archivo";
+import { limiteBytesContrato } from "@/domain/contratos/limite-descarga";
 import type { Ticket } from "@/types/ticket";
 import type { ResumenContrato } from "@/types/resumen-contrato";
 import type { Role } from "@/types/user";
@@ -19,28 +20,21 @@ async function cargarTicket(id: string): Promise<Ticket | null> {
   return snap.exists ? ({ ...snap.data(), id: snap.id } as Ticket) : null;
 }
 
-// Mismo limite que MAX_FILE_SIZE_BYTES de lib/storage.ts (modulo de cliente, no se importa en el servidor).
-// Tambien es el tope de Gemini para un PDF enviado en linea (~20 MB).
-const MAX_BYTES_DESCARGA = 20 * 1024 * 1024;
-
 async function descargar(url: string): Promise<Buffer> {
   const ruta = rutaDeUrlStorage(url);
   if (!ruta) throw new Error("URL de documento invalida.");
+  const tipo = tipoContrato(ruta);
+  if (!tipo) throw new Error("Tipo de archivo no admitido.");
   try {
     const file = getAdminBucket().file(ruta);
     const [metadata] = await file.getMetadata();
     const tamano = Number(metadata.size);
-    if (!Number.isFinite(tamano) || tamano > MAX_BYTES_DESCARGA) throw new Error("excede el limite");
+    if (!Number.isFinite(tamano) || tamano > limiteBytesContrato(tipo)) throw new Error("excede el limite");
     const [buffer] = await file.download();
     return buffer;
   } catch {
     throw new Error("No se pudo descargar el documento.");
   }
-}
-
-async function prepararContenido(buffer: Buffer, tipo: TipoContrato): Promise<ContenidoGemini> {
-  if (tipo === "pdf") return { tipo: "pdf", base64: buffer.toString("base64") };
-  return { tipo: "texto", texto: await extraerTextoDocx(buffer) };
 }
 
 // Guarda en el ticket y, si el ticket ya esta en Pre-Cierre/Cierre (existe su resumen), lo refresca.
