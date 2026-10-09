@@ -22,6 +22,8 @@ import { SitioSelector } from "./sitio-selector";
 import { SELECCION_VACIA, type SeleccionSitio } from "@/domain/sitios/sitios-rules";
 import { uploadTicketFile, deleteTicketDocument } from "@/lib/storage";
 import { createTicket } from "@/lib/tickets";
+import { solicitarResumenContrato } from "@/lib/contratos";
+import { encontrarContrato } from "@/domain/contratos/contrato-rules";
 import { precargarSitios } from "@/lib/sitios";
 import type { ContratoArrendamientoInput, DocumentosArrendamientoInput } from "@/types/ticket";
 
@@ -274,19 +276,23 @@ export function NuevoTicketForm() {
           ) as unknown as DocumentosArrendamientoInput)
         : undefined;
 
-      const { folio } = await createTicket({
+      const documentacion = files.filter((f) => f.status === "done" && f.url).map((f) => f.url!);
+
+      const { id, folio } = await createTicket({
         solicitanteId: uid,
         solicitanteNombre: nombre,
         areaEmpresa: form.areaEmpresa,
         servicioId: form.servicioId,
         descripcion: form.descripcion,
-        documentacion: files.filter((f) => f.status === "done" && f.url).map((f) => f.url!),
+        documentacion,
         formatoArrendamientoUrl: requiereFormato ? formatoFiles[0]?.url : undefined,
         documentosArrendamiento,
         contratoArrendamiento,
         sitioArrendamiento: { clave: sitio.clave, alias: sitio.alias },
       });
       setFolioCreado(folio);
+      // Best-effort: si falla, el ticket ya existe y Legal puede regenerar el resumen.
+      if (encontrarContrato(documentacion)) void solicitarResumenContrato(id).catch(() => {});
     } catch {
       setSubmitError("No se pudo guardar el ticket. Intenta de nuevo en unos segundos.");
     } finally {
