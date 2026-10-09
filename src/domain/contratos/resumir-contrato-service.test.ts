@@ -20,7 +20,7 @@ function montar(over: Partial<DepsResumen> = {}, ticket: Ticket | null = buildTi
   const deps: DepsResumen = {
     cargarTicket: async () => ticket,
     descargar: async () => Buffer.from("x"),
-    extraerTexto: async () => TEXTO,
+    prepararContenido: async (_b, tipo) => (tipo === "pdf" ? { tipo: "pdf", base64: "UERG" } : { tipo: "texto", texto: TEXTO }),
     llamarGemini: async () => respuestaOk,
     guardar: async (_id, r) => { guardados.push(r); },
     ahora: () => new Date("2026-10-08T12:00:00.000Z"),
@@ -68,7 +68,7 @@ describe("generarResumenContrato", () => {
 
   it("un docx sin texto util es error y no llama a Gemini", async () => {
     let llamadas = 0;
-    const { deps } = montar({ extraerTexto: async () => "   ", llamarGemini: async () => { llamadas++; return respuestaOk; } });
+    const { deps } = montar({ prepararContenido: async () => ({ tipo: "texto", texto: "   " }), llamarGemini: async () => { llamadas++; return respuestaOk; } });
     expect((await generarResumenContrato(deps, "t1")).estado).toBe("error");
     expect(llamadas).toBe(0);
   });
@@ -83,7 +83,48 @@ describe("generarResumenContrato", () => {
 
     const pdf = url("3_x.pdf");
     const { deps: depsPdf } = montar({}, buildTicket({ id: "t1", documentacion: [pdf] }));
-    await expect(generarResumenContrato(depsPdf, "t1", pdf)).rejects.toThrow("docx");
+    expect((await generarResumenContrato(depsPdf, "t1", pdf)).contratoNombre).toBe("x.pdf");
+
+    for (const n of ["4_x.pdf.exe", "5_x.txt"]) {
+      const malo = url(n);
+      const { deps: depsMalo } = montar({}, buildTicket({ id: "t1", documentacion: [malo] }));
+      const rechazo = generarResumenContrato(depsMalo, "t1", malo);
+      await expect(rechazo).rejects.toThrow("Solo se admiten archivos docx o pdf.");
+      await expect(rechazo).rejects.toBeInstanceOf(ValidacionResumenError);
+    }
+  });
+
+  it("un docx envia a Gemini el texto envuelto como contenido", async () => {
+    const recibidos: unknown[] = [];
+    const { deps } = montar({ llamarGemini: async (c) => { recibidos.push(c); return respuestaOk; } });
+    await generarResumenContrato(deps, "t1");
+    expect(recibidos).toEqual([{ tipo: "texto", texto: `<contrato>
+${TEXTO}
+</contrato>` }]);
+  });
+
+  it("un pdf se envia a Gemini como pdf, sin extraer texto ni exigir longitud minima", async () => {
+    const pdf = url("1_QRO01_CONTRATO_ARRENDAMIENTO.PDF");
+    const recibidos: unknown[] = [];
+    const tipos: string[] = [];
+    const { deps, guardados } = montar({
+      prepararContenido: async (_b, tipo) => { tipos.push(tipo); return { tipo: "pdf", base64: "abc" }; },
+      llamarGemini: async (c) => { recibidos.push(c); return respuestaOk; },
+    }, buildTicket({ id: "t1", documentacion: [pdf] }));
+    const r = await generarResumenContrato(deps, "t1");
+    expect(tipos).toEqual(["pdf"]);
+    expect(recibidos).toEqual([{ tipo: "pdf", base64: "abc" }]);
+    expect(r.estado).toBe("listo");
+    expect(r.contratoUrl).toBe(pdf);
+    expect(guardados.map((g) => g.estado)).toEqual(["pendiente", "listo"]);
+  });
+
+  it("si Gemini falla con un pdf guarda error generico", async () => {
+    const pdf = url("1_CONTRATO_ARRENDAMIENTO.pdf");
+    const { deps } = montar({ llamarGemini: async () => { throw new Error("clave secreta"); } }, buildTicket({ id: "t1", documentacion: [pdf] }));
+    const r = await generarResumenContrato(deps, "t1");
+    expect(r.estado).toBe("error");
+    expect(JSON.stringify(r)).not.toContain("secreta");
   });
 
   it("los fallos de validacion son ValidacionResumenError", async () => {

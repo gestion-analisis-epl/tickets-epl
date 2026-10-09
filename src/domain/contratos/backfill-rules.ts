@@ -1,22 +1,19 @@
 import type { Ticket } from "@/types/ticket";
 import { encontrarContrato, nombreDeUrl, resumenReintentable } from "./contrato-rules";
+import { esArchivoContrato } from "./tipo-archivo";
 
 type TicketConDocs = Pick<Ticket, "documentacion" | "resumenContrato">;
 
-export function esDocx(url: string): boolean {
-  return nombreDeUrl(url).toLowerCase().endsWith(".docx");
+export function archivosContratoDeDocumentacion(documentacion: string[]): string[] {
+  return documentacion.filter((url) => esArchivoContrato(nombreDeUrl(url)));
 }
 
-export function docxsDeDocumentacion(documentacion: string[]): string[] {
-  return documentacion.filter(esDocx);
-}
-
-// Valor inicial del selector: el contrato ya usado, o el detectado por nombre, o el primer docx.
+// Valor inicial del selector: el contrato ya usado, o el detectado por nombre, o el primer docx/pdf.
 export function archivoPorDefecto(ticket: TicketConDocs): string {
-  const docxs = docxsDeDocumentacion(ticket.documentacion);
+  const archivos = archivosContratoDeDocumentacion(ticket.documentacion);
   const usado = ticket.resumenContrato?.contratoUrl;
-  if (usado && docxs.includes(usado)) return usado;
-  return encontrarContrato(ticket.documentacion) ?? docxs[0] ?? "";
+  if (usado && archivos.includes(usado)) return usado;
+  return encontrarContrato(ticket.documentacion) ?? archivos[0] ?? "";
 }
 
 // Sin resumen, con error o con un "pendiente" atascado.

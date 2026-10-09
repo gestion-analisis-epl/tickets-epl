@@ -74,7 +74,7 @@ export function ResumenesContratoSection() {
     <section className="section-card p-6 space-y-3 max-w-2xl">
       <h2 className="eyebrow">Resumenes de contrato pendientes</h2>
       <p className="text-sm text-muted">
-        Genera con IA el resumen de los tickets que tienen un contrato de arrendamiento adjunto y aun no tienen
+        Genera con IA el resumen de los tickets que tienen un contrato de arrendamiento (.docx o .pdf) adjunto y aun no tienen
         resumen, o cuyo resumen fallo o quedo atascado en pendiente. Se procesan de uno en uno.{" "}
         {!loading && <>Pendientes ahora: <span className="font-medium">{pendientes.length}</span>.</>}
       </p>

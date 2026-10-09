@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { INSTRUCCIONES_EXTRACCION } from "@/domain/contratos/extraccion-rules";
+import type { ContenidoGemini } from "@/domain/contratos/resumir-contrato-service";
 
 // Confirmar en AI Studio que este modelo sigue vigente; se puede sobrescribir con GEMINI_MODEL.
 const MODELO_PREDETERMINADO = "gemini-2.5-flash";
@@ -28,7 +29,14 @@ function estatusDe(err: unknown): number | null {
   return null;
 }
 
-export async function llamarGemini(contenido: string): Promise<string> {
+const INSTRUCCION_PDF = "Extrae los datos del contrato PDF adjunto.";
+
+function aContents(contenido: ContenidoGemini) {
+  if (contenido.tipo === "texto") return contenido.texto;
+  return [{ role: "user", parts: [{ inlineData: { mimeType: "application/pdf", data: contenido.base64 } }, { text: INSTRUCCION_PDF }] }];
+}
+
+export async function llamarGemini(contenido: ContenidoGemini): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("Falta GEMINI_API_KEY en el entorno del servidor.");
 
@@ -37,7 +45,7 @@ export async function llamarGemini(contenido: string): Promise<string> {
     const ai = new GoogleGenAI({ apiKey });
     const respuesta = await ai.models.generateContent({
       model: process.env.GEMINI_MODEL || MODELO_PREDETERMINADO,
-      contents: contenido,
+      contents: aContents(contenido),
       config: {
         systemInstruction: INSTRUCCIONES_EXTRACCION,
         responseMimeType: "application/json",

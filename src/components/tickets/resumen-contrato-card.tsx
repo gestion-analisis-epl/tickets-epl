@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { solicitarResumenContrato } from "@/lib/contratos";
-import { archivoPorDefecto, docxsDeDocumentacion } from "@/domain/contratos/backfill-rules";
+import { archivoPorDefecto, archivosContratoDeDocumentacion } from "@/domain/contratos/backfill-rules";
 import { nombreDeUrl } from "@/domain/contratos/contrato-rules";
 import { formaPagoLabel, formatMonto, textoDiscrepancia, textoODisponible } from "@/domain/contratos/resumen-presentacion";
 import { formatFecha, formatFechaSolo } from "@/lib/format-fecha";
@@ -31,10 +31,10 @@ function fechaContrato(valor: string | null): string {
 // Solo para Legal/admin: el texto del contrato se muestra siempre como texto plano.
 export function ResumenContratoCard({ ticket }: { ticket: Ticket }) {
   const resumen = ticket.resumenContrato;
-  const docxs = docxsDeDocumentacion(ticket.documentacion);
+  const archivos = archivosContratoDeDocumentacion(ticket.documentacion);
   const [elegidoManual, setElegido] = useState(() => archivoPorDefecto(ticket));
   // Si el archivo elegido ya no esta en la documentacion, se vuelve al predeterminado.
-  const elegido = docxs.includes(elegidoManual) ? elegidoManual : archivoPorDefecto(ticket);
+  const elegido = archivos.includes(elegidoManual) ? elegidoManual : archivoPorDefecto(ticket);
   const [generando, setGenerando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,7 +83,7 @@ export function ResumenContratoCard({ ticket }: { ticket: Ticket }) {
 
       {resumen?.estado === "error" && resumen.error && <p className="text-sm text-danger">{resumen.error}</p>}
       {resumen?.estado === "sin_contrato" && (
-        <p className="text-sm text-muted">No se encontro un contrato .docx entre la documentacion adjunta.</p>
+        <p className="text-sm text-muted">No se encontro un contrato (.docx o .pdf) entre la documentacion adjunta.</p>
       )}
 
       {campos.length > 0 && (
@@ -110,7 +110,7 @@ export function ResumenContratoCard({ ticket }: { ticket: Ticket }) {
 
       <p className="text-xs text-muted">Resumen generado automaticamente; no sustituye la revision legal.</p>
 
-      {docxs.length > 0 ? (
+      {archivos.length > 0 ? (
         <div className="space-y-2">
           <label className="field-label">Archivo del contrato</label>
           <div className="flex flex-wrap items-center gap-3">
@@ -120,7 +120,7 @@ export function ResumenContratoCard({ ticket }: { ticket: Ticket }) {
               disabled={generando}
               className="field min-w-0 max-w-full"
             >
-              {docxs.map((url) => (
+              {archivos.map((url) => (
                 <option key={url} value={url}>{nombreDeUrl(url) || url}</option>
               ))}
             </select>
@@ -130,7 +130,7 @@ export function ResumenContratoCard({ ticket }: { ticket: Ticket }) {
           </div>
         </div>
       ) : (
-        <p className="text-xs text-muted">No hay archivos .docx adjuntos para generar el resumen.</p>
+        <p className="text-xs text-muted">No hay archivos .docx o .pdf adjuntos para generar el resumen.</p>
       )}
 
       {error && <p className="text-sm text-danger">{error}</p>}

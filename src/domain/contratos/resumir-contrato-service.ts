@@ -2,14 +2,18 @@ import { isAdminRole, LEGAL_STAFF_ROLES, type Role } from "@/types/user";
 import type { Ticket } from "@/types/ticket";
 import type { ResumenContratoTicket } from "@/types/resumen-contrato";
 import { encontrarContrato, nombreDeUrl, resumenReintentable } from "./contrato-rules";
+import { tipoContrato, type TipoContrato } from "./tipo-archivo";
 import { construirContenido, parsearExtraccion } from "./extraccion-rules";
 import { calcularDiscrepancias } from "./discrepancias-rules";
+
+export type ContenidoGemini = { tipo: "texto"; texto: string } | { tipo: "pdf"; base64: string };
 
 export interface DepsResumen {
   cargarTicket(id: string): Promise<Ticket | null>;
   descargar(url: string): Promise<Buffer>;
-  extraerTexto(buffer: Buffer): Promise<string>;
-  llamarGemini(contenido: string): Promise<string>;
+  // docx: texto extraido; pdf: el PDF en base64 (Gemini lo lee directamente).
+  prepararContenido(buffer: Buffer, tipo: TipoContrato): Promise<ContenidoGemini>;
+  llamarGemini(contenido: ContenidoGemini): Promise<string>;
   guardar(ticketId: string, resumen: ResumenContratoTicket): Promise<void>;
   ahora(): Date;
 }
@@ -31,7 +35,7 @@ export async function generarResumenContrato(deps: DepsResumen, ticketId: string
 
   if (archivoUrl) {
     if (!ticket.documentacion.includes(archivoUrl)) throw new ValidacionResumenError("El archivo no pertenece al ticket.");
-    if (!nombreDeUrl(archivoUrl).toLowerCase().endsWith(".docx")) throw new ValidacionResumenError("Solo se admiten archivos docx.");
+    if (!tipoContrato(nombreDeUrl(archivoUrl))) throw new ValidacionResumenError("Solo se admiten archivos docx o pdf.");
   }
   const url = archivoUrl ?? encontrarContrato(ticket.documentacion);
 
@@ -49,10 +53,16 @@ export async function generarResumenContrato(deps: DepsResumen, ticketId: string
   });
 
   try {
-    const texto = await deps.extraerTexto(await deps.descargar(url));
-    if (texto.trim().length < MIN_CARACTERES_UTILES) throw new Error("El docx no contiene texto util.");
+    const tipo = tipoContrato(contratoNombre);
+    if (!tipo) throw new Error("Tipo de archivo no admitido.");
+    const preparado = await deps.prepararContenido(await deps.descargar(url), tipo);
+    let contenido: ContenidoGemini = preparado;
+    if (preparado.tipo === "texto") {
+      if (preparado.texto.trim().length < MIN_CARACTERES_UTILES) throw new Error("El docx no contiene texto util.");
+      contenido = { tipo: "texto", texto: construirContenido(preparado.texto) };
+    }
 
-    const parseada = parsearExtraccion(await deps.llamarGemini(construirContenido(texto)));
+    const parseada = parsearExtraccion(await deps.llamarGemini(contenido));
     if (!parseada.ok) throw new Error(parseada.error);
 
     const listo: ResumenContratoTicket = {

@@ -4,8 +4,9 @@ import { getAdminBucket, getAdminDb } from "@/lib/firebase-admin";
 import { extraerTextoDocx } from "@/lib/docx-texto";
 import { rutaDeUrlStorage, sinUndefined } from "@/lib/storage-ruta";
 import { llamarGemini } from "@/infrastructure/gemini/gemini-client";
-import { generarResumenContrato, puedeGenerarResumen, ValidacionResumenError, type DepsResumen } from "@/domain/contratos/resumir-contrato-service";
+import { generarResumenContrato, puedeGenerarResumen, ValidacionResumenError, type ContenidoGemini, type DepsResumen } from "@/domain/contratos/resumir-contrato-service";
 import { construirResumenContrato } from "@/domain/contratos/contrato-rules";
+import type { TipoContrato } from "@/domain/contratos/tipo-archivo";
 import type { Ticket } from "@/types/ticket";
 import type { ResumenContrato } from "@/types/resumen-contrato";
 import type { Role } from "@/types/user";
@@ -19,6 +20,7 @@ async function cargarTicket(id: string): Promise<Ticket | null> {
 }
 
 // Mismo limite que MAX_FILE_SIZE_BYTES de lib/storage.ts (modulo de cliente, no se importa en el servidor).
+// Tambien es el tope de Gemini para un PDF enviado en linea (~20 MB).
 const MAX_BYTES_DESCARGA = 20 * 1024 * 1024;
 
 async function descargar(url: string): Promise<Buffer> {
@@ -34,6 +36,11 @@ async function descargar(url: string): Promise<Buffer> {
   } catch {
     throw new Error("No se pudo descargar el documento.");
   }
+}
+
+async function prepararContenido(buffer: Buffer, tipo: TipoContrato): Promise<ContenidoGemini> {
+  if (tipo === "pdf") return { tipo: "pdf", base64: buffer.toString("base64") };
+  return { tipo: "texto", texto: await extraerTextoDocx(buffer) };
 }
 
 // Guarda en el ticket y, si el ticket ya esta en Pre-Cierre/Cierre (existe su resumen), lo refresca.
@@ -64,7 +71,7 @@ export async function POST(request: Request) {
     const permiso = puedeGenerarResumen({ uid, role: (caller?.role ?? "solicitante") as Role }, ticket);
     if (!permiso.permitido) return NextResponse.json({ error: "No puedes generar el resumen de este ticket." }, { status: 403 });
 
-    const deps: DepsResumen = { cargarTicket, descargar, extraerTexto: extraerTextoDocx, llamarGemini, guardar, ahora: () => new Date() };
+    const deps: DepsResumen = { cargarTicket, descargar, prepararContenido, llamarGemini, guardar, ahora: () => new Date() };
     const resumen = await generarResumenContrato(deps, ticketId, permiso.puedeElegirArchivo ? archivoUrl : undefined);
     return NextResponse.json({ estado: resumen.estado });
   } catch (err) {

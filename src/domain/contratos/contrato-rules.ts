@@ -1,4 +1,5 @@
 import type { Estatus, Ticket } from "@/types/ticket";
+import { esArchivoContrato } from "./tipo-archivo";
 import type { ResumenContrato, ResumenContratoTicket } from "@/types/resumen-contrato";
 
 export const ETAPAS_VISIBLES_JEFE_ZONA: readonly Estatus[] = ["Pre-Cierre", "Cierre"];
@@ -19,8 +20,8 @@ export function nombreDeUrl(url: string): string {
 export function encontrarContrato(documentacion: string[]): string | null {
   return (
     documentacion.find((url) => {
-      const nombre = nombreDeUrl(url).toUpperCase();
-      return nombre.endsWith(".DOCX") && nombre.includes("CONTRATO_ARRENDAMIENTO");
+      const nombre = nombreDeUrl(url);
+      return esArchivoContrato(nombre) && nombre.toUpperCase().includes("CONTRATO_ARRENDAMIENTO");
     }) ?? null
   );
 }

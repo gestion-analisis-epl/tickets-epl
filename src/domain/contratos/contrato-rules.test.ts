@@ -24,8 +24,22 @@ describe("encontrarContrato", () => {
     const docs = [url("3_qro01_contrato_arrendamiento.DOCX")];
     expect(encontrarContrato(docs)).toBe(docs[0]);
   });
-  it("no toma archivos que no son docx", () => {
-    expect(encontrarContrato([url("1_CONTRATO_ARRENDAMIENTO.pdf")])).toBeNull();
+  it("acepta pdf, sin importar mayusculas", () => {
+    const docs = [url("1_CONTRATO_ARRENDAMIENTO.pdf"), url("2_x_contrato_arrendamiento.PDF")];
+    expect(encontrarContrato([docs[1]])).toBe(docs[1]);
+    expect(encontrarContrato(docs)).toBe(docs[0]);
+  });
+  it("con docx y pdf toma el primero en el orden de documentacion", () => {
+    const pdf = url("1_CONTRATO_ARRENDAMIENTO.pdf");
+    const docx = url("2_CONTRATO_ARRENDAMIENTO.docx");
+    expect(encontrarContrato([pdf, docx])).toBe(pdf);
+    expect(encontrarContrato([docx, pdf])).toBe(docx);
+  });
+  it("no toma otras extensiones ni pdf sin el patron", () => {
+    expect(encontrarContrato([url("1_CONTRATO_ARRENDAMIENTO.pdf.exe")])).toBeNull();
+    expect(encontrarContrato([url("1_CONTRATO_ARRENDAMIENTO.doc")])).toBeNull();
+    expect(encontrarContrato([url("1_CONTRATO_ARRENDAMIENTO.txt")])).toBeNull();
+    expect(encontrarContrato([url("1_predial.pdf")])).toBeNull();
   });
   it("sin coincidencia devuelve null", () => {
     expect(encontrarContrato([url("1_otro.docx")])).toBeNull();

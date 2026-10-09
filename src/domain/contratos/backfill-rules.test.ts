@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { archivoPorDefecto, docxsDeDocumentacion, ticketsPendientesDeResumen } from "./backfill-rules";
+import { archivoPorDefecto, archivosContratoDeDocumentacion, ticketsPendientesDeResumen } from "./backfill-rules";
 import { buildTicket } from "@/test/ticket-fixture";
 import type { ResumenContratoTicket } from "@/types/resumen-contrato";
 
@@ -18,9 +18,9 @@ const resumen: ResumenContratoTicket = {
   generadoEn: null,
 };
 
-describe("docxsDeDocumentacion", () => {
-  it("deja solo los .docx", () => {
-    expect(docxsDeDocumentacion([pdf, contrato, otroDocx])).toEqual([contrato, otroDocx]);
+describe("archivosContratoDeDocumentacion", () => {
+  it("deja solo los .docx y .pdf", () => {
+    expect(archivosContratoDeDocumentacion([pdf, contrato, otroDocx, url("4_foto.png")])).toEqual([pdf, contrato, otroDocx]);
   });
 });
 
@@ -32,11 +32,15 @@ describe("archivoPorDefecto", () => {
     const t = buildTicket({ documentacion: [contrato, otroDocx], resumenContrato: { ...resumen, contratoUrl: otroDocx } });
     expect(archivoPorDefecto(t)).toBe(otroDocx);
   });
-  it("sin contrato por nombre usa el primer docx", () => {
-    expect(archivoPorDefecto(buildTicket({ documentacion: [pdf, otroDocx] }))).toBe(otroDocx);
+  it("sin contrato por nombre usa el primer docx o pdf", () => {
+    expect(archivoPorDefecto(buildTicket({ documentacion: [pdf, otroDocx] }))).toBe(pdf);
   });
-  it("sin docx devuelve cadena vacia", () => {
-    expect(archivoPorDefecto(buildTicket({ documentacion: [pdf] }))).toBe("");
+  it("prefiere un contrato pdf detectado por nombre", () => {
+    const contratoPdf = url("5_CONTRATO_ARRENDAMIENTO.pdf");
+    expect(archivoPorDefecto(buildTicket({ documentacion: [otroDocx, contratoPdf] }))).toBe(contratoPdf);
+  });
+  it("sin archivos admitidos devuelve cadena vacia", () => {
+    expect(archivoPorDefecto(buildTicket({ documentacion: [url("4_foto.png")] }))).toBe("");
   });
 });
 
@@ -45,7 +49,8 @@ describe("ticketsPendientesDeResumen", () => {
     const a = buildTicket({ id: "a", documentacion: [contrato] });
     const b = buildTicket({ id: "b", documentacion: [contrato], resumenContrato: resumen });
     const c = buildTicket({ id: "c", documentacion: [pdf] });
-    expect(ticketsPendientesDeResumen([a, b, c]).map((t) => t.id)).toEqual(["a"]);
+    const d = buildTicket({ id: "d", documentacion: [url("6_CONTRATO_ARRENDAMIENTO.pdf")] });
+    expect(ticketsPendientesDeResumen([a, b, c, d]).map((t) => t.id)).toEqual(["a", "d"]);
   });
   it("incluye resumenes con error y pendientes atascados, no los recientes", () => {
     const ahora = new Date("2026-10-08T12:00:00.000Z");
