@@ -262,3 +262,29 @@ async function enviarNotificacionEmailInterno(input: EnviarNotificacionEmailInpu
 
   return destinatarios.length;
 }
+
+// Avisos de la conversacion (ver lib/avisos-conversacion.ts): destinatarios ya resueltos y enlace segun
+// el rol. Respeta la escotilla NOTIFICACIONES_DESTINATARIOS_PRUEBA.
+export async function enviarNotificacionEmailA(
+  input: EnviarNotificacionEmailInput,
+  emails: string[],
+  verTicketUrl: string
+): Promise<number> {
+  const destino = DESTINATARIOS_PRUEBA.length ? DESTINATARIOS_PRUEBA : emails;
+  if (destino.length === 0) return 0;
+  try {
+    const datosTicket = await cargarDatosTicket(input.ticketId);
+    await enviarEmail({
+      to: destino.join(", "),
+      subject: `${TIPO_LABEL[input.tipo] ?? input.tipo} — ${input.ticketFolio}`,
+      html: buildHtml(input, datosTicket, verTicketUrl, null),
+    });
+    return destino.length;
+  } catch (err) {
+    await enviarAlerta(
+      `Fallo al enviar correo de "${TIPO_LABEL[input.tipo] ?? input.tipo}"`,
+      `Ticket ${input.ticketFolio} (${input.ticketId}). Error: ${err instanceof Error ? err.message : String(err)}`
+    );
+    throw err;
+  }
+}
