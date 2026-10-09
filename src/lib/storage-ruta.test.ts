@@ -10,6 +10,11 @@ describe("rutaDeUrlStorage", () => {
     expect(rutaDeUrlStorage("https://ejemplo.com/archivo.docx")).toBeNull();
     expect(rutaDeUrlStorage("no es url")).toBeNull();
   });
+  it("no acepta otro host ni http aunque la ruta tenga la forma /o/<ruta>", () => {
+    expect(rutaDeUrlStorage("https://evil.test/v0/b/b/o/tickets%2Fx.docx?alt=media")).toBeNull();
+    expect(rutaDeUrlStorage("https://firebasestorage.googleapis.com.evil.test/v0/b/b/o/tickets%2Fx.docx")).toBeNull();
+    expect(rutaDeUrlStorage("http://firebasestorage.googleapis.com/v0/b/b/o/tickets%2Fx.docx")).toBeNull();
+  });
 });
 
 describe("sinUndefined", () => {

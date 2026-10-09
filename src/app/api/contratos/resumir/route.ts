@@ -27,7 +27,8 @@ async function descargar(url: string): Promise<Buffer> {
   try {
     const file = getAdminBucket().file(ruta);
     const [metadata] = await file.getMetadata();
-    if (Number(metadata.size) > MAX_BYTES_DESCARGA) throw new Error("excede el limite");
+    const tamano = Number(metadata.size);
+    if (!Number.isFinite(tamano) || tamano > MAX_BYTES_DESCARGA) throw new Error("excede el limite");
     const [buffer] = await file.download();
     return buffer;
   } catch {
