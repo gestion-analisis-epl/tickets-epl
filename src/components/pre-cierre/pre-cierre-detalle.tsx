@@ -8,6 +8,7 @@ import { registrarVistoBueno } from "@/lib/resumenes-contrato";
 import { useAuthStore } from "@/stores/auth";
 import { Button } from "@/components/ui/button";
 import { EstatusBadge } from "@/components/ui/badge";
+import { DosColumnas } from "@/components/layout/dos-columnas";
 import { formatFecha, formatFechaSolo } from "@/lib/format-fecha";
 import { esUrlStorageSegura } from "@/lib/storage-ruta";
 import { formaPagoLabel, formatMonto, textoDiscrepancia, textoODisponible } from "@/domain/contratos/resumen-presentacion";
@@ -74,7 +75,7 @@ export function PreCierreDetalle({ id }: { id: string }) {
       ? `${formatFechaSolo(resumen.periodoInicio)} — ${formatFechaSolo(resumen.periodoFin)}`
       : null;
 
-  return (
+  const izquierda = (
     <div className="max-w-4xl space-y-6">
       <Link href="/pre-cierre" className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Pre-Cierre
@@ -84,58 +85,6 @@ export function PreCierreDetalle({ id }: { id: string }) {
         <h1 className="page-rule text-3xl font-semibold tabular-nums">{resumen.folio}</h1>
         <EstatusBadge estatus={resumen.estatus} />
       </div>
-
-      {aviso && (
-        <div role="status" className="flex items-start gap-2 rounded-md border border-border bg-surface p-3 text-sm">
-          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-          <p>{aviso}</p>
-        </div>
-      )}
-
-      {resumen.discrepancias.length > 0 && (
-        <div role="alert" className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
-          <p className="font-semibold mb-1">Discrepancias entre el contrato y el ticket</p>
-          <ul className="list-disc pl-5 space-y-0.5">
-            {resumen.discrepancias.map((d) => (
-              <li key={d.campo}>{textoDiscrepancia(d)}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <section className="section-card p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Contrato</h2>
-        <dl className="grid gap-4 sm:grid-cols-2">
-          <Campo label="Sitio">
-            {resumen.sitioClave ? `${resumen.sitioClave}${resumen.sitioAlias ? ` — ${resumen.sitioAlias}` : ""}` : textoODisponible(null)}
-          </Campo>
-          <Campo label="Codigo">{textoODisponible(resumen.sitioClave)}</Campo>
-          <Campo label="Domicilio">{textoODisponible(resumen.domicilio)}</Campo>
-          <Campo label="Alta de arrendador">{textoODisponible(resumen.altaArrendador)}</Campo>
-          <Campo label="Solicitante">{textoODisponible(resumen.solicitante)}</Campo>
-          <Campo label="Periodo">{textoODisponible(periodo)}</Campo>
-          <Campo label="Condiciones de pago">{textoODisponible(resumen.condicionesPago)}</Campo>
-          <Campo label="Monto anual">{formatMonto(resumen.montoPagoAnual)}</Campo>
-          <Campo label="Forma de pago">{formaPagoLabel(resumen.formaPago)}</Campo>
-        </dl>
-
-        {resumen.contratoUrl && !esUrlStorageSegura(resumen.contratoUrl) && resumen.contratoNombre && (
-          <p className="text-sm">Contrato original: {resumen.contratoNombre}</p>
-        )}
-        {resumen.contratoUrl && esUrlStorageSegura(resumen.contratoUrl) && (
-          <a
-            href={resumen.contratoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm font-medium underline"
-          >
-            <Download className="h-4 w-4" />
-            Descargar contrato original{resumen.contratoNombre ? ` (${resumen.contratoNombre})` : ""}
-          </a>
-        )}
-
-        <p className="text-xs text-muted">Resumen generado automáticamente; no sustituye la revisión legal del contrato.</p>
-      </section>
 
       <section className="section-card p-6 space-y-3">
         <h2 className="text-lg font-semibold">Visto bueno</h2>
@@ -157,4 +106,62 @@ export function PreCierreDetalle({ id }: { id: string }) {
       </section>
     </div>
   );
+
+  const derecha = (
+    <>
+        {aviso && (
+          <div role="status" className="flex items-start gap-2 rounded-md border border-border bg-surface p-3 text-sm">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <p>{aviso}</p>
+          </div>
+        )}
+
+        {resumen.discrepancias.length > 0 && (
+          <div role="alert" className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+            <p className="font-semibold mb-1">Discrepancias entre el contrato y el ticket</p>
+            <ul className="list-disc pl-5 space-y-0.5">
+              {resumen.discrepancias.map((d) => (
+                <li key={d.campo}>{textoDiscrepancia(d)}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <section className="section-card p-6 space-y-4">
+          <h2 className="text-lg font-semibold">Contrato</h2>
+          <dl className="grid gap-4 sm:grid-cols-2">
+            <Campo label="Sitio">
+              {resumen.sitioClave ? `${resumen.sitioClave}${resumen.sitioAlias ? ` — ${resumen.sitioAlias}` : ""}` : textoODisponible(null)}
+            </Campo>
+            <Campo label="Codigo">{textoODisponible(resumen.sitioClave)}</Campo>
+            <Campo label="Domicilio">{textoODisponible(resumen.domicilio)}</Campo>
+            <Campo label="Alta de arrendador">{textoODisponible(resumen.altaArrendador)}</Campo>
+            <Campo label="Solicitante">{textoODisponible(resumen.solicitante)}</Campo>
+            <Campo label="Periodo">{textoODisponible(periodo)}</Campo>
+            <Campo label="Condiciones de pago">{textoODisponible(resumen.condicionesPago)}</Campo>
+            <Campo label="Monto anual">{formatMonto(resumen.montoPagoAnual)}</Campo>
+            <Campo label="Forma de pago">{formaPagoLabel(resumen.formaPago)}</Campo>
+          </dl>
+
+          {resumen.contratoUrl && !esUrlStorageSegura(resumen.contratoUrl) && resumen.contratoNombre && (
+            <p className="text-sm">Contrato original: {resumen.contratoNombre}</p>
+          )}
+          {resumen.contratoUrl && esUrlStorageSegura(resumen.contratoUrl) && (
+            <a
+              href={resumen.contratoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm font-medium underline"
+            >
+              <Download className="h-4 w-4" />
+              Descargar contrato original{resumen.contratoNombre ? ` (${resumen.contratoNombre})` : ""}
+            </a>
+          )}
+
+          <p className="text-xs text-muted">Resumen generado automáticamente; no sustituye la revisión legal del contrato.</p>
+        </section>
+    </>
+  );
+
+  return <DosColumnas izquierda={izquierda} derecha={derecha} />;
 }

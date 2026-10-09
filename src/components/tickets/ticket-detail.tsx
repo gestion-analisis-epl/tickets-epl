@@ -10,6 +10,7 @@ import { useTicket } from "@/hooks/use-ticket";
 import { updateTicketAsignacion, updateTicketSolicitud, updateTicketSitio, submitSatisfaccion, deleteTicket } from "@/lib/tickets";
 import { findServicio } from "@/lib/catalogo";
 import { ResumenContratoCard } from "./resumen-contrato-card";
+import { DosColumnas } from "@/components/layout/dos-columnas";
 import { ServicioSelector } from "./servicio-selector";
 import { SitioSelector, seleccionDeSitio } from "./sitio-selector";
 import { SELECCION_VACIA, type SeleccionSitio } from "@/domain/sitios/sitios-rules";
@@ -323,7 +324,7 @@ export function TicketDetail({ id }: { id: string }) {
     }
   }
 
-  return (
+  const izquierda = (
     <div className="space-y-6 max-w-3xl">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="page-rule text-3xl font-semibold tabular-nums">{ticket.folio}</h1>
@@ -562,8 +563,6 @@ export function TicketDetail({ id }: { id: string }) {
         )}
       </section>
 
-      {puedeEditar && (ticket.contratoArrendamiento || ticket.resumenContrato) && <ResumenContratoCard ticket={ticket} />}
-
       {/* Asignacion / estatus (ambar, editable solo por Legal/admin) */}
       <section className="section-card p-6 space-y-4">
         <h2 className="eyebrow">Asignacion y estatus</h2>
@@ -711,5 +710,15 @@ export function TicketDetail({ id }: { id: string }) {
         </section>
       )}
     </div>
+  );
+
+  const mostrarResumen = puedeEditar && Boolean(ticket.contratoArrendamiento || ticket.resumenContrato);
+
+  return (
+    <DosColumnas
+      mostrarDerecha={mostrarResumen}
+      izquierda={izquierda}
+      derecha={<ResumenContratoCard ticket={ticket} />}
+    />
   );
 }
