@@ -10,6 +10,7 @@ import { useTicket } from "@/hooks/use-ticket";
 import { updateTicketAsignacion, updateTicketSolicitud, updateTicketSitio, submitSatisfaccion, deleteTicket } from "@/lib/tickets";
 import { findServicio } from "@/lib/catalogo";
 import { ResumenContratoCard } from "./resumen-contrato-card";
+import { HistorialPanel } from "./historial-panel";
 import { DosColumnas } from "@/components/layout/dos-columnas";
 import { ServicioSelector } from "./servicio-selector";
 import { SitioSelector, seleccionDeSitio } from "./sitio-selector";
@@ -29,7 +30,7 @@ import { DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO, SERVICIOS_ARRENDAMIENTO_IDS } from
 import { isAdminRole } from "@/types/user";
 import { esUrlStorageSegura } from "@/lib/storage-ruta";
 import { slaEnPausa } from "@/domain/tickets/sla-pausa-rules";
-import { actorDesdeSesion } from "@/domain/tickets/historial-rules";
+import { actorDesdeSesion, puedeVerHistorial } from "@/domain/tickets/historial-rules";
 
 function nombreArchivo(url: string): string {
   try {
@@ -154,6 +155,8 @@ export function TicketDetail({ id }: { id: string }) {
   const sitioCompleto = !!(sitioForm.clave && sitioForm.alias);
   // Asignar el sitio a un ticket existente: solo Mesa de Control y admins.
   const puedeCambiarSitio = puedeActualizarSitio(role, ticket);
+  // Admin/Gerente Juridico y el abogado asignado (misma condicion que firestore.rules).
+  const verHistorial = puedeVerHistorial({ role, abogadoId }, ticket);
 
   function handleEditarSitio() {
     setSitioForm(seleccionDeSitio(ticket!.sitioArrendamiento));
@@ -639,6 +642,8 @@ export function TicketDetail({ id }: { id: string }) {
           </dl>
         )}
       </section>
+
+      {verHistorial && <HistorialPanel ticket={ticket} />}
 
       {/* Calificacion — solo el dueno, solo si ya cerro y no ha calificado */}
       {puedeCalificar && (
