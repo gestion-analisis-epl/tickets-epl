@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
-import { requireAdmin, ApiAuthError } from "@/lib/api-auth";
+import { requirePermiso, ApiAuthError } from "@/lib/api-auth";
+import { normalizarAjustes, quedaGestorDeUsuarios, type AjustesPermisos, type CuentaGestion } from "@/domain/users/permisos";
 import { ABOGADOS } from "@/lib/data/abogados";
 import { normalizarCorreosDesactivados } from "@/domain/notificaciones/preferencias-rules";
 import { normalizarSupervisaUids } from "@/domain/users/supervision-rules";
@@ -13,12 +14,23 @@ interface Params {
   params: { uid: string };
 }
 
+async function hayGestorTras(uid: string, despues: CuentaGestion | null): Promise<boolean> {
+  const snap = await getAdminDb().collection("users").get();
+  const cuentas: CuentaGestion[] = snap.docs.map((d) => ({
+    uid: d.id,
+    role: d.data().role,
+    activo: d.data().activo !== false,
+    permisos: d.data().permisos,
+  }));
+  return quedaGestorDeUsuarios(cuentas, uid, despues);
+}
+
 // El correo solo se deja editar para staff — el de un solicitante es su
 // identidad de Google. "activo" tambien se refleja en Auth.disabled, que es
 // lo que de verdad bloquea el login (Firestore por si solo no lo hace).
 export async function PATCH(request: Request, { params }: Params) {
   try {
-    const callerUid = await requireAdmin(request);
+    const callerUid = await requirePermiso(request, "gestionar_usuarios");
     const { uid } = params;
 
     if (uid === callerUid) {
@@ -95,6 +107,28 @@ export async function PATCH(request: Request, { params }: Params) {
       else if (current.data()?.correosDesactivados !== undefined) patchFirestore.correosDesactivados = FieldValue.delete();
     }
 
+    // Ajustes de permisos: se validan contra el rol final y solo se guardan las excepciones reales.
+    let permisosFinales = current.data()?.permisos as AjustesPermisos | undefined;
+    if ("permisos" in body || typeof body.role === "string") {
+      const fuente = "permisos" in body ? body.permisos : permisosFinales ?? {};
+      const validacion = normalizarAjustes(fuente, rolFinal);
+      if (!validacion.ok) return NextResponse.json({ error: validacion.error }, { status: 400 });
+      permisosFinales = validacion.ajustes;
+      if (Object.keys(validacion.ajustes).length) patchFirestore.permisos = validacion.ajustes;
+      else if (current.data()?.permisos !== undefined) patchFirestore.permisos = FieldValue.delete();
+    }
+
+    // Nunca dejar el sistema sin una cuenta activa que pueda gestionar usuarios.
+    const despues: CuentaGestion = {
+      uid,
+      role: rolFinal,
+      activo: typeof body.activo === "boolean" ? body.activo : current.data()?.activo !== false,
+      permisos: permisosFinales,
+    };
+    if (!(await hayGestorTras(uid, despues))) {
+      return NextResponse.json({ error: "Debe quedar al menos una cuenta activa que pueda gestionar usuarios." }, { status: 400 });
+    }
+
     if (Object.keys(patchAuth).length > 0) {
       try {
         await getAdminAuth().updateUser(uid, patchAuth);
@@ -125,11 +159,14 @@ export async function PATCH(request: Request, { params }: Params) {
 // aqui (para eso esta "activo", ver PATCH arriba).
 export async function DELETE(request: Request, { params }: Params) {
   try {
-    const callerUid = await requireAdmin(request);
+    const callerUid = await requirePermiso(request, "gestionar_usuarios");
     const { uid } = params;
 
     if (uid === callerUid) {
       return NextResponse.json({ error: "No puedes eliminar tu propia cuenta." }, { status: 400 });
+    }
+    if (!(await hayGestorTras(uid, null))) {
+      return NextResponse.json({ error: "Debe quedar al menos una cuenta activa que pueda gestionar usuarios." }, { status: 400 });
     }
 
     try {

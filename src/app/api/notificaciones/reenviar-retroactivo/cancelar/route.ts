@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin, ApiAuthError } from "@/lib/api-auth";
+import { requirePermiso, ApiAuthError } from "@/lib/api-auth";
 import { getAdminDb } from "@/lib/firebase-admin";
 
 export const runtime = "nodejs";
@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 // Firestore) sin depender de que el cliente siga conectado.
 export async function POST(request: Request) {
   try {
-    await requireAdmin(request);
+    await requirePermiso(request, "usar_mantenimiento");
     await getAdminDb().collection("meta").doc("reenvioRetroactivo").set({ cancelado: true });
     return NextResponse.json({ ok: true });
   } catch (err) {

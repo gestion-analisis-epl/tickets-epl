@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin, ApiAuthError } from "@/lib/api-auth";
+import { requirePermiso, ApiAuthError } from "@/lib/api-auth";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { destinatariosReales, enviarNotificacionEmail } from "@/lib/notificaciones-email";
 import type { TipoNotificacion } from "@/lib/notificaciones";
@@ -76,7 +76,7 @@ function planPorTicket(t: Ticket): Envio[] {
 
 export async function POST(request: Request) {
   try {
-    await requireAdmin(request);
+    await requirePermiso(request, "usar_mantenimiento");
 
     const body = await request.json().catch(() => ({}));
     const send = body?.send === true;

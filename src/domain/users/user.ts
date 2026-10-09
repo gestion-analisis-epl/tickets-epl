@@ -1,5 +1,6 @@
 import type { Role } from "@/types/user";
 import type { TipoNotificacion } from "@/domain/notificaciones/notificacion";
+import type { AjustesPermisos } from "./permisos";
 
 export interface UserDoc {
   nombre: string;
@@ -11,6 +12,8 @@ export interface UserDoc {
   supervisaUids?: string[];
   // Correos que el admin apago para este usuario (ver notificaciones/preferencias-rules.ts). Sin definir = recibe todos los de su rol.
   correosDesactivados?: TipoNotificacion[];
+  // Excepciones a los permisos de su rol (ver permisos.ts). Solo las fija quien gestiona usuarios.
+  permisos?: AjustesPermisos;
 }
 
 export interface UserRow extends UserDoc {

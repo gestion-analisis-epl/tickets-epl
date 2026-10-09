@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import { ShieldAlert, Wrench, Mail, Send, Square, RefreshCw } from "lucide-react";
-import { useAuthStore } from "@/stores/auth";
 import { backfillSlaHistorico, reenviarNotificacionReasignacion, type BackfillResultado } from "@/lib/tickets";
 import { enviarEmailNotificacion } from "@/lib/notificaciones";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { ExcluirTicketsSection } from "./excluir-tickets-section";
 import { ResumenesContratoSection } from "./resumenes-contrato-section";
-import { isAdminRole } from "@/types/user";
+import { usePermiso } from "@/hooks/use-permiso";
 
 interface ReenvioResultado {
   modo: "dry-run" | "envio";
@@ -43,7 +42,7 @@ async function llamarCancelarReenvio(): Promise<void> {
 }
 
 export function MantenimientoPanel() {
-  const role = useAuthStore((s) => s.role);
+  const puedeMantenimiento = usePermiso("usar_mantenimiento");
   const [confirmando, setConfirmando] = useState(false);
   const [corriendo, setCorriendo] = useState(false);
   const [resultado, setResultado] = useState<BackfillResultado | null>(null);
@@ -154,7 +153,7 @@ export function MantenimientoPanel() {
     }
   }
 
-  if (!isAdminRole(role)) {
+  if (!puedeMantenimiento) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card p-10 text-center max-w-lg">
         <ShieldAlert className="h-6 w-6 text-danger" />

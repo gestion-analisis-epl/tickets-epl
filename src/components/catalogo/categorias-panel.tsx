@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Plus, Pencil, Trash2, Upload } from "lucide-react";
-import { useAuthStore } from "@/stores/auth";
 import { useCategoriasStore } from "@/stores/categorias";
 import {
   crearCategoria, actualizarTonoCategoria, eliminarCategoria, importarCategoriasEstaticas,
@@ -12,12 +11,12 @@ import { BADGE_TONES, type BadgeTone } from "@/types/badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { CatalogoServicio } from "@/types/catalogo";
-import { isAdminRole } from "@/types/user";
+import { usePermiso } from "@/hooks/use-permiso";
 
 type Panel = { mode: "crear" } | { mode: "editar"; categoria: CategoriaCatalogo } | null;
 
 export function CategoriasPanel({ servicios }: { servicios: CatalogoServicio[] }) {
-  const isAdmin = useAuthStore((s) => isAdminRole(s.role));
+  const isAdmin = usePermiso("editar_catalogo");
   const categorias = useCategoriasStore((s) => s.categorias);
 
   const [panel, setPanel] = useState<Panel>(null);

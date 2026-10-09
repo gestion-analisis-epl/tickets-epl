@@ -26,8 +26,7 @@ import {
 import { cn } from "@/lib/utils";
 import { multiSelectColumn, facetOptions, FILTRO_VACIO } from "@/lib/table-filter";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { useAuthStore } from "@/stores/auth";
-import { isAdminRole } from "@/types/user";
+import { usePermiso } from "@/hooks/use-permiso";
 import {
   crearServicio, actualizarServicio, eliminarServicio, importarCatalogoEstatico,
   type ServicioInput,
@@ -260,7 +259,7 @@ const FORM_VACIO: ServicioInput = {
 };
 
 export function CatalogoTable({ data }: { data: CatalogoServicio[] }) {
-  const isAdmin = useAuthStore((s) => isAdminRole(s.role));
+  const isAdmin = usePermiso("editar_catalogo");
   const categorias = useCategoriasStore((s) => s.categorias);
   const [sorting, setSorting]             = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);

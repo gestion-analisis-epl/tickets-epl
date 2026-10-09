@@ -1,5 +1,6 @@
 import { getAdminAuth, getAdminDb } from "./firebase-admin";
 import { isAdminRole } from "@/types/user";
+import { tienePermiso, type Permiso } from "@/domain/users/permisos";
 
 // Status HTTP que debe devolver el route handler que la atrape.
 export class ApiAuthError extends Error {
@@ -32,6 +33,18 @@ export async function requireAdmin(request: Request): Promise<string> {
   const callerDoc = await getAdminDb().collection("users").doc(callerUid).get();
   if (!isAdminRole(callerDoc.data()?.role)) {
     throw new ApiAuthError(403, "Solo una cuenta admin o gerente juridico puede hacer esto.");
+  }
+
+  return callerUid;
+}
+
+// Igual que requireAdmin pero por permiso efectivo (rol + ajustes del usuario).
+export async function requirePermiso(request: Request, permiso: Permiso): Promise<string> {
+  const callerUid = await verifyCallerToken(request);
+
+  const data = (await getAdminDb().collection("users").doc(callerUid).get()).data();
+  if (!data || !tienePermiso({ role: data.role, permisos: data.permisos }, permiso)) {
+    throw new ApiAuthError(403, "No tienes permiso para hacer esto.");
   }
 
   return callerUid;

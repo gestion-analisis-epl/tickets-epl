@@ -3,7 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 import { auth } from "@/lib/firebase";
-import { requireAdmin, ApiAuthError } from "@/lib/api-auth";
+import { requirePermiso, ApiAuthError } from "@/lib/api-auth";
 import { STAFF_ROLES, type Role } from "@/types/user";
 
 export const runtime = "nodejs";
@@ -13,7 +13,7 @@ export const runtime = "nodejs";
 // Firebase para que la persona fije la suya (ver sendPasswordResetEmail abajo).
 export async function POST(request: Request) {
   try {
-    await requireAdmin(request);
+    await requirePermiso(request, "gestionar_usuarios");
 
     const body = await request.json();
     const email = String(body.email ?? "").trim().toLowerCase();

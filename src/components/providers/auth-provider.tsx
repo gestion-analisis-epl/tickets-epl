@@ -23,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: userDoc?.role ?? "solicitante",
         abogadoId: userDoc?.abogadoId ?? null,
         supervisaUids: userDoc?.supervisaUids ?? [],
+        permisos: userDoc?.permisos ?? {},
       });
     });
     return unsubscribe;

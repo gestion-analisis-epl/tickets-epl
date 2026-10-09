@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useAuthStore, type Role } from "@/stores/auth";
 import { signOutUser } from "@/lib/auth-actions";
 import { isAdminRole } from "@/types/user";
+import { usePermiso } from "@/hooks/use-permiso";
 
 interface NavItem {
   label: string;
@@ -58,6 +59,9 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const { role, nombre } = useAuthStore();
+  const puedeUsuarios = usePermiso("gestionar_usuarios");
+  const puedeMantenimiento = usePermiso("usar_mantenimiento");
+  const puedeConfigurar = puedeUsuarios || puedeMantenimiento;
 
   useEffect(() => {
     setMounted(true);
@@ -167,7 +171,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
 
         {/* Bottom */}
         <div className={cn("space-y-0.5 border-t border-sidebar-border py-3 transition-[padding] duration-200", effectiveCollapsed ? "px-1.5" : "px-2.5")}>
-          {isAdminRole(role) && (
+          {(isAdminRole(role) || puedeConfigurar) && (
             <Link
               href="/configuracion"
               title="Configuracion"

@@ -5,6 +5,7 @@ import { createUserService } from "@/domain/users/user-service";
 import type { UserDoc } from "@/domain/users/user";
 import type { TipoNotificacion } from "@/domain/notificaciones/notificacion";
 import type { Role } from "@/types/user";
+import type { AjustesPermisos } from "@/domain/users/permisos";
 
 export type { UserDoc, UserRow } from "@/domain/users/user";
 
@@ -53,6 +54,7 @@ export interface ActualizarUsuarioInput {
   abogadoId?: string | null; // null para desvincular
   supervisaUids?: string[]; // solo gerente_area
   correosDesactivados?: TipoNotificacion[];
+  permisos?: AjustesPermisos; // {} limpia los ajustes. Excepciones al rol; ver domain/users/permisos.ts
 }
 
 export async function actualizarUsuario(uid: string, input: ActualizarUsuarioInput): Promise<void> {

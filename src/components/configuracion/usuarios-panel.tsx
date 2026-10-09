@@ -10,7 +10,9 @@ import {
 } from "@/lib/users";
 import { ETIQUETA_CORREO, tiposCorreoEditables } from "@/domain/notificaciones/preferencias-rules";
 import type { TipoNotificacion } from "@/domain/notificaciones/notificacion";
-import { STAFF_ROLES, LEGAL_STAFF_ROLES, isAdminRole, isSolicitanteRole, puedeSupervisar, type Role } from "@/types/user";
+import { STAFF_ROLES, LEGAL_STAFF_ROLES, isSolicitanteRole, puedeSupervisar, type Role } from "@/types/user";
+import { PERMISOS, ETIQUETA_PERMISO, permisoDelRol, puedeRecibirAjuste, type AjustesPermisos, type Permiso } from "@/domain/users/permisos";
+import { usePermiso } from "@/hooks/use-permiso";
 import { ABOGADOS, findAbogado } from "@/lib/data/abogados";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -133,7 +135,7 @@ function ColumnFilterButton({
 }
 
 export function UsuariosPanel() {
-  const myRole = useAuthStore((s) => s.role);
+  const puedeGestionar = usePermiso("gestionar_usuarios");
   const myUid = useAuthStore((s) => s.uid);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -151,6 +153,7 @@ export function UsuariosPanel() {
   const [formAbogadoId, setFormAbogadoId] = useState("");
   const [formSupervisaUids, setFormSupervisaUids] = useState<string[]>([]);
   const [formCorreosDesactivados, setFormCorreosDesactivados] = useState<TipoNotificacion[]>([]);
+  const [formPermisos, setFormPermisos] = useState<AjustesPermisos>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -163,12 +166,12 @@ export function UsuariosPanel() {
   }
 
   useEffect(() => {
-    if (!isAdminRole(myRole)) return;
+    if (!puedeGestionar) return;
     refresh()
       .catch(() => setListError("No se pudo cargar la lista de usuarios."))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myRole]);
+  }, [puedeGestionar]);
 
   function toggleSort(key: ColumnKey) {
     setSort((prev) => {
@@ -219,6 +222,7 @@ export function UsuariosPanel() {
     setFormAbogadoId("");
     setFormSupervisaUids([]);
     setFormCorreosDesactivados([]);
+    setFormPermisos({});
     setFormError(null);
     setInfoMsg(null);
     setPanel({ mode: "crear" });
@@ -232,6 +236,7 @@ export function UsuariosPanel() {
     setFormAbogadoId(u.abogadoId ?? "");
     setFormSupervisaUids(u.supervisaUids ?? []);
     setFormCorreosDesactivados(u.correosDesactivados ?? []);
+    setFormPermisos(u.permisos ?? {});
     setFormError(null);
     setInfoMsg(null);
     setPanel({ mode: "editar", user: u });
@@ -259,6 +264,7 @@ export function UsuariosPanel() {
         patch.abogadoId = LEGAL_STAFF_ROLES.includes(formRole) ? (formAbogadoId || null) : null;
         if (puedeSupervisar(formRole)) patch.supervisaUids = formSupervisaUids;
         patch.correosDesactivados = formCorreosDesactivados;
+        patch.permisos = formPermisos;
         await actualizarUsuario(panel.user.uid, patch);
         setInfoMsg("Cambios guardados.");
       }
@@ -285,7 +291,7 @@ export function UsuariosPanel() {
     }
   }
 
-  if (!isAdminRole(myRole)) {
+  if (!puedeGestionar) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card p-10 text-center max-w-lg">
         <ShieldAlert className="h-6 w-6 text-danger" />
@@ -441,6 +447,43 @@ export function UsuariosPanel() {
               </div>
               <p className="text-xs text-muted mt-1">
                 Desmarca los avisos que no quiera recibir. Solo se pueden apagar los que su rol recibe.
+              </p>
+            </div>
+          )}
+
+          {panel.mode === "editar" && (
+            <div>
+              <label className="field-label">Permisos</label>
+              <div className="space-y-1.5">
+                {PERMISOS.filter((p) => puedeRecibirAjuste(formRole, p) || permisoDelRol(formRole, p)).map((p) => {
+                  const base = permisoDelRol(formRole, p);
+                  const ajuste = formPermisos[p];
+                  return (
+                    <div key={p} className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-sm">{ETIQUETA_PERMISO[p]}</span>
+                      <select
+                        value={ajuste === undefined ? "heredar" : ajuste ? "si" : "no"}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setFormPermisos((prev) => {
+                            const next = { ...prev };
+                            if (v === "heredar") delete next[p as Permiso];
+                            else next[p as Permiso] = v === "si";
+                            return next;
+                          });
+                        }}
+                        className="field w-56"
+                      >
+                        <option value="heredar">Segun su rol ({base ? "si" : "no"})</option>
+                        {puedeRecibirAjuste(formRole, p) && <option value="si">Conceder</option>}
+                        <option value="no">Quitar</option>
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted mt-1">
+                Ajustes sobre lo que ya le da su rol. Eliminar tickets solo existe para el rol admin.
               </p>
             </div>
           )}

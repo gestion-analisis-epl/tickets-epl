@@ -1,5 +1,6 @@
 import type { Estatus, HistorialEntry, Ticket } from "@/types/ticket";
-import { isAdminRole, type Role } from "@/types/user";
+import type { Role } from "@/types/user";
+import { tienePermiso, type AjustesPermisos } from "@/domain/users/permisos";
 import type { VistoBueno } from "@/types/resumen-contrato";
 import type { ActorHistorial, CambioCampo, EntradaHistorial, EntradaHistorialGuardada, TipoHistorial } from "@/types/historial";
 import { nombreDeUrl } from "@/domain/contratos/contrato-rules";
@@ -243,11 +244,11 @@ export function lineaDeTiempo(entradas: EntradaHistorialGuardada[], historialEst
   return [...nuevas, ...previas];
 }
 
-// Espejo de "allow read" de tickets/{id}/historial en firestore.rules (isAdmin o abogado asignado).
+// Espejo de "allow read" de tickets/{id}/historial en firestore.rules (permiso ver_historial o abogado asignado).
 export function puedeVerHistorial(
-  sesion: { role: Role; abogadoId: string | null },
+  sesion: { role: Role; abogadoId: string | null; permisos?: AjustesPermisos },
   ticket: Pick<Ticket, "abogadoAsignadoId">
 ): boolean {
-  if (isAdminRole(sesion.role)) return true;
+  if (tienePermiso(sesion, "ver_historial")) return true;
   return !!sesion.abogadoId && sesion.abogadoId === ticket.abogadoAsignadoId;
 }

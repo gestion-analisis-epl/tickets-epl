@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, ShieldAlert, FileText, Trash2, Pencil, Download } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
+import { usePermiso } from "@/hooks/use-permiso";
 import { auth } from "@/lib/firebase";
 import { useTicket } from "@/hooks/use-ticket";
 import { updateTicketAsignacion, updateTicketSolicitud, updateTicketSitio, submitSatisfaccion, deleteTicket } from "@/lib/tickets";
@@ -69,12 +70,12 @@ function EnlaceDocumento({ url, etiqueta }: { url: string; etiqueta: string }) {
 
 export function TicketDetail({ id }: { id: string }) {
   const router = useRouter();
-  const { uid, nombre, role, abogadoId } = useAuthStore();
+  const { uid, nombre, role, abogadoId, permisos } = useAuthStore();
   const { ticket, loading, forbidden } = useTicket(id);
   const puedeEditar = role === "mesa_control" || role === "abogado" || role === "gerente_juridico" || role === "admin";
-  const puedeEliminar = isAdminRole(role);
-  // Reasignar abogado es tarea exclusiva de Admin/Gerente Juridico (ver firestore.rules).
-  const puedeAsignarAbogado = isAdminRole(role);
+  const puedeEliminar = usePermiso("eliminar_tickets");
+  // Reasignar abogado depende del permiso asignar_tickets (rol + ajustes; ver firestore.rules).
+  const puedeAsignarAbogado = usePermiso("asignar_tickets");
   const actor = actorDesdeSesion({ uid, nombre, role });
 
   const [estatusForm, setEstatusForm] = useState<Estatus>("Recepcion de solicitud");
@@ -159,7 +160,7 @@ export function TicketDetail({ id }: { id: string }) {
   // Asignar el sitio a un ticket existente: solo Mesa de Control y admins.
   const puedeCambiarSitio = puedeActualizarSitio(role, ticket) && !bloqueadoPorPreCierre(ticket.estatus);
   // Admin/Gerente Juridico y el abogado asignado (misma condicion que firestore.rules).
-  const verHistorial = puedeVerHistorial({ role, abogadoId }, ticket);
+  const verHistorial = puedeVerHistorial({ role, abogadoId, permisos }, ticket);
   // Participantes del hilo (sin Mesa de Control ni otros abogados), desde que el ticket llego a Pre-Cierre.
   const verConversacion = hiloVisible(ticket) && esParticipante({ uid, role, abogadoId }, ticket);
 
