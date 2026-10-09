@@ -29,6 +29,7 @@ import { DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO, SERVICIOS_ARRENDAMIENTO_IDS } from
 import { isAdminRole } from "@/types/user";
 import { esUrlStorageSegura } from "@/lib/storage-ruta";
 import { slaEnPausa } from "@/domain/tickets/sla-pausa-rules";
+import { actorDesdeSesion } from "@/domain/tickets/historial-rules";
 
 function nombreArchivo(url: string): string {
   try {
@@ -64,12 +65,13 @@ function EnlaceDocumento({ url, etiqueta }: { url: string; etiqueta: string }) {
 
 export function TicketDetail({ id }: { id: string }) {
   const router = useRouter();
-  const { uid, role, abogadoId } = useAuthStore();
+  const { uid, nombre, role, abogadoId } = useAuthStore();
   const { ticket, loading, forbidden } = useTicket(id);
   const puedeEditar = role === "mesa_control" || role === "abogado" || role === "gerente_juridico" || role === "admin";
   const puedeEliminar = isAdminRole(role);
   // Reasignar abogado es tarea exclusiva de Admin/Gerente Juridico (ver firestore.rules).
   const puedeAsignarAbogado = isAdminRole(role);
+  const actor = actorDesdeSesion({ uid, nombre, role });
 
   const [estatusForm, setEstatusForm] = useState<Estatus>("Recepcion de solicitud");
   const [abogadoForm, setAbogadoForm] = useState("");
@@ -160,11 +162,11 @@ export function TicketDetail({ id }: { id: string }) {
   }
 
   async function handleGuardarSitio() {
-    if (!sitioCompleto) return;
+    if (!sitioCompleto || !actor) return;
     setSavingSitio(true);
     setSitioError(null);
     try {
-      await updateTicketSitio(id, uid!, sitioForm);
+      await updateTicketSitio(id, actor, sitioForm);
       setEditandoSitio(false);
     } catch {
       setSitioError("No se pudo guardar el sitio. Intenta de nuevo.");
@@ -174,11 +176,12 @@ export function TicketDetail({ id }: { id: string }) {
   }
 
   async function handleGuardar() {
+    if (!actor) return;
     setSaving(true);
     setSaveError(null);
     setSaveOk(false);
     try {
-      await updateTicketAsignacion(id, uid!, {
+      await updateTicketAsignacion(id, actor, {
         estatus: estatusForm,
         abogadoAsignadoId: abogadoForm || null,
         notasCierre: notasForm || null,
@@ -255,13 +258,14 @@ export function TicketDetail({ id }: { id: string }) {
   }
 
   async function handleGuardarSolicitud() {
+    if (!actor) return;
     setSavingSolicitud(true);
     setSolicitudError(null);
     try {
       const nuevosUrls = nuevosArchivos.filter((f) => f.status === "done" && f.url).map((f) => f.url!);
       const docsEliminados = ticket!.documentacion.filter((u) => !docsExistentesForm.includes(u));
 
-      await updateTicketSolicitud(id, {
+      await updateTicketSolicitud(id, actor, {
         areaEmpresa: areaEmpresaForm,
         servicioId: servicioIdForm,
         descripcion: descripcionForm,

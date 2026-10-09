@@ -10,6 +10,8 @@ import { calcularPatchAsignacion, type AsignacionInput } from "./asignacion-rule
 import { calcularPatchSolicitud, type SolicitudInput } from "./solicitud-rules";
 import { calcularBackfill } from "./backfill-rules";
 import { calcularPatchSitio } from "./sitio-rules";
+import type { ActorHistorial } from "@/types/historial";
+import { entradaExclusion, entradaSitio, entradasAsignacion, entradasSolicitud } from "./historial-rules";
 
 export interface BackfillResultado {
   actualizados: number;
@@ -77,15 +79,16 @@ export function createTicketService(
     }
   }
 
-  async function updateTicketAsignacion(id: string, actorUid: string, input: AsignacionInput): Promise<void> {
+  async function updateTicketAsignacion(id: string, actor: ActorHistorial, input: AsignacionInput): Promise<void> {
     const current = await repo.getById(id);
     if (!current) throw new Error("Ticket no encontrado.");
 
+    const ahora = new Date();
     const { patch, esNuevaAsignacion, esReasignacion, esCambioEstatus } = calcularPatchAsignacion(
-      current, input, actorUid, new Date()
+      current, input, actor.uid, ahora
     );
     const estatusPrevio = current.estatus;
-    await repo.update(id, patch);
+    await repo.updateConHistorial(id, patch, entradasAsignacion(current, patch, actor, ahora));
 
     if (esCambioEstatus) {
       await sincronizarResumen({ ...current, ...patch } as Ticket, estatusPrevio).catch((err) =>
@@ -131,29 +134,37 @@ export function createTicketService(
     });
   }
 
-  async function updateTicketSolicitud(id: string, input: SolicitudInput): Promise<void> {
+  async function updateTicketSolicitud(id: string, actor: ActorHistorial, input: SolicitudInput): Promise<void> {
     const servicio = catalogo.findServicio(input.servicioId);
     if (!servicio) throw new Error("Servicio no encontrado en el catalogo.");
 
     const current = await repo.getById(id);
     if (!current) throw new Error("Ticket no encontrado.");
 
+    const ahora = new Date();
     const patch = calcularPatchSolicitud(current, input, servicio);
-    await repo.update(id, patch);
+    const nombreServicio = (servicioId: string) => catalogo.findServicio(servicioId)?.servicio ?? null;
+    await repo.updateConHistorial(id, patch, entradasSolicitud(current, patch, actor, ahora, nombreServicio));
     await refrescarResumenSiVisible({ ...current, ...patch } as Ticket);
   }
 
-  async function updateTicketSitio(id: string, actorUid: string, sitio: SitioArrendamiento): Promise<void> {
+  async function updateTicketSitio(id: string, actor: ActorHistorial, sitio: SitioArrendamiento): Promise<void> {
     const current = await repo.getById(id);
     if (!current) throw new Error("Ticket no encontrado.");
 
-    const patch = calcularPatchSitio(sitio, actorUid, new Date());
-    await repo.update(id, patch);
+    const ahora = new Date();
+    const patch = calcularPatchSitio(sitio, actor.uid, ahora);
+    const entrada = entradaSitio(current, patch, actor, ahora);
+    await repo.updateConHistorial(id, patch, entrada ? [entrada] : []);
     await refrescarResumenSiVisible({ ...current, ...patch } as Ticket);
   }
 
-  async function updateTicketExclusion(id: string, excluido: boolean): Promise<void> {
-    await repo.update(id, { excluidoDelPipeline: excluido });
+  async function updateTicketExclusion(id: string, actor: ActorHistorial, excluido: boolean): Promise<void> {
+    const current = await repo.getById(id);
+    if (!current) throw new Error("Ticket no encontrado.");
+
+    const entrada = entradaExclusion(current, excluido, actor, new Date());
+    await repo.updateConHistorial(id, { excluidoDelPipeline: excluido }, entrada ? [entrada] : []);
   }
 
   async function deleteTicket(id: string): Promise<void> {

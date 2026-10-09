@@ -9,6 +9,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Loader2, Search } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
+import { actorDesdeSesion } from "@/domain/tickets/historial-rules";
 import { updateTicketAsignacion } from "@/lib/tickets";
 import { findServicio } from "@/lib/catalogo";
 import { ESTATUS_VALUES, type Estatus, type Ticket } from "@/types/ticket";
@@ -138,7 +139,7 @@ function Column({
 }
 
 export function TicketsKanban({ tickets }: { tickets: Ticket[] }) {
-  const { uid, role } = useAuthStore();
+  const { uid, nombre, role } = useAuthStore();
   const canDrag = role === "mesa_control" || role === "abogado" || role === "gerente_juridico" || role === "admin";
 
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
@@ -176,12 +177,13 @@ export function TicketsKanban({ tickets }: { tickets: Ticket[] }) {
 
     const ticket = active.data.current?.ticket as Ticket | undefined;
     const nuevoEstatus = over.id as Estatus;
-    if (!ticket || nuevoEstatus === ticket.estatus || !uid) return;
+    const actor = actorDesdeSesion({ uid, nombre, role });
+    if (!ticket || nuevoEstatus === ticket.estatus || !actor) return;
 
     setDragError(null);
     setMovingIds((prev) => new Set(prev).add(ticket.id));
     try {
-      await updateTicketAsignacion(ticket.id, uid, {
+      await updateTicketAsignacion(ticket.id, actor, {
         estatus: nuevoEstatus,
         abogadoAsignadoId: ticket.abogadoAsignadoId,
         notasCierre: ticket.notasCierre,

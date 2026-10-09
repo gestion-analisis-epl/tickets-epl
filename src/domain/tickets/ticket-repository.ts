@@ -1,5 +1,6 @@
 import type { Ticket } from "@/types/ticket";
 import type { Role } from "@/types/user";
+import type { EntradaHistorial } from "@/types/historial";
 
 export type Unsubscribe = () => void;
 
@@ -20,6 +21,8 @@ export interface TicketRepository {
   getById(id: string): Promise<Ticket | null>;
   getByFolio(folio: string): Promise<Ticket | null>;
   update(id: string, patch: Partial<Ticket>): Promise<void>;
+  // Ticket y entradas de historial en un solo lote: o se guardan todos o ninguno.
+  updateConHistorial(id: string, patch: Partial<Ticket>, entradas: EntradaHistorial[]): Promise<void>;
   delete(id: string): Promise<void>;
   listCerrados(): Promise<Ticket[]>;
   subscribeMany(filter: { uid: string; role: Role; supervisaUids?: string[] }, callback: (tickets: Ticket[]) => void): Unsubscribe;

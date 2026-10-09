@@ -1,11 +1,12 @@
 import {
-  collection, doc, runTransaction, query, where, onSnapshot, getDoc, getDocs, updateDoc, deleteDoc, limit,
+  collection, doc, runTransaction, query, where, onSnapshot, getDoc, getDocs, updateDoc, deleteDoc, limit, writeBatch,
   type FirestoreError,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { LEGAL_STAFF_ROLES } from "@/types/user";
 import type { Ticket } from "@/types/ticket";
 import type { TicketRepository, RepositoryError } from "@/domain/tickets/ticket-repository";
+import { nuevaEntradaHistorialRef } from "./historial-repository";
 import { combinarTickets, uidsConsultaTickets } from "@/domain/tickets/visibilidad-rules";
 
 function toRepositoryError(err: FirestoreError): RepositoryError {
@@ -56,6 +57,13 @@ export const firestoreTicketRepository: TicketRepository = {
 
   async update(id, patch) {
     await updateDoc(doc(db, "tickets", id), patch);
+  },
+
+  async updateConHistorial(id, patch, entradas) {
+    const batch = writeBatch(db);
+    batch.update(doc(db, "tickets", id), patch);
+    for (const entrada of entradas) batch.set(nuevaEntradaHistorialRef(id), entrada);
+    await batch.commit();
   },
 
   async getByFolio(folio) {

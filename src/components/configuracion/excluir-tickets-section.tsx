@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { Loader2, Search } from "lucide-react";
 import { useTickets } from "@/hooks/use-tickets";
 import { updateTicketExclusion } from "@/lib/tickets";
+import { useAuthStore } from "@/stores/auth";
+import { actorDesdeSesion } from "@/domain/tickets/historial-rules";
 import { formatFecha } from "@/lib/format-fecha";
 import { normalizar } from "@/lib/busqueda";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +14,9 @@ import { Button } from "@/components/ui/button";
 // Saca (o devuelve) tickets de prueba de la tabla, el kanban y el dashboard. No borra nada.
 export function ExcluirTicketsSection() {
   const { tickets, loading } = useTickets({ incluirExcluidos: true });
+  const uid = useAuthStore((s) => s.uid);
+  const nombre = useAuthStore((s) => s.nombre);
+  const role = useAuthStore((s) => s.role);
   const [busqueda, setBusqueda] = useState("");
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [confirmando, setConfirmando] = useState(false);
@@ -44,11 +49,13 @@ export function ExcluirTicketsSection() {
   }
 
   async function aplicar(excluido: boolean) {
+    const actor = actorDesdeSesion({ uid, nombre, role });
+    if (!actor) return;
     const objetivo = excluido ? aExcluir : aDevolver;
     setGuardando(true);
     setError(null);
     try {
-      await Promise.all(objetivo.map((t) => updateTicketExclusion(t.id, excluido)));
+      await Promise.all(objetivo.map((t) => updateTicketExclusion(t.id, actor, excluido)));
       const folios = objetivo.map((t) => t.folio).join(", ");
       setResultado(
         excluido
