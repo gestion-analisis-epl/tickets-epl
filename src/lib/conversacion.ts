@@ -25,3 +25,13 @@ export const comentar = conversacionService.comentar;
 export const editarComentario = conversacionService.editar;
 export const eliminarComentario = conversacionService.eliminar;
 export const subscribeComentarios = conversacionService.subscribeComentarios;
+
+// Ruta de servidor (Admin SDK): el jefe de zona no puede escribir el ticket desde el cliente.
+export async function solicitarCambios(ticketId: string, texto: string): Promise<void> {
+  const res = await postConToken(`/api/tickets/${encodeURIComponent(ticketId)}/pedir-cambios`, { texto });
+  if (res.ok) return;
+  const data: unknown = await res.json().catch(() => null);
+  const mensaje =
+    typeof data === "object" && data !== null && "error" in data && typeof data.error === "string" ? data.error : null;
+  throw new Error(mensaje ?? "No se pudieron pedir los cambios. Intenta de nuevo.");
+}
