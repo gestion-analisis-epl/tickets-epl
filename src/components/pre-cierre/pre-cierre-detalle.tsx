@@ -6,8 +6,11 @@ import { Loader2, ShieldAlert, Download, ArrowLeft, AlertTriangle } from "lucide
 import { useResumen } from "@/hooks/use-resumenes-contrato";
 import { registrarVistoBueno } from "@/lib/resumenes-contrato";
 import { useAuthStore } from "@/stores/auth";
-import { puedeDarVistoBueno } from "@/types/user";
+import { esJefeZona, puedeDarVistoBueno } from "@/types/user";
 import { actorDesdeSesion } from "@/domain/tickets/historial-rules";
+import { ConversacionPanel } from "@/components/tickets/conversacion-panel";
+import { solicitarCambios } from "@/lib/conversacion";
+import { MAX_TEXTO_COMENTARIO, validarTextoComentario } from "@/domain/tickets/conversacion-rules";
 import { Button } from "@/components/ui/button";
 import { EstatusBadge } from "@/components/ui/badge";
 import { DosColumnas } from "@/components/layout/dos-columnas";
@@ -38,6 +41,11 @@ export function PreCierreDetalle({ id }: { id: string }) {
   const role = useAuthStore((s) => s.role);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pidiendoCambios, setPidiendoCambios] = useState(false);
+  const [textoCambios, setTextoCambios] = useState("");
+  const [enviandoCambios, setEnviandoCambios] = useState(false);
+  const [errorCambios, setErrorCambios] = useState<string | null>(null);
+  const [cambiosEnviados, setCambiosEnviados] = useState(false);
 
   if (loading) {
     return (
@@ -59,6 +67,35 @@ export function PreCierreDetalle({ id }: { id: string }) {
 
   const aviso = AVISO_ESTADO[resumen.estadoResumen];
   const mostrarVistoBueno = puedeDarVistoBueno(role) && resumen.estatus === "Pre-Cierre" && !resumen.vistoBueno;
+
+  // Rol Sitios: tambien abre esta pantalla (solo lectura del resumen). No pide cambios ni ve la conversacion.
+  const esJefe = esJefeZona(role);
+  const enPreCierre = resumen.estatus === "Pre-Cierre";
+  // El jefe de zona conserva el hilo de sus tickets en cualquier etapa (decision del usuario); en Cierre, solo lectura.
+  // Las reglas (hiloEscribible) son la autoridad.
+  const hiloAbiertoParaJefe = resumen.estatus !== "Cierre";
+
+  // Tras pedir cambios el jefe de zona se queda en la pantalla: la suscripcion al resumen sigue viva
+  // y la etapa cambia sola a "Proceso en tramite" (el boton desaparece porque ya no esta en Pre-Cierre).
+  async function enviarCambios() {
+    const validado = validarTextoComentario(textoCambios);
+    if (!validado.ok) {
+      setErrorCambios(validado.error);
+      return;
+    }
+    setEnviandoCambios(true);
+    setErrorCambios(null);
+    try {
+      await solicitarCambios(id, validado.texto);
+      setPidiendoCambios(false);
+      setTextoCambios("");
+      setCambiosEnviados(true);
+    } catch (err) {
+      setErrorCambios(err instanceof Error ? err.message : "No se pudieron pedir los cambios. Intenta de nuevo.");
+    } finally {
+      setEnviandoCambios(false);
+    }
+  }
 
   async function darVistoBueno() {
     const actor = actorDesdeSesion({ uid, nombre, role });
@@ -107,7 +144,52 @@ export function PreCierreDetalle({ id }: { id: string }) {
         ) : (
           <p className="text-sm text-muted">Sin visto bueno registrado.</p>
         )}
+        {cambiosEnviados && !enPreCierre && (
+          <p role="status" className="text-sm text-muted">
+            Se pidieron los cambios. El ticket esta en correccion; puedes seguir la conversacion abajo.
+          </p>
+        )}
+        {esJefe && enPreCierre && (
+          <div className="border-t border-border pt-3 space-y-2">
+            {!pidiendoCambios ? (
+              <Button variant="outline" onClick={() => setPidiendoCambios(true)}>
+                Pedir cambios
+              </Button>
+            ) : (
+              <>
+                <label htmlFor="texto-cambios" className="field-label">Que hay que corregir (obligatorio)</label>
+                <textarea
+                  id="texto-cambios"
+                  value={textoCambios}
+                  onChange={(e) => setTextoCambios(e.target.value)}
+                  rows={4}
+                  maxLength={MAX_TEXTO_COMENTARIO}
+                  className="field w-full resize-y"
+                />
+                <p className="text-xs text-muted">
+                  El ticket regresa a &quot;Proceso en tramite&quot;, se borra el visto bueno y se avisa al abogado y al solicitante.
+                </p>
+                {errorCambios && <p role="alert" className="text-sm text-danger">{errorCambios}</p>}
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="warning" onClick={enviarCambios} disabled={enviandoCambios || !textoCambios.trim()}>
+                    {enviandoCambios && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Enviar y regresar el ticket
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => { setPidiendoCambios(false); setErrorCambios(null); }}
+                    disabled={enviandoCambios}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </section>
+
+      {esJefe && <ConversacionPanel ticketId={id} escribible={hiloAbiertoParaJefe} />}
     </div>
   );
 

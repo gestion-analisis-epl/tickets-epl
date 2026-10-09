@@ -11,6 +11,8 @@ import { updateTicketAsignacion, updateTicketSolicitud, updateTicketSitio, submi
 import { findServicio } from "@/lib/catalogo";
 import { ResumenContratoCard } from "./resumen-contrato-card";
 import { HistorialPanel } from "./historial-panel";
+import { ConversacionPanel } from "./conversacion-panel";
+import { esParticipante, hiloEscribible, hiloVisible } from "@/domain/tickets/conversacion-rules";
 import { DosColumnas } from "@/components/layout/dos-columnas";
 import { ServicioSelector } from "./servicio-selector";
 import { SitioSelector, seleccionDeSitio } from "./sitio-selector";
@@ -158,6 +160,8 @@ export function TicketDetail({ id }: { id: string }) {
   const puedeCambiarSitio = puedeActualizarSitio(role, ticket) && !bloqueadoPorPreCierre(ticket.estatus);
   // Admin/Gerente Juridico y el abogado asignado (misma condicion que firestore.rules).
   const verHistorial = puedeVerHistorial({ role, abogadoId }, ticket);
+  // Participantes del hilo (sin Mesa de Control ni otros abogados), desde que el ticket llego a Pre-Cierre.
+  const verConversacion = hiloVisible(ticket) && esParticipante({ uid, role, abogadoId }, ticket);
 
   function handleEditarSitio() {
     setSitioForm(seleccionDeSitio(ticket!.sitioArrendamiento));
@@ -649,6 +653,7 @@ export function TicketDetail({ id }: { id: string }) {
         )}
       </section>
 
+      {verConversacion && <ConversacionPanel ticketId={ticket.id} escribible={hiloEscribible(ticket)} />}
       {verHistorial && <HistorialPanel ticket={ticket} />}
 
       {/* Calificacion — solo el dueno, solo si ya cerro y no ha calificado */}
