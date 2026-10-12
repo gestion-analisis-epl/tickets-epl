@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { filtrarDestinatarios, normalizarCorreosDesactivados, recibeCorreo, tiposCorreoEditables } from "./preferencias-rules";
+import {
+  combinarPorUid, filtrarDestinatarios, normalizarCorreosAdicionales, normalizarCorreosDesactivados, recibeCorreo,
+  tiposCorreoAdicionales, tiposCorreoEditables,
+} from "./preferencias-rules";
 
 describe("tiposCorreoEditables", () => {
   it("el jefe de zona puede apagar el aviso de Pre-Cierre y los comentarios", () => {
@@ -55,6 +58,48 @@ describe("filtrarDestinatarios", () => {
   it("ignora inactivos y sin correo, y no repite", () => {
     const usuarios = [{ email: "a@x.com", activo: true }, { email: "a@x.com", activo: true }, { email: "", activo: true }, { email: "c@x.com", activo: false }];
     expect(filtrarDestinatarios(usuarios, "cierre")).toEqual({ emails: ["a@x.com"], omitidos: 0 });
+  });
+});
+
+describe("tiposCorreoAdicionales", () => {
+  it("ofrece al abogado los avisos de gestion que su rol no recibe", () => {
+    expect(tiposCorreoAdicionales("abogado")).toEqual(["nuevo_ticket", "cambio_estatus", "cierre"]);
+  });
+
+  it("no repite lo que el rol ya recibe", () => {
+    expect(tiposCorreoAdicionales("admin")).toEqual([]);
+    expect(tiposCorreoAdicionales("gerente_juridico")).toEqual([]);
+  });
+
+  it("no se ofrece a solicitantes ni gerentes de area", () => {
+    expect(tiposCorreoAdicionales("solicitante")).toEqual([]);
+    expect(tiposCorreoAdicionales("gerente_area")).toEqual([]);
+  });
+});
+
+describe("normalizarCorreosAdicionales", () => {
+  it("conserva solo tipos ofrecidos al rol, sin repetidos", () => {
+    expect(normalizarCorreosAdicionales(["nuevo_ticket", "nuevo_ticket", "asignacion", "basura"], "abogado")).toEqual({
+      ok: true,
+      tipos: ["nuevo_ticket"],
+    });
+  });
+
+  it("descarta lo que el rol ya recibe", () => {
+    expect(normalizarCorreosAdicionales(["nuevo_ticket"], "admin")).toEqual({ ok: true, tipos: [] });
+  });
+
+  it("rechaza lo que no es una lista de textos", () => {
+    expect(normalizarCorreosAdicionales("nuevo_ticket", "abogado").ok).toBe(false);
+    expect(normalizarCorreosAdicionales([1], "abogado").ok).toBe(false);
+  });
+});
+
+describe("combinarPorUid", () => {
+  it("une listas de usuarios sin repetir por uid", () => {
+    const a = [{ uid: "1", email: "a@x.com" }, { uid: "2", email: "b@x.com" }];
+    const b = [{ uid: "2", email: "b@x.com" }, { uid: "3", email: "c@x.com" }];
+    expect(combinarPorUid(a, b).map((u) => u.uid)).toEqual(["1", "2", "3"]);
   });
 });
 

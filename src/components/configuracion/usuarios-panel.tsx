@@ -8,7 +8,7 @@ import {
   listUsers, crearUsuarioStaff, actualizarUsuario, eliminarUsuario,
   type UserRow, type ActualizarUsuarioInput,
 } from "@/lib/users";
-import { ETIQUETA_CORREO, tiposCorreoEditables } from "@/domain/notificaciones/preferencias-rules";
+import { ETIQUETA_CORREO, tiposCorreoAdicionales, tiposCorreoEditables } from "@/domain/notificaciones/preferencias-rules";
 import type { TipoNotificacion } from "@/domain/notificaciones/notificacion";
 import { STAFF_ROLES, LEGAL_STAFF_ROLES, isSolicitanteRole, puedeSupervisar, type Role } from "@/types/user";
 import { PERMISOS, ETIQUETA_PERMISO, permisoDelRol, puedeRecibirAjuste, type AjustesPermisos, type Permiso } from "@/domain/users/permisos";
@@ -153,6 +153,7 @@ export function UsuariosPanel() {
   const [formAbogadoId, setFormAbogadoId] = useState("");
   const [formSupervisaUids, setFormSupervisaUids] = useState<string[]>([]);
   const [formCorreosDesactivados, setFormCorreosDesactivados] = useState<TipoNotificacion[]>([]);
+  const [formCorreosAdicionales, setFormCorreosAdicionales] = useState<TipoNotificacion[]>([]);
   const [formPermisos, setFormPermisos] = useState<AjustesPermisos>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
@@ -222,6 +223,7 @@ export function UsuariosPanel() {
     setFormAbogadoId("");
     setFormSupervisaUids([]);
     setFormCorreosDesactivados([]);
+    setFormCorreosAdicionales([]);
     setFormPermisos({});
     setFormError(null);
     setInfoMsg(null);
@@ -236,6 +238,7 @@ export function UsuariosPanel() {
     setFormAbogadoId(u.abogadoId ?? "");
     setFormSupervisaUids(u.supervisaUids ?? []);
     setFormCorreosDesactivados(u.correosDesactivados ?? []);
+    setFormCorreosAdicionales(u.correosAdicionales ?? []);
     setFormPermisos(u.permisos ?? {});
     setFormError(null);
     setInfoMsg(null);
@@ -264,6 +267,7 @@ export function UsuariosPanel() {
         patch.abogadoId = LEGAL_STAFF_ROLES.includes(formRole) ? (formAbogadoId || null) : null;
         if (puedeSupervisar(formRole)) patch.supervisaUids = formSupervisaUids;
         patch.correosDesactivados = formCorreosDesactivados;
+        patch.correosAdicionales = formCorreosAdicionales;
         patch.permisos = formPermisos;
         await actualizarUsuario(panel.user.uid, patch);
         setInfoMsg("Cambios guardados.");
@@ -447,6 +451,33 @@ export function UsuariosPanel() {
               </div>
               <p className="text-xs text-muted mt-1">
                 Desmarca los avisos que no quiera recibir. Solo se pueden apagar los que su rol recibe.
+              </p>
+            </div>
+          )}
+
+          {panel.mode === "editar" && tiposCorreoAdicionales(formRole).length > 0 && (
+            <div>
+              <label className="field-label">Correos adicionales</label>
+              <div className="space-y-1.5">
+                {tiposCorreoAdicionales(formRole).map((tipo) => (
+                  <label key={tipo} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formCorreosAdicionales.includes(tipo)}
+                      onChange={(e) =>
+                        setFormCorreosAdicionales((prev) =>
+                          e.target.checked ? [...prev, tipo] : prev.filter((t) => t !== tipo)
+                        )
+                      }
+                      className="h-4 w-4 rounded border-border text-primary focus:ring-ring cursor-pointer"
+                    />
+                    <span className="text-sm">{ETIQUETA_CORREO[tipo]}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-muted mt-1">
+                Marca los avisos de gestion que debe recibir aunque su rol no los incluya, por ejemplo quien cubre al
+                gerente juridico. Desmarca al terminar la cobertura.
               </p>
             </div>
           )}

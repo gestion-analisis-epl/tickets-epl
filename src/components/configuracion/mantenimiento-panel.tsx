@@ -56,6 +56,13 @@ export function MantenimientoPanel() {
   const [reasignacionOk, setReasignacionOk] = useState<string | null>(null);
   const [reasignacionError, setReasignacionError] = useState<string | null>(null);
 
+  const [folioPersona, setFolioPersona] = useState("");
+  const [emailPersona, setEmailPersona] = useState("");
+  const [tipoPersona, setTipoPersona] = useState<"nuevo_ticket" | "cambio_estatus">("nuevo_ticket");
+  const [enviandoPersona, setEnviandoPersona] = useState(false);
+  const [personaOk, setPersonaOk] = useState<string | null>(null);
+  const [personaError, setPersonaError] = useState<string | null>(null);
+
   const [corriendoReenvio, setCorriendoReenvio] = useState(false);
   const [enviandoReenvioReal, setEnviandoReenvioReal] = useState(false);
   const [deteniendoReenvio, setDeteniendoReenvio] = useState(false);
@@ -119,6 +126,30 @@ export function MantenimientoPanel() {
       setReasignacionError(err instanceof Error ? err.message : "No se pudo reenviar.");
     } finally {
       setEnviandoReasignacion(false);
+    }
+  }
+
+  async function handleEnviarTicketAPersona() {
+    const folio = folioPersona.trim();
+    const email = emailPersona.trim();
+    if (!folio || !email) return;
+    setEnviandoPersona(true);
+    setPersonaOk(null);
+    setPersonaError(null);
+    try {
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) throw new Error("Sesion invalida.");
+      const res = await fetch("/api/notificaciones/reenviar-ticket", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ folio, email, tipo: tipoPersona }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error ?? "No se pudo enviar.");
+      setPersonaOk(`${folio} enviado a ${email}.`);
+    } catch (err) {
+      setPersonaError(err instanceof Error ? err.message : "No se pudo enviar.");
+    } finally {
+      setEnviandoPersona(false);
     }
   }
 
@@ -251,6 +282,51 @@ export function MantenimientoPanel() {
           </div>
         )}
         {reasignacionError && <p className="text-sm text-danger">{reasignacionError}</p>}
+      </section>
+
+      <section className="section-card p-6 space-y-3 max-w-2xl">
+        <h2 className="eyebrow">Enviar un ticket a una persona</h2>
+        <p className="text-sm text-muted">
+          Manda el aviso de <span className="font-medium">un solo ticket</span> a{" "}
+          <span className="font-medium">una sola persona</span> (un usuario activo), sin avisar a nadie mas. Util
+          cuando a alguien no le llego un correo que le correspondia.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="text"
+            value={folioPersona}
+            onChange={(e) => setFolioPersona(e.target.value)}
+            placeholder="JUR-0051"
+            className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm w-32"
+          />
+          <input
+            type="email"
+            value={emailPersona}
+            onChange={(e) => setEmailPersona(e.target.value)}
+            placeholder="correo@grupoepl.com.mx"
+            className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm w-64"
+          />
+          <select
+            value={tipoPersona}
+            onChange={(e) => setTipoPersona(e.target.value as "nuevo_ticket" | "cambio_estatus")}
+            className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm"
+          >
+            <option value="nuevo_ticket">Nuevo ticket</option>
+            <option value="cambio_estatus">Estatus actual</option>
+          </select>
+          <Button
+            variant="outline"
+            onClick={handleEnviarTicketAPersona}
+            disabled={enviandoPersona || !folioPersona.trim() || !emailPersona.trim()}
+          >
+            <Send className="h-4 w-4" />
+            {enviandoPersona ? "Enviando..." : "Enviar"}
+          </Button>
+        </div>
+        {personaOk && (
+          <div className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">{personaOk}</div>
+        )}
+        {personaError && <p className="text-sm text-danger">{personaError}</p>}
       </section>
 
       <section className="section-card p-6 space-y-3 max-w-2xl">

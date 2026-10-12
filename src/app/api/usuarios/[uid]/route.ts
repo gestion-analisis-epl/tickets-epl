@@ -4,7 +4,7 @@ import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 import { requirePermiso, ApiAuthError } from "@/lib/api-auth";
 import { normalizarAjustes, quedaGestorDeUsuarios, type AjustesPermisos, type CuentaGestion } from "@/domain/users/permisos";
 import { ABOGADOS } from "@/lib/data/abogados";
-import { normalizarCorreosDesactivados } from "@/domain/notificaciones/preferencias-rules";
+import { normalizarCorreosAdicionales, normalizarCorreosDesactivados } from "@/domain/notificaciones/preferencias-rules";
 import { normalizarSupervisaUids } from "@/domain/users/supervision-rules";
 import { isSolicitanteRole, puedeSupervisar, type Role } from "@/types/user";
 
@@ -105,6 +105,15 @@ export async function PATCH(request: Request, { params }: Params) {
       if (!validacion.ok) return NextResponse.json({ error: validacion.error }, { status: 400 });
       if (validacion.tipos.length) patchFirestore.correosDesactivados = validacion.tipos;
       else if (current.data()?.correosDesactivados !== undefined) patchFirestore.correosDesactivados = FieldValue.delete();
+    }
+
+    // Igual que arriba pero para los avisos extra: se recortan a los que el rol final no recibe ya.
+    if ("correosAdicionales" in body || typeof body.role === "string") {
+      const fuente = "correosAdicionales" in body ? body.correosAdicionales : current.data()?.correosAdicionales ?? [];
+      const validacion = normalizarCorreosAdicionales(fuente, rolFinal);
+      if (!validacion.ok) return NextResponse.json({ error: validacion.error }, { status: 400 });
+      if (validacion.tipos.length) patchFirestore.correosAdicionales = validacion.tipos;
+      else if (current.data()?.correosAdicionales !== undefined) patchFirestore.correosAdicionales = FieldValue.delete();
     }
 
     // Ajustes de permisos: se validan contra el rol final y solo se guardan las excepciones reales.

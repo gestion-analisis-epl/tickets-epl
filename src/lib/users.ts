@@ -54,6 +54,7 @@ export interface ActualizarUsuarioInput {
   abogadoId?: string | null; // null para desvincular
   supervisaUids?: string[]; // solo gerente_area
   correosDesactivados?: TipoNotificacion[];
+  correosAdicionales?: TipoNotificacion[];
   permisos?: AjustesPermisos; // {} limpia los ajustes. Excepciones al rol; ver domain/users/permisos.ts
 }
 

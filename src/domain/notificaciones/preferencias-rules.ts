@@ -42,6 +42,31 @@ export function tiposCorreoEditables(role: Role): TipoNotificacion[] {
   return CORREOS_POR_ROL[role] ?? [];
 }
 
+// Avisos de gestion que un usuario puede recibir aunque su rol no los incluya (p.ej. quien cubre al
+// gerente juridico). Es una lista manual por usuario: complementa a correosDesactivados.
+const ADICIONALES_OFRECIDOS: TipoNotificacion[] = ["nuevo_ticket", "cambio_estatus", "cierre"];
+const ROLES_SIN_ADICIONALES: Role[] = ["solicitante", "gerente_area"];
+
+export function tiposCorreoAdicionales(role: Role): TipoNotificacion[] {
+  if (ROLES_SIN_ADICIONALES.includes(role)) return [];
+  const propios = tiposCorreoEditables(role);
+  return ADICIONALES_OFRECIDOS.filter((t) => !propios.includes(t));
+}
+
+export type ResultadoCorreosAdicionales = { ok: true; tipos: TipoNotificacion[] } | { ok: false; error: string };
+
+export function normalizarCorreosAdicionales(entrada: unknown, role: Role): ResultadoCorreosAdicionales {
+  if (!Array.isArray(entrada)) return { ok: false, error: "correosAdicionales debe ser una lista." };
+  if (entrada.some((t) => typeof t !== "string")) return { ok: false, error: "correosAdicionales solo admite tipos de correo." };
+
+  return { ok: true, tipos: tiposCorreoAdicionales(role).filter((t) => entrada.includes(t)) };
+}
+
+// Une listas de usuarios (p.ej. por rol y por correo adicional) sin repetir al mismo uid.
+export function combinarPorUid<T extends { uid: string }>(...listas: T[][]): T[] {
+  return Array.from(new Map(listas.flat().map((u) => [u.uid, u])).values());
+}
+
 interface ConPreferencias {
   correosDesactivados?: TipoNotificacion[];
 }

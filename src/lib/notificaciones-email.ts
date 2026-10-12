@@ -1,7 +1,7 @@
 import { enviarEmail } from "@/lib/email";
 import { getAdminDb } from "@/lib/firebase-admin";
 import type { TipoNotificacion } from "@/lib/notificaciones";
-import { filtrarDestinatarios } from "@/domain/notificaciones/preferencias-rules";
+import { combinarPorUid, filtrarDestinatarios } from "@/domain/notificaciones/preferencias-rules";
 import { gerentesQueSupervisan } from "@/domain/users/supervision-rules";
 import { formatearFecha, renderEmailNotificacion, type DatosTicketEmail } from "@/domain/notificaciones/email-template";
 
@@ -58,13 +58,17 @@ interface Destino {
 
 const VACIO: Destino = { emails: [], omitidos: 0 };
 
-// Legal/admin que dan seguimiento operativo: solo gerente_juridico y admin
-// (mesa_control y abogado ya se enteran via el aviso de asignacion/cambio de
-// estatus, dirigido puntualmente al abogado vinculado al ticket).
+// Legal/admin que dan seguimiento operativo: gerente_juridico y admin, mas quien tenga el tipo en
+// correosAdicionales (p.ej. un abogado que cubre al gerente). mesa_control y abogado ya se enteran via el
+// aviso de asignacion/cambio de estatus, dirigido puntualmente al abogado vinculado al ticket.
 async function gerenteJuridicoYAdminDestino(tipo: TipoNotificacion): Promise<Destino> {
   const db = getAdminDb();
-  const snap = await db.collection("users").where("role", "in", ["gerente_juridico", "admin"]).get();
-  return filtrarDestinatarios(snap.docs.map((d) => d.data()), tipo);
+  const [porRol, adicionales] = await Promise.all([
+    db.collection("users").where("role", "in", ["gerente_juridico", "admin"]).get(),
+    db.collection("users").where("correosAdicionales", "array-contains", tipo).get(),
+  ]);
+  const usuarios = [...porRol.docs, ...adicionales.docs].map((d) => ({ uid: d.id, datos: d.data() }));
+  return filtrarDestinatarios(combinarPorUid(usuarios).map((u) => u.datos), tipo);
 }
 
 async function gerentesAreaDestino(solicitanteId: string): Promise<Destino> {
