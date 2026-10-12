@@ -337,14 +337,16 @@ export function TicketDetail({ id }: { id: string }) {
     }
   }
 
-  const izquierda = (
-    <div className="space-y-6 max-w-3xl">
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="page-rule text-3xl font-semibold tabular-nums">{ticket.folio}</h1>
-        <EstatusBadge estatus={ticket.estatus} />
-        <CategoriaBadge categoria={ticket.categoria} />
-      </div>
+  const encabezado = (
+    <div className="flex flex-wrap items-center gap-3">
+      <h1 className="page-rule text-3xl font-semibold tabular-nums">{ticket.folio}</h1>
+      <EstatusBadge estatus={ticket.estatus} />
+      <CategoriaBadge categoria={ticket.categoria} />
+    </div>
+  );
 
+  const izquierda = (
+    <div className="space-y-6">
       {/* Datos de la solicitud (verde) — el dueno o admin pueden corregirla mientras no este Cerrada */}
       <section className="section-card p-6 space-y-4">
         <div className="flex items-center justify-between">
@@ -655,8 +657,6 @@ export function TicketDetail({ id }: { id: string }) {
       </section>
 
       {verConversacion && <ConversacionPanel ticketId={ticket.id} escribible={hiloEscribible(ticket)} />}
-      {verHistorial && <HistorialPanel ticket={ticket} />}
-
       {/* Calificacion — solo el dueno, solo si ya cerro y no ha calificado */}
       {puedeCalificar && (
         <section className="section-card p-6 space-y-3">
@@ -737,9 +737,15 @@ export function TicketDetail({ id }: { id: string }) {
 
   return (
     <DosColumnas
-      mostrarDerecha={mostrarResumen}
+      encabezado={encabezado}
+      mostrarDerecha={mostrarResumen || verHistorial}
       izquierda={izquierda}
-      derecha={<ResumenContratoCard ticket={ticket} />}
+      derecha={
+        <>
+          {mostrarResumen && <ResumenContratoCard ticket={ticket} />}
+          {verHistorial && <HistorialPanel ticket={ticket} />}
+        </>
+      }
     />
   );
 }

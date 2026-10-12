@@ -116,8 +116,8 @@ export function PreCierreDetalle({ id }: { id: string }) {
       ? `${formatFechaSolo(resumen.periodoInicio)} — ${formatFechaSolo(resumen.periodoFin)}`
       : null;
 
-  const izquierda = (
-    <div className="max-w-4xl space-y-6">
+  const encabezado = (
+    <div className="space-y-6">
       <Link href="/pre-cierre" className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Pre-Cierre
       </Link>
@@ -126,7 +126,11 @@ export function PreCierreDetalle({ id }: { id: string }) {
         <h1 className="page-rule text-3xl font-semibold tabular-nums">{resumen.folio}</h1>
         <EstatusBadge estatus={resumen.estatus} />
       </div>
+    </div>
+  );
 
+  const izquierda = (
+    <div className="space-y-6">
       <section className="section-card p-6 space-y-3">
         <h2 className="text-lg font-semibold">Visto bueno</h2>
         {resumen.vistoBueno ? (
@@ -249,5 +253,5 @@ export function PreCierreDetalle({ id }: { id: string }) {
     </>
   );
 
-  return <DosColumnas izquierda={izquierda} derecha={derecha} />;
+  return <DosColumnas encabezado={encabezado} izquierda={izquierda} derecha={derecha} />;
 }
