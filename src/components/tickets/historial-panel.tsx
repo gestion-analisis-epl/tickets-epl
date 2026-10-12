@@ -12,8 +12,8 @@ export function HistorialPanel({ ticket }: { ticket: Ticket }) {
   const items = lineaDeTiempo(entradas, ticket.historialEstatus ?? []);
 
   return (
-    <section className="section-card p-6 space-y-4">
-      <h2 className="eyebrow">Historial</h2>
+    <section className="section-card p-6 space-y-4 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:space-y-0 lg:gap-4">
+      <h2 className="eyebrow shrink-0">Historial</h2>
 
       {loading ? (
         <div className="flex h-16 items-center justify-center">
@@ -24,7 +24,7 @@ export function HistorialPanel({ ticket }: { ticket: Ticket }) {
       ) : items.length === 0 ? (
         <p className="text-sm text-muted">Sin cambios registrados.</p>
       ) : (
-        <ol className="space-y-4">
+        <ol className="space-y-4 lg:min-h-0 lg:overflow-y-auto lg:pr-2">
           {items.map((item) =>
             item.origen === "historial" ? (
               <li key={item.entrada.id} className="border-l-2 border-border pl-3">
