@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { archivoPorDefecto, archivosContratoDeDocumentacion, ticketsPendientesDeResumen } from "./backfill-rules";
+import { archivoPorDefecto, archivosContratoDeDocumentacion, primeraEntradaPreCierre, ticketLlegoAPreCierreOCierre, ticketsPendientesDeResumen } from "./backfill-rules";
 import { buildTicket } from "@/test/ticket-fixture";
 import type { ResumenContratoTicket } from "@/types/resumen-contrato";
 
@@ -59,5 +59,24 @@ describe("ticketsPendientesDeResumen", () => {
     const sinMarca = buildTicket({ id: "s", documentacion: [contrato], resumenContrato: { ...resumen, estado: "pendiente" } });
     const reciente = buildTicket({ id: "r", documentacion: [contrato], resumenContrato: { ...resumen, estado: "pendiente", solicitadoEn: "2026-10-08T11:59:00.000Z" } });
     expect(ticketsPendientesDeResumen([err, viejo, sinMarca, reciente], ahora).map((t) => t.id)).toEqual(["e", "v", "s"]);
+  });
+});
+
+describe("ticketLlegoAPreCierreOCierre y primeraEntradaPreCierre", () => {
+  const h = (estatus: string, fecha: string) => ({ estatus, fecha, uid: "u" }) as never;
+
+  it("incluye los que estan en Pre-Cierre/Cierre y los que pasaron por ahi y regresaron", () => {
+    expect(ticketLlegoAPreCierreOCierre({ estatus: "Pre-Cierre", historialEstatus: [] })).toBe(true);
+    expect(ticketLlegoAPreCierreOCierre({ estatus: "Cierre", historialEstatus: [] })).toBe(true);
+    expect(ticketLlegoAPreCierreOCierre({ estatus: "Proceso en tramite", historialEstatus: [h("Pre-Cierre", "2026-01-02")] })).toBe(true);
+  });
+
+  it("excluye los que nunca llegaron", () => {
+    expect(ticketLlegoAPreCierreOCierre({ estatus: "Proceso en tramite", historialEstatus: [h("Proceso en tramite", "2026-01-01")] })).toBe(false);
+  });
+
+  it("devuelve la primera entrada a Pre-Cierre, o null si nunca estuvo", () => {
+    expect(primeraEntradaPreCierre({ historialEstatus: [h("Pre-Cierre", "2026-03-01"), h("Pre-Cierre", "2026-02-01")] })).toBe("2026-02-01");
+    expect(primeraEntradaPreCierre({ historialEstatus: [h("Cierre", "2026-03-01")] })).toBeNull();
   });
 });

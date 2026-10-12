@@ -9,6 +9,7 @@ import { buildNuevoTicket, type NuevoTicketInput } from "./nuevo-ticket";
 import { calcularPatchAsignacion, type AsignacionInput } from "./asignacion-rules";
 import { calcularPatchSolicitud, type SolicitudInput } from "./solicitud-rules";
 import { calcularBackfill } from "./backfill-rules";
+import { primeraEntradaPreCierre, ticketLlegoAPreCierreOCierre } from "@/domain/contratos/backfill-rules";
 import { calcularPatchSitio } from "./sitio-rules";
 import type { ActorHistorial } from "@/types/historial";
 import { bloqueadoPorPreCierre, MENSAJE_BLOQUEO_PRE_CIERRE } from "./etapa-permisos-rules";
@@ -18,6 +19,12 @@ export interface BackfillResultado {
   actualizados: number;
   omitidos: number;
   detalles: string[];
+}
+
+export interface ResumenesFaltantesResultado {
+  creados: number;
+  conversacionesMarcadas: number;
+  errores: string[];
 }
 
 export function createTicketService(
@@ -209,8 +216,33 @@ export function createTicketService(
     return { actualizados, omitidos, detalles };
   }
 
+  // Crea el documento de resumen de todo ticket que esta o estuvo en Pre-Cierre/Cierre y no lo tiene, y marca la
+  // conversacion como abierta en los que ya pasaron por Pre-Cierre. No toca el historial ni el SLA: es un arreglo de datos.
+  async function crearResumenesFaltantes(tickets: Ticket[]): Promise<ResumenesFaltantesResultado> {
+    const resultado: ResumenesFaltantesResultado = { creados: 0, conversacionesMarcadas: 0, errores: [] };
+
+    for (const t of tickets) {
+      if (!ticketLlegoAPreCierreOCierre(t)) continue;
+      try {
+        if (!(await resumenes.get(t.id))) {
+          await resumenes.upsert(construirResumenContrato(t, new Date(), null));
+          resultado.creados++;
+        }
+        const entrada = primeraEntradaPreCierre(t);
+        if (entrada && !t.conversacionAbiertaEn) {
+          await repo.update(t.id, { conversacionAbiertaEn: entrada });
+          resultado.conversacionesMarcadas++;
+        }
+      } catch (err) {
+        resultado.errores.push(`${t.folio ?? t.id}: ${err instanceof Error ? err.message : "error desconocido"}`);
+      }
+    }
+    return resultado;
+  }
+
   return {
     createTicket,
+    crearResumenesFaltantes,
     subscribeTickets,
     subscribeTicket,
     updateTicketAsignacion,

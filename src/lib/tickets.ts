@@ -22,3 +22,5 @@ export const updateTicketExclusion = ticketService.updateTicketExclusion;
 export const deleteTicket = ticketService.deleteTicket;
 export const submitSatisfaccion = ticketService.submitSatisfaccion;
 export const backfillSlaHistorico = ticketService.backfillSlaHistorico;
+export const crearResumenesFaltantes = ticketService.crearResumenesFaltantes;
+export type { ResumenesFaltantesResultado } from "@/domain/tickets/ticket-service";

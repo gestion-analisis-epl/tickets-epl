@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Square, Sparkles } from "lucide-react";
 import { useTickets } from "@/hooks/use-tickets";
 import { solicitarResumenContrato } from "@/lib/contratos";
+import { crearResumenesFaltantes, type ResumenesFaltantesResultado } from "@/lib/tickets";
 import { ticketsPendientesDeResumen } from "@/domain/contratos/backfill-rules";
 import { encontrarContrato } from "@/domain/contratos/contrato-rules";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,9 @@ export function ResumenesContratoSection() {
   const [progreso, setProgreso] = useState(0);
   const [total, setTotal] = useState(0);
   const [resultado, setResultado] = useState<ResultadoBackfill | null>(null);
+  const [creando, setCreando] = useState(false);
+  const [faltantes, setFaltantes] = useState<ResumenesFaltantesResultado | null>(null);
+  const [errorFaltantes, setErrorFaltantes] = useState<string | null>(null);
   const detenerRef = useRef(false);
   const montadoRef = useRef(true);
 
@@ -70,9 +74,45 @@ export function ResumenesContratoSection() {
     setCorriendo(false);
   }
 
+  async function handleCrearFaltantes() {
+    setCreando(true);
+    setFaltantes(null);
+    setErrorFaltantes(null);
+    try {
+      setFaltantes(await crearResumenesFaltantes(tickets));
+    } catch (err) {
+      setErrorFaltantes(err instanceof Error ? err.message : "No se pudo completar.");
+    } finally {
+      if (montadoRef.current) setCreando(false);
+    }
+  }
+
   return (
     <section className="section-card p-6 space-y-3 max-w-2xl">
       <h2 className="eyebrow">Resumenes de contrato pendientes</h2>
+
+      <div className="space-y-2 border-b border-border pb-3">
+        <p className="text-sm text-muted">
+          Paso 1. Crea la ficha de resumen de todo ticket que esta o estuvo en Pre-Cierre o Cierre y no la tiene, para que el
+          jefe de zona y Sitios lo vean (los que regresaron a una etapa anterior aparecen &quot;En correccion&quot;). No modifica
+          el historial ni el SLA.
+        </p>
+        <Button variant="warning" disabled={loading || creando} onClick={handleCrearFaltantes}>
+          {creando ? "Creando..." : "Crear resumenes faltantes"}
+        </Button>
+        {faltantes && (
+          <div className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
+            Listo. Resumenes creados: {faltantes.creados}. Conversaciones habilitadas: {faltantes.conversacionesMarcadas}.
+            {faltantes.errores.length > 0 && (
+              <ul className="list-disc pl-5 text-danger">
+                {faltantes.errores.map((e) => <li key={e}>{e}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
+        {errorFaltantes && <p className="text-sm text-danger">{errorFaltantes}</p>}
+      </div>
+      <p className="text-sm text-muted">Paso 2. Generar con IA los datos del contrato:</p>
       <p className="text-sm text-muted">
         Genera con IA el resumen de los tickets que tienen un contrato de arrendamiento (.docx o .pdf) adjunto y aun no tienen
         resumen, o cuyo resumen fallo o quedo atascado en pendiente. Se procesan de uno en uno.{" "}
