@@ -16,6 +16,18 @@ export function ordenarResumenesJefeZona(resumenes: ResumenContrato[]): ResumenC
   );
 }
 
+// Sitio y codigo del resumen: lo que consta en el contrato; si no consta, lo capturado en la ficha del ticket.
+export function sitioYCodigoResumen(
+  extraccion: { sitio: string | null; codigo: string | null },
+  ficha: { clave: string; alias: string }
+): { sitio: string | null; codigo: string | null } {
+  const limpio = (v: string | null | undefined) => (v && v.trim() ? v : null);
+  return {
+    sitio: limpio(extraccion.sitio) ?? limpio(ficha.alias),
+    codigo: limpio(extraccion.codigo) ?? limpio(ficha.clave),
+  };
+}
+
 export const NO_DISPONIBLE = "No disponible";
 
 const formatoMonto = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });

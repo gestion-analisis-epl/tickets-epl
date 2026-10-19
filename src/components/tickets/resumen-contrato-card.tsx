@@ -4,7 +4,8 @@ import { useState } from "react";
 import { solicitarResumenContrato } from "@/lib/contratos";
 import { archivoPorDefecto, archivosContratoDeDocumentacion } from "@/domain/contratos/backfill-rules";
 import { nombreDeUrl } from "@/domain/contratos/contrato-rules";
-import { formaPagoLabel, formatMonto, textoDiscrepancia, textoODisponible } from "@/domain/contratos/resumen-presentacion";
+import { formaPagoLabel, formatMonto, sitioYCodigoResumen, textoDiscrepancia, textoODisponible } from "@/domain/contratos/resumen-presentacion";
+import { partesSitio } from "@/lib/ticket-derived";
 import { formatFecha, formatFechaSolo } from "@/lib/format-fecha";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,14 +52,16 @@ export function ResumenContratoCard({ ticket }: { ticket: Ticket }) {
   }
 
   const ext = resumen?.extraccion ?? null;
+  const { sitio, codigo } = ext ? sitioYCodigoResumen(ext, partesSitio(ticket)) : { sitio: null, codigo: null };
   const campos: { etiqueta: string; valor: string }[] = ext
     ? [
-        { etiqueta: "Sitio", valor: texto(ext.sitio) },
-        { etiqueta: "Codigo", valor: texto(ext.codigo) },
+        { etiqueta: "Sitio", valor: texto(sitio) },
+        { etiqueta: "Codigo", valor: texto(codigo) },
         { etiqueta: "Domicilio", valor: texto(ext.domicilio) },
         { etiqueta: "Alta de arrendador", valor: texto(ext.altaArrendador) },
         { etiqueta: "Solicitante", valor: texto(ext.solicitante) },
         { etiqueta: "Periodo", valor: `${fechaContrato(ext.periodoInicio)} — ${fechaContrato(ext.periodoFin)}` },
+        { etiqueta: "Metodo de pago", valor: texto(ticket.contratoArrendamiento?.condicionesPago ?? null) },
         { etiqueta: "Condiciones de pago", valor: texto(ext.condicionesPago) },
         { etiqueta: "Monto de pago anual", valor: ext.montoPagoAnual === null ? NO_CONSTA : formatMonto(ext.montoPagoAnual) },
         { etiqueta: "Forma de pago", valor: ext.formaPago ? formaPagoLabel(ext.formaPago) : NO_CONSTA },
