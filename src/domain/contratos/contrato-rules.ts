@@ -69,6 +69,7 @@ export function construirResumenContrato(ticket: Ticket, ahora: Date, previo?: R
     periodoInicio: contrato?.periodoInicio ?? null,
     periodoFin: contrato?.periodoFin ?? null,
     condicionesPago: extraccion?.condicionesPago ?? contrato?.condicionesPago ?? null,
+    metodoPago: contrato?.condicionesPago ?? null,
     montoPagoAnual: extraccion?.montoPagoAnual ?? contrato?.montoPago ?? null,
     formaPago: extraccion?.formaPago ?? null,
     discrepancias: gemini?.discrepancias ?? [],

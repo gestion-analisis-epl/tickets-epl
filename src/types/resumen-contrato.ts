@@ -54,6 +54,8 @@ export interface ResumenContrato {
   periodoInicio: string | null;
   periodoFin: string | null;
   condicionesPago: string | null;
+  // Metodo capturado en la ficha, p. ej. "63 - Cheques". Ausente en resumenes previos.
+  metodoPago?: string | null;
   montoPagoAnual: number | null;
   formaPago: FormaPago | null;
   discrepancias: Discrepancia[];

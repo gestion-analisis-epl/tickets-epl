@@ -75,14 +75,14 @@ describe("construirResumenContrato", () => {
       documentacion: [url("1_QRO01_CONTRATO_ARRENDAMIENTO.docx")],
       contratoArrendamiento: {
         domicilio: "Av. 1 #2", altaArrendador: "Juan SA", solicitante: "Ana Lopez",
-        periodoInicio: "2026-01-01", periodoFin: "2027-01-01", condicionesPago: "Dia 5", montoPago: 120000, motivo: "Renovacion",
+        periodoInicio: "2026-01-01", periodoFin: "2027-01-01", condicionesPago: "63 - Cheques", montoPago: 120000, motivo: "Renovacion",
       },
     });
     const r = construirResumenContrato(ticket, ahora);
     expect(r).toMatchObject({
       ticketId: "t9", folio: "JUR-0009", estatus: "Pre-Cierre",
       sitioClave: "QRO01", sitioAlias: "Queretaro Centro", domicilio: "Av. 1 #2",
-      solicitante: "Ana Lopez", altaArrendador: "Juan SA",
+      solicitante: "Ana Lopez", altaArrendador: "Juan SA", metodoPago: "63 - Cheques",
       periodoInicio: "2026-01-01", periodoFin: "2027-01-01",
       contratoNombre: "QRO01_CONTRATO_ARRENDAMIENTO.docx", estadoResumen: "pendiente",
       vistoBueno: null, actualizadoEn: ahora.toISOString(),

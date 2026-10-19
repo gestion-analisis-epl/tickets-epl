@@ -228,6 +228,7 @@ export function PreCierreDetalle({ id }: { id: string }) {
             <Campo label="Alta de arrendador">{textoODisponible(resumen.altaArrendador)}</Campo>
             <Campo label="Solicitante">{textoODisponible(resumen.solicitante)}</Campo>
             <Campo label="Periodo">{textoODisponible(periodo)}</Campo>
+            <Campo label="Metodo de pago">{textoODisponible(resumen.metodoPago)}</Campo>
             <Campo label="Condiciones de pago">{textoODisponible(resumen.condicionesPago)}</Campo>
             <Campo label="Monto anual">{formatMonto(resumen.montoPagoAnual)}</Campo>
             <Campo label="Forma de pago">{formaPagoLabel(resumen.formaPago)}</Campo>
