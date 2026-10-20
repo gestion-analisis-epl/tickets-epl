@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home, ClipboardList, PlusCircle, BookOpen, BarChart2,
-  Settings, LogOut, ClipboardCheck, ChevronLeft, ChevronRight, Sun, Moon, Scale, X,
+  Settings, LogOut, ClipboardCheck, ChevronLeft, Sun, Moon, X,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,15 @@ function pickActiveHref(pathname: string, candidates: { href: string; exact?: bo
     if (matches && (best === null || href.length > best.length)) best = href;
   }
   return best;
+}
+
+// Versiones claras del logo: el sidebar es oscuro en ambos temas. Colapsado solo cabe el emblema.
+function LogoEpl({ compacto }: { compacto?: boolean }) {
+  return compacto ? (
+    <Image src="/emblema-epl-claro.png" alt="Grupo EPL" width={256} height={256} priority className="h-8 w-8 object-contain" />
+  ) : (
+    <Image src="/logo-grupo-epl-claro.png" alt="Grupo EPL" width={606} height={367} priority className="h-9 w-auto shrink-0 object-contain" />
+  );
 }
 
 interface SidebarProps {
@@ -116,17 +126,12 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
         {/* Brand */}
         <div className="flex h-14 shrink-0 items-center border-b border-sidebar-border">
           {effectiveCollapsed ? (
-            <div className="flex w-full items-center justify-between px-3">
-              <Scale className="h-5 w-5 text-accent-light shrink-0" />
-              <button onClick={toggle} title="Expandir"
-                className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-sidebar-hover transition-colors"
-              >
-                <ChevronRight className="h-3 w-3" />
-              </button>
-            </div>
+            <button onClick={toggle} title="Expandir" className="mx-auto rounded-md hover:opacity-80 transition-opacity">
+              <LogoEpl compacto />
+            </button>
           ) : (
             <div className="flex w-full items-center gap-2 px-4">
-              <Scale className="h-5 w-5 text-accent-light shrink-0" />
+              <LogoEpl />
               <span className="font-display text-[17px] font-semibold tracking-tight">Legal <span className="italic text-accent-light">EPL</span></span>
               <button onClick={toggle} title="Colapsar"
                 className="ml-auto hidden md:flex h-6 w-6 shrink-0 items-center justify-center rounded-md hover:bg-sidebar-hover transition-colors"
