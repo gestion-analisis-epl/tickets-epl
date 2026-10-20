@@ -512,7 +512,7 @@ export function TicketDetail({ id }: { id: string }) {
               <div><dt className="text-muted">Fecha de solicitud</dt><dd className="font-medium">{formatFecha(ticket.fechaSolicitud)}</dd></div>
               <div><dt className="text-muted">Puesto responsable</dt><dd className="font-medium">{ticket.puestoResponsableSugerido}</dd></div>
               <div><dt className="text-muted">SLA interno</dt><dd className="font-medium">{ticket.slaInterno} días hábiles</dd></div>
-              <div><dt className="text-muted">Días en pipeline</dt><dd className="font-medium tabular-nums">{ticket.diasPipeline ?? 0}</dd></div>
+              <div><dt className="text-muted">Días de gestión total</dt><dd className="font-medium tabular-nums">{ticket.diasPipeline ?? 0}</dd></div>
               <div><dt className="text-muted">Fecha compromiso</dt><dd className="font-medium">{formatFecha(ticket.fechaCompromiso)}</dd></div>
               <div>
                 <dt className="text-muted">Nivel de servicio</dt>

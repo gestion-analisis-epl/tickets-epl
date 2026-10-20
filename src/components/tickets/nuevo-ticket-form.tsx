@@ -307,13 +307,13 @@ export function NuevoTicketForm() {
   const ocupado = filesUploading || formatoUploading || documentosUploading || creating;
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-[1400px]">
+    <form onSubmit={handleSubmit} className="w-full">
       <section className="rounded-lg border border-border bg-surface p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm">
         <div><span className="text-muted">Fecha de solicitud: </span><span className="font-medium">{hoy}</span></div>
         <div><span className="text-muted">Solicitante: </span><span className="font-medium">{nombre}</span></div>
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-6 items-start">
         <div className="space-y-6 min-w-0">
           <section className="section-card p-5 sm:p-6 space-y-5">
             <h2 className="section-title"><span className="text-accent mr-2 tabular-nums">1</span>Solicitud</h2>
@@ -455,7 +455,7 @@ export function NuevoTicketForm() {
       </div>
 
       <div className="mt-6 border-t border-border pt-4">
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-3">
           <Button type="submit" variant="success" disabled={ocupado}>
             {filesUploading || formatoUploading || documentosUploading ? "Esperando archivos..." : creating ? "Guardando..." : "Crear ticket"}
           </Button>

@@ -203,7 +203,7 @@ export function MantenimientoPanel() {
         <h2 className="eyebrow">Recalcular SLA historico</h2>
         <p className="text-sm text-muted">
           Recalcula <span className="font-medium">nivel de servicio</span> y{" "}
-          <span className="font-medium">dias en pipeline</span> de los tickets ya cerrados, usando la fecha de
+          <span className="font-medium">días de gestión total</span> de los tickets ya cerrados, usando la fecha de
           asignacion del abogado como inicio del SLA (antes se calculaba desde la fecha de solicitud). Los tickets
           abiertos no se ven afectados — se recalculan solos en cada lectura.
         </p>
@@ -218,7 +218,7 @@ export function MantenimientoPanel() {
             <p className="text-sm">
               Esto sobrescribe <span className="font-medium">nivel de servicio</span>,{" "}
               <span className="font-medium">dias transcurridos</span> y{" "}
-              <span className="font-medium">dias en pipeline</span> de todos los tickets ya cerrados. No se puede
+              <span className="font-medium">días de gestión total</span> de todos los tickets ya cerrados. No se puede
               deshacer.
             </p>
             {error && <p className="text-sm text-danger">{error}</p>}
@@ -256,7 +256,7 @@ export function MantenimientoPanel() {
         <h2 className="eyebrow">Reenviar aviso de reasignacion</h2>
         <p className="text-sm text-muted">
           Reenvia el correo y la notificacion de <span className="font-medium">reasignacion</span> (al abogado
-          asignado actual y al solicitante) de un ticket puntual, sin volver a pasarlo por el pipeline de
+          asignado actual y al solicitante) de un ticket puntual, sin volver a pasarlo por el flujo de
           asignacion — no toca el SLA ni el historial.
         </p>
         <div className="flex flex-wrap items-center gap-3">

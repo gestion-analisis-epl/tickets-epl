@@ -59,8 +59,8 @@ export function ExcluirTicketsSection() {
       const folios = objetivo.map((t) => t.folio).join(", ");
       setResultado(
         excluido
-          ? `${objetivo.length} ticket(s) fuera del pipeline: ${folios}.`
-          : `${objetivo.length} ticket(s) de vuelta en el pipeline: ${folios}.`
+          ? `${objetivo.length} ticket(s) fuera de la gestión: ${folios}.`
+          : `${objetivo.length} ticket(s) de vuelta en la gestión: ${folios}.`
       );
       setSeleccion(new Set());
       setConfirmando(false);
@@ -73,10 +73,10 @@ export function ExcluirTicketsSection() {
 
   return (
     <section className="section-card p-6 space-y-3">
-      <h2 className="eyebrow">Excluir tickets de prueba del pipeline</h2>
+      <h2 className="eyebrow">Excluir tickets de prueba de la gestión</h2>
       <p className="text-sm text-muted">
         Los tickets que marques dejan de aparecer en la tabla, el kanban y el dashboard. No se borran ni se envian
-        correos: puedes devolverlos al pipeline cuando quieras.
+        correos: puedes devolverlos a la gestión cuando quieras.
         {totalExcluidos > 0 && <> Ahora hay <span className="font-medium">{totalExcluidos}</span> excluido(s).</>}
       </p>
 
@@ -145,16 +145,16 @@ export function ExcluirTicketsSection() {
       {!confirmando ? (
         <div className="flex flex-wrap gap-3">
           <Button variant="warning" disabled={aExcluir.length === 0} onClick={() => setConfirmando(true)}>
-            Excluir {aExcluir.length > 0 ? `${aExcluir.length} ` : ""}del pipeline
+            Excluir {aExcluir.length > 0 ? `${aExcluir.length} ` : ""}de la gestión
           </Button>
           <Button variant="outline" disabled={aDevolver.length === 0 || guardando} onClick={() => aplicar(false)}>
-            Devolver {aDevolver.length > 0 ? `${aDevolver.length} ` : ""}al pipeline
+            Devolver {aDevolver.length > 0 ? `${aDevolver.length} ` : ""}a la gestión
           </Button>
         </div>
       ) : (
         <div className="space-y-3">
           <p className="text-sm">
-            Se sacaran del pipeline: <span className="font-medium">{aExcluir.map((t) => t.folio).join(", ")}</span>.
+            Se sacarán de la gestión: <span className="font-medium">{aExcluir.map((t) => t.folio).join(", ")}</span>.
           </p>
           <div className="flex flex-wrap gap-3">
             <Button variant="warning" onClick={() => aplicar(true)} disabled={guardando}>

@@ -407,7 +407,7 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
     }),
     columnHelper.accessor("diasPipeline", {
       ...multiSelect(),
-      header: "Días en pipeline",
+      header: "Días de gestión total",
       size: 130, minSize: 110,
       cell: (info) => {
         const v = info.getValue();

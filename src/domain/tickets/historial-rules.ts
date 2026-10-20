@@ -145,7 +145,7 @@ export function conVisibilidad(
 }
 
 export const CAMPOS_EXCLUSION: CampoVigilado[] = [
-  { campo: "excluidoDelPipeline", etiqueta: "Excluido del pipeline", formato: textoExclusion },
+  { campo: "excluidoDelPipeline", etiqueta: "Excluido de la gestión", formato: textoExclusion },
 ];
 
 function nuevaEntrada(
@@ -273,7 +273,7 @@ export const ETIQUETA_TIPO_HISTORIAL: Record<TipoHistorial, string> = {
   documentos: "Documentos",
   sitio: "Sitio",
   contrato: "Edición del contrato / convenio",
-  exclusion: "Exclusión del pipeline",
+  exclusion: "Exclusión de la gestión",
   notas_cierre: "Notas de cierre",
   visto_bueno: "Visto bueno",
   cambios_solicitados: "Cambios solicitados",

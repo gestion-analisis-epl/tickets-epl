@@ -154,7 +154,7 @@ describe("entradaSitio y entradaExclusion", () => {
 
   it("la exclusion se registra como si/no; un ticket sin el campo cuenta como no", () => {
     expect(entradaExclusion(buildTicket(), true, actor, AHORA)?.cambios).toEqual([
-      { campo: "excluidoDelPipeline", etiqueta: "Excluido del pipeline", antes: "no", despues: "sí" },
+      { campo: "excluidoDelPipeline", etiqueta: "Excluido de la gestión", antes: "no", despues: "sí" },
     ]);
     expect(entradaExclusion(buildTicket(), false, actor, AHORA)).toBeNull();
   });

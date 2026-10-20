@@ -266,7 +266,7 @@ describe("historial en el mismo lote que el cambio", () => {
     await service.updateTicketExclusion("t1", actor, true);
     await service.updateTicketExclusion("t1", actor, true);
     expect(lotes[0].entradas[0].cambios).toEqual([
-      { campo: "excluidoDelPipeline", etiqueta: "Excluido del pipeline", antes: "no", despues: "sí" },
+      { campo: "excluidoDelPipeline", etiqueta: "Excluido de la gestión", antes: "no", despues: "sí" },
     ]);
     expect(lotes[1].entradas).toEqual([]);
   });
