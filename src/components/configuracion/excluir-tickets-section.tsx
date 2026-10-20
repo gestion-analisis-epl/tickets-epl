@@ -104,7 +104,7 @@ export function ExcluirTicketsSection() {
                 <th className="px-3 py-2">Folio</th>
                 <th className="px-3 py-2">Fecha</th>
                 <th className="px-3 py-2">Solicitante</th>
-                <th className="px-3 py-2">Descripcion</th>
+                <th className="px-3 py-2">Descripción</th>
                 <th className="px-3 py-2"></th>
               </tr>
             </thead>

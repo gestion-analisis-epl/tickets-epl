@@ -6,6 +6,7 @@ export const TIPOS_HISTORIAL = [
   "solicitud",
   "documentos",
   "sitio",
+  "contrato",
   "exclusion",
   "notas_cierre",
   "visto_bueno",
@@ -28,6 +29,8 @@ export interface ActorHistorial {
   uid: string;
   nombre: string;
   rol: Role;
+  // Solo para decidir la visibilidad de la entrada (no se guarda): id del catalogo de abogados.
+  abogadoId?: string | null;
 }
 
 // Documento tickets/{ticketId}/historial/{entradaId}. Solo se agrega: las reglas niegan update/delete.
@@ -42,6 +45,9 @@ export interface EntradaHistorial {
   // Solo comentario_editado, comentario_eliminado y cambios_solicitados (Plan D). Se omite la clave si no aplica:
   // el SDK de cliente rechaza valores undefined.
   comentarioId?: string;
+  // La ve el solicitante dueno: la hizo el o el abogado asignado en ese momento. Entradas previas
+  // no lo traen y quedan ocultas para el solicitante. Las reglas verifican que sea cierto.
+  visibleSolicitante?: boolean;
 }
 
 export interface EntradaHistorialGuardada extends EntradaHistorial {

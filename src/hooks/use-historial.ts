@@ -5,8 +5,9 @@ import { useAuthStore } from "@/stores/auth";
 import { subscribeHistorial } from "@/lib/historial";
 import type { EntradaHistorialGuardada } from "@/types/historial";
 
-// Solo montar donde puedeVerHistorial() sea verdadero: para los demas las reglas niegan la lectura.
-export function useHistorial(ticketId: string) {
+// Solo montar donde puedeVerHistorial() o el solicitante dueno (soloVisibleSolicitante) lo permitan:
+// para los demas las reglas niegan la lectura.
+export function useHistorial(ticketId: string, soloVisibleSolicitante = false) {
   const status = useAuthStore((s) => s.status);
   const [entradas, setEntradas] = useState<EntradaHistorialGuardada[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,9 +26,10 @@ export function useHistorial(ticketId: string) {
       () => {
         setError(true);
         setLoading(false);
-      }
+      },
+      { soloVisibleSolicitante }
     );
-  }, [ticketId, status]);
+  }, [ticketId, status, soloVisibleSolicitante]);
 
   return { entradas, loading, error };
 }

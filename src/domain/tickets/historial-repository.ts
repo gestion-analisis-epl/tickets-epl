@@ -6,6 +6,8 @@ export interface HistorialRepository {
   subscribe(
     ticketId: string,
     callback: (entradas: EntradaHistorialGuardada[]) => void,
-    onError?: (e: RepositoryError) => void
+    onError?: (e: RepositoryError) => void,
+    // Vista del solicitante dueno: solo entradas visibleSolicitante (las reglas exigen el filtro).
+    opciones?: { soloVisibleSolicitante?: boolean }
   ): Unsubscribe;
 }

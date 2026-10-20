@@ -8,10 +8,11 @@ import { useAuthStore } from "@/stores/auth";
 import { usePermiso } from "@/hooks/use-permiso";
 import { auth } from "@/lib/firebase";
 import { useTicket } from "@/hooks/use-ticket";
-import { updateTicketAsignacion, updateTicketSolicitud, updateTicketSitio, submitSatisfaccion, deleteTicket } from "@/lib/tickets";
+import { updateTicketAsignacion, updateTicketSolicitud, updateTicketSitio, updateTicketContrato, submitSatisfaccion, deleteTicket } from "@/lib/tickets";
 import { findServicio } from "@/lib/catalogo";
 import { ResumenContratoCard } from "./resumen-contrato-card";
 import { HistorialPanel } from "./historial-panel";
+import { DatosContratoFields } from "./datos-contrato-fields";
 import { ConversacionPanel } from "./conversacion-panel";
 import { esParticipante, hiloEscribible, hiloVisible } from "@/domain/tickets/conversacion-rules";
 import { DosColumnas } from "@/components/layout/dos-columnas";
@@ -28,13 +29,15 @@ import { EstatusBadge, CategoriaBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatFecha, formatFechaSolo } from "@/lib/format-fecha";
-import { formatMonedaMXN } from "@/lib/text-format";
+import { formatMonedaMXN, formatMontoInput, parseMontoInput } from "@/lib/text-format";
 import { DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO, SERVICIOS_ARRENDAMIENTO_IDS } from "@/lib/data/arrendamientos-temporal";
 import { isAdminRole } from "@/types/user";
 import { esUrlStorageSegura } from "@/lib/storage-ruta";
 import { slaEnPausa } from "@/domain/tickets/sla-pausa-rules";
 import { bloqueadoPorPreCierre, solicitudEditable } from "@/domain/tickets/etapa-permisos-rules";
-import { actorDesdeSesion, puedeVerHistorial } from "@/domain/tickets/historial-rules";
+import { actorDesdeSesion, puedeVerHistorial, puedeVerHistorialFiltrado } from "@/domain/tickets/historial-rules";
+import { puedeEditarContrato } from "@/domain/tickets/contrato-edicion-rules";
+import { validarContrato, type ContratoCapturado } from "@/domain/tickets/nuevo-ticket-validacion";
 
 function nombreArchivo(url: string): string {
   try {
@@ -76,7 +79,7 @@ export function TicketDetail({ id }: { id: string }) {
   const puedeEliminar = usePermiso("eliminar_tickets");
   // Reasignar abogado depende del permiso asignar_tickets (rol + ajustes; ver firestore.rules).
   const puedeAsignarAbogado = usePermiso("asignar_tickets");
-  const actor = actorDesdeSesion({ uid, nombre, role });
+  const actor = actorDesdeSesion({ uid, nombre, role, abogadoId });
 
   const [estatusForm, setEstatusForm] = useState<Estatus>("Recepcion de solicitud");
   const [abogadoForm, setAbogadoForm] = useState("");
@@ -106,6 +109,12 @@ export function TicketDetail({ id }: { id: string }) {
   const [sitioForm, setSitioForm] = useState<SeleccionSitio>(SELECCION_VACIA);
   const [savingSitio, setSavingSitio] = useState(false);
   const [sitioError, setSitioError] = useState<string | null>(null);
+
+  const [editandoContrato, setEditandoContrato] = useState(false);
+  const [contratoForm, setContratoForm] = useState<ContratoCapturado | null>(null);
+  const [contratoErrors, setContratoErrors] = useState<Record<string, string>>({});
+  const [savingContrato, setSavingContrato] = useState(false);
+  const [contratoError, setContratoError] = useState<string | null>(null);
 
   const [descargandoZip, setDescargandoZip] = useState(false);
   const [zipError, setZipError] = useState<string | null>(null);
@@ -157,12 +166,67 @@ export function TicketDetail({ id }: { id: string }) {
 
   const esArrendamiento = SERVICIOS_ARRENDAMIENTO_IDS.includes(ticket.servicioId);
   const sitioCompleto = !!(sitioForm.clave && sitioForm.alias);
-  // Asignar el sitio a un ticket existente: solo Mesa de Control y admins.
-  const puedeCambiarSitio = puedeActualizarSitio(role, ticket) && !bloqueadoPorPreCierre(ticket.estatus);
+  // Asignar el sitio a un ticket existente: Mesa de Control, admins y el abogado asignado.
+  const puedeCambiarSitio = puedeActualizarSitio(role, ticket, abogadoId) && !bloqueadoPorPreCierre(ticket.estatus);
   // Admin/Gerente Juridico y el abogado asignado (misma condicion que firestore.rules).
-  const verHistorial = puedeVerHistorial({ role, abogadoId, permisos }, ticket);
+  const verHistorialCompleto = puedeVerHistorial({ role, abogadoId, permisos }, ticket);
+  // El solicitante dueno solo ve lo que hicieron el abogado asignado y el mismo.
+  const verHistorialFiltrado = puedeVerHistorialFiltrado({ uid, role, abogadoId, permisos }, ticket);
+  const verHistorial = verHistorialCompleto || verHistorialFiltrado;
+  const puedeEditarDatosContrato = puedeEditarContrato({ role, abogadoId }, ticket);
   // Participantes del hilo (sin Mesa de Control ni otros abogados), desde que el ticket llego a Pre-Cierre.
   const verConversacion = hiloVisible(ticket) && esParticipante({ uid, role, abogadoId }, ticket);
+
+  function handleEditarContrato() {
+    const c = ticket!.contratoArrendamiento!;
+    const [codigo = "", ...resto] = c.condicionesPago.split(" - ");
+    setContratoForm({
+      domicilio: c.domicilio,
+      altaArrendador: c.altaArrendador,
+      solicitante: c.solicitante,
+      periodoInicio: c.periodoInicio,
+      periodoFin: c.periodoFin,
+      condicionesCodigo: codigo,
+      condicionesTipo: resto.join(" - "),
+      montoPago: formatMontoInput(String(c.montoPago)),
+      motivo: c.motivo,
+    });
+    setContratoErrors({});
+    setContratoError(null);
+    setEditandoContrato(true);
+  }
+
+  function handleCambioContrato<K extends keyof ContratoCapturado>(key: K, value: ContratoCapturado[K]) {
+    setContratoForm((prev) => (prev ? { ...prev, [key]: value } : prev));
+    setContratoErrors((prev) => ({ ...prev, [key]: "" }));
+  }
+
+  async function handleGuardarContrato() {
+    if (!contratoForm || !actor) return;
+    const errores = validarContrato(contratoForm);
+    setContratoErrors(errores);
+    if (Object.keys(errores).length > 0) return;
+
+    setSavingContrato(true);
+    setContratoError(null);
+    try {
+      await updateTicketContrato(id, actor, {
+        domicilio: contratoForm.domicilio,
+        altaArrendador: contratoForm.altaArrendador,
+        solicitante: contratoForm.solicitante,
+        periodoInicio: contratoForm.periodoInicio,
+        periodoFin: contratoForm.periodoFin,
+        condicionesPago: `${contratoForm.condicionesCodigo} - ${contratoForm.condicionesTipo}`,
+        montoPago: parseMontoInput(contratoForm.montoPago),
+        motivo: contratoForm.motivo,
+      });
+      setEditandoContrato(false);
+    } catch {
+      setContratoError("No se pudo guardar. Intenta de nuevo.");
+    } finally {
+      setSavingContrato(false);
+    }
+  }
 
   function handleEditarSitio() {
     setSitioForm(seleccionDeSitio(ticket!.sitioArrendamiento));
@@ -370,7 +434,7 @@ export function TicketDetail({ id }: { id: string }) {
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="field-label">Area / Empresa</label>
+                    <label className="field-label">Empresa / Área</label>
                     <select
                       value={areaEmpresaForm}
                       onChange={(e) => setAreaEmpresaForm(e.target.value)}
@@ -385,7 +449,7 @@ export function TicketDetail({ id }: { id: string }) {
                 </div>
 
                 <div>
-                  <label className="field-label">Descripcion</label>
+                  <label className="field-label">Descripción</label>
                   <textarea
                     value={descripcionForm}
                     onChange={(e) => setDescripcionForm(e.target.value)}
@@ -400,7 +464,7 @@ export function TicketDetail({ id }: { id: string }) {
 
             {docsExistentesForm.length > 0 && (
               <div>
-                <p className="text-muted text-sm mb-1.5">Documentacion ya adjunta</p>
+                <p className="text-muted text-sm mb-1.5">Documentación ya adjunta</p>
                 <ul className="space-y-1">
                   {docsExistentesForm.map((url) => (
                     <li key={url} className="flex items-center justify-between gap-2">
@@ -443,21 +507,21 @@ export function TicketDetail({ id }: { id: string }) {
           <>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
               <div><dt className="text-muted">Solicitante</dt><dd className="font-medium">{ticket.solicitanteNombre}</dd></div>
-              <div><dt className="text-muted">Area / Empresa</dt><dd className="font-medium">{ticket.areaEmpresa}</dd></div>
+              <div><dt className="text-muted">Empresa / Área</dt><dd className="font-medium">{ticket.areaEmpresa}</dd></div>
               <div><dt className="text-muted">Servicio</dt><dd className="font-medium">{servicio?.servicio ?? ticket.servicioId}</dd></div>
               <div><dt className="text-muted">Fecha de solicitud</dt><dd className="font-medium">{formatFecha(ticket.fechaSolicitud)}</dd></div>
-              <div><dt className="text-muted">Puesto responsable sugerido</dt><dd className="font-medium">{ticket.puestoResponsableSugerido}</dd></div>
-              <div><dt className="text-muted">SLA interno</dt><dd className="font-medium">{ticket.slaInterno} dias habiles</dd></div>
-              <div><dt className="text-muted">Dias en pipeline</dt><dd className="font-medium tabular-nums">{ticket.diasPipeline ?? 0}</dd></div>
+              <div><dt className="text-muted">Puesto responsable</dt><dd className="font-medium">{ticket.puestoResponsableSugerido}</dd></div>
+              <div><dt className="text-muted">SLA interno</dt><dd className="font-medium">{ticket.slaInterno} días hábiles</dd></div>
+              <div><dt className="text-muted">Días en pipeline</dt><dd className="font-medium tabular-nums">{ticket.diasPipeline ?? 0}</dd></div>
               <div><dt className="text-muted">Fecha compromiso</dt><dd className="font-medium">{formatFecha(ticket.fechaCompromiso)}</dd></div>
               <div>
                 <dt className="text-muted">Nivel de servicio</dt>
                 {ticket.nivelServicio == null ? (
-                  <dd className="font-medium text-muted">SLA aun no inicia (pendiente de asignar abogado)</dd>
+                  <dd className="font-medium text-muted">SLA aún no inicia (pendiente de asignar abogado)</dd>
                 ) : (
                   <dd className={cn("font-medium tabular-nums", ticket.nivelServicio < 0 ? "text-danger" : "text-success")}>
                     {ticket.nivelServicio > 0 ? `+${ticket.nivelServicio}` : ticket.nivelServicio}
-                    {" "}({ticket.diasHabilesTranscurridos} dias transcurridos)
+                    {" "}({ticket.diasHabilesTranscurridos} días transcurridos)
                     {slaEnPausa(ticket) && <span className="text-muted font-normal"> (SLA en pausa)</span>}
                   </dd>
                 )}
@@ -465,7 +529,7 @@ export function TicketDetail({ id }: { id: string }) {
             </dl>
 
             <div>
-              <p className="text-muted text-sm mb-1">Descripcion</p>
+              <p className="text-muted text-sm mb-1">Descripción</p>
               <p className="text-sm whitespace-pre-wrap">{ticket.descripcion}</p>
             </div>
 
@@ -473,7 +537,7 @@ export function TicketDetail({ id }: { id: string }) {
               <div>
                 <Button variant="outline" size="sm" onClick={handleDescargarZip} disabled={descargandoZip}>
                   <Download className="h-3.5 w-3.5" />
-                  {descargandoZip ? "Generando ZIP..." : `Descargar toda la documentacion (${todaLaDocumentacion.length})`}
+                  {descargandoZip ? "Generando ZIP..." : `Descargar toda la documentación (${todaLaDocumentacion.length})`}
                 </Button>
                 {zipError && <p className="text-sm text-danger mt-1.5">{zipError}</p>}
               </div>
@@ -481,7 +545,7 @@ export function TicketDetail({ id }: { id: string }) {
 
             {ticket.documentacion.length > 0 && (
               <div>
-                <p className="text-muted text-sm mb-1.5">Documentacion adjunta</p>
+                <p className="text-muted text-sm mb-1.5">Documentación adjunta</p>
                 <ul className="space-y-1">
                   {ticket.documentacion.map((url) => (
                     <li key={url}>
@@ -559,7 +623,30 @@ export function TicketDetail({ id }: { id: string }) {
 
             {ticket.contratoArrendamiento && (
               <div>
-                <p className="text-muted text-sm mb-2">Datos del contrato / convenio</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-muted text-sm">Datos del contrato / convenio</p>
+                  {puedeEditarDatosContrato && !editandoContrato && (
+                    <Button variant="outline" size="sm" onClick={handleEditarContrato}>
+                      <Pencil className="h-3.5 w-3.5" />
+                      Editar
+                    </Button>
+                  )}
+                </div>
+                {editandoContrato && contratoForm ? (
+                  <div className="space-y-4">
+                    <DatosContratoFields contrato={contratoForm} errors={contratoErrors} onChange={handleCambioContrato} />
+                    <p className="text-xs text-muted">Los cambios quedan registrados en el historial del ticket.</p>
+                    {contratoError && <p className="text-sm text-danger">{contratoError}</p>}
+                    <div className="flex gap-3">
+                      <Button variant="success" onClick={handleGuardarContrato} disabled={savingContrato}>
+                        {savingContrato ? "Guardando..." : "Guardar cambios"}
+                      </Button>
+                      <Button variant="outline" onClick={() => setEditandoContrato(false)} disabled={savingContrato}>
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
                   <div><dt className="text-muted">Domicilio</dt><dd className="font-medium">{ticket.contratoArrendamiento.domicilio}</dd></div>
                   <div><dt className="text-muted">Alta de arrendador</dt><dd className="font-medium">{ticket.contratoArrendamiento.altaArrendador}</dd></div>
@@ -577,6 +664,7 @@ export function TicketDetail({ id }: { id: string }) {
                     <div className="sm:col-span-2"><dt className="text-muted">Notas</dt><dd>{ticket.contratoArrendamiento.notas}</dd></div>
                   )}
                 </dl>
+                )}
               </div>
             )}
           </>
@@ -585,7 +673,7 @@ export function TicketDetail({ id }: { id: string }) {
 
       {/* Asignacion / estatus (ambar, editable solo por Legal/admin) */}
       <section className="section-card p-6 space-y-4">
-        <h2 className="eyebrow">Asignacion y estatus</h2>
+        <h2 className="eyebrow">Asignación y estatus</h2>
 
         {puedeEditar ? (
           <>
@@ -645,7 +733,7 @@ export function TicketDetail({ id }: { id: string }) {
         ) : (
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
             <div><dt className="text-muted">Abogado asignado</dt><dd className="font-medium">{ticket.abogadoAsignadoId ?? "Sin asignar"}</dd></div>
-            <div><dt className="text-muted">Fecha de asignacion</dt><dd className="font-medium">{formatFecha(ticket.fechaAsignacion, { conHora: true })}</dd></div>
+            <div><dt className="text-muted">Fecha de asignación</dt><dd className="font-medium">{formatFecha(ticket.fechaAsignacion, { conHora: true })}</dd></div>
             {ticket.fechaCierre && (
               <>
                 <div><dt className="text-muted">Fecha de cierre</dt><dd className="font-medium">{formatFecha(ticket.fechaCierre, { conHora: true })}</dd></div>
@@ -743,7 +831,7 @@ export function TicketDetail({ id }: { id: string }) {
       derecha={
         <>
           {mostrarResumen && <ResumenContratoCard ticket={ticket} />}
-          {verHistorial && <HistorialPanel ticket={ticket} />}
+          {verHistorial && <HistorialPanel ticket={ticket} soloVisibleSolicitante={!verHistorialCompleto} />}
         </>
       }
     />

@@ -7,9 +7,10 @@ import { formatFecha } from "@/lib/format-fecha";
 import type { Ticket } from "@/types/ticket";
 
 // Solo texto plano: los valores (incluido el texto de comentarios editados) se pintan como texto de React.
-export function HistorialPanel({ ticket }: { ticket: Ticket }) {
-  const { entradas, loading, error } = useHistorial(ticket.id);
-  const items = lineaDeTiempo(entradas, ticket.historialEstatus ?? []);
+// soloVisibleSolicitante: vista del solicitante. No se mezcla el historialEstatus previo, que no distingue quien lo hizo.
+export function HistorialPanel({ ticket, soloVisibleSolicitante = false }: { ticket: Ticket; soloVisibleSolicitante?: boolean }) {
+  const { entradas, loading, error } = useHistorial(ticket.id, soloVisibleSolicitante);
+  const items = lineaDeTiempo(entradas, soloVisibleSolicitante ? [] : ticket.historialEstatus ?? []);
 
   return (
     <section className="section-card p-6 space-y-4 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:space-y-0 lg:gap-4">

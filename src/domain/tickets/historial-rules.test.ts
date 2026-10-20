@@ -56,15 +56,15 @@ describe("textoDocumentos", () => {
 
 describe("calcularCambios", () => {
   const campos: CampoVigilado[] = [
-    { campo: "descripcion", etiqueta: "Descripcion" },
+    { campo: "descripcion", etiqueta: "Descripción" },
     { campo: "slaInterno", etiqueta: "SLA interno" },
-    { campo: "documentacion", etiqueta: "Documentacion", formato: textoDocumentos },
+    { campo: "documentacion", etiqueta: "Documentación", formato: textoDocumentos },
   ];
 
   it("solo registra los campos vigilados que cambian", () => {
     const antes = buildTicket({ descripcion: "vieja", slaInterno: 5 });
     expect(calcularCambios(antes, { descripcion: "nueva", slaInterno: 5, areaEmpresa: "Otra" }, campos)).toEqual([
-      { campo: "descripcion", etiqueta: "Descripcion", antes: "vieja", despues: "nueva" },
+      { campo: "descripcion", etiqueta: "Descripción", antes: "vieja", despues: "nueva" },
     ]);
   });
 
@@ -75,7 +75,7 @@ describe("calcularCambios", () => {
   it("usa el formato propio del campo", () => {
     const antes = buildTicket({ documentacion: [url("1_a.pdf")] });
     expect(calcularCambios(antes, { documentacion: [url("1_a.pdf"), url("2_b.pdf")] }, campos)).toEqual([
-      { campo: "documentacion", etiqueta: "Documentacion", antes: "a.pdf", despues: "a.pdf, b.pdf" },
+      { campo: "documentacion", etiqueta: "Documentación", antes: "a.pdf", despues: "a.pdf, b.pdf" },
     ]);
   });
 
@@ -139,7 +139,7 @@ describe("entradasSolicitud", () => {
       { campo: "servicioId", etiqueta: "Servicio", antes: "Servicio S1", despues: "Servicio S2" },
       { campo: "slaInterno", etiqueta: "SLA interno", antes: "5", despues: "3" },
     ]);
-    expect(entradas[1].cambios).toEqual([{ campo: "documentacion", etiqueta: "Documentacion", antes: null, despues: "contrato.docx" }]);
+    expect(entradas[1].cambios).toEqual([{ campo: "documentacion", etiqueta: "Documentación", antes: null, despues: "contrato.docx" }]);
   });
 });
 
@@ -204,7 +204,7 @@ describe("entradas sin ticket: visto bueno, cambios solicitados y comentarios", 
 describe("actorDesdeSesion y etiquetas", () => {
   it("sin uid no hay actor; sin nombre usa cadena vacia", () => {
     expect(actorDesdeSesion({ uid: null, nombre: "X", role: "admin" })).toBeNull();
-    expect(actorDesdeSesion({ uid: "u1", nombre: null, role: "abogado" })).toEqual({ uid: "u1", nombre: "", rol: "abogado" });
+    expect(actorDesdeSesion({ uid: "u1", nombre: null, role: "abogado" })).toEqual({ uid: "u1", nombre: "", rol: "abogado", abogadoId: null });
   });
 
   it("todos los tipos tienen etiqueta", () => {

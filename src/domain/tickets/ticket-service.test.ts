@@ -223,7 +223,7 @@ describe("historial en el mismo lote que el cambio", () => {
     expect(lotes[0].entradas.map((e) => e.tipo)).toEqual(["solicitud", "documentos"]);
     expect(lotes[0].entradas[0].cambios.map((c) => c.campo)).toEqual(["areaEmpresa", "servicioId", "descripcion", "slaInterno"]);
     expect(lotes[0].entradas[1].cambios).toEqual([
-      { campo: "documentacion", etiqueta: "Documentacion", antes: null, despues: "CONTRATO_ARRENDAMIENTO.docx" },
+      { campo: "documentacion", etiqueta: "Documentación", antes: null, despues: "CONTRATO_ARRENDAMIENTO.docx" },
     ]);
   });
 
@@ -237,6 +237,28 @@ describe("historial en el mismo lote que el cambio", () => {
         cambios: [{ campo: "sitioArrendamiento", etiqueta: "Sitio", antes: null, despues: "K1 — Sitio Uno" }],
       }),
     ]);
+  });
+
+  it("editar el contrato registra el cambio y lo deja visible al solicitante si lo hizo el abogado asignado", async () => {
+    const contrato = {
+      domicilio: "Av. Reforma 1", altaArrendador: "Juan", solicitante: "Ana", periodoInicio: "2026-01-01", periodoFin: "2027-01-01",
+      condicionesPago: "63 - Transferencia", montoPago: 1000, motivo: "Alta de Arrendador",
+    };
+    const abogado: ActorHistorial = { uid: "u3", nombre: "Abogada", rol: "abogado", abogadoId: "ab1" };
+    const { service, lotes } = montar(buildTicket({ id: "t1", abogadoAsignadoId: "ab1", contratoArrendamiento: contrato }));
+    await service.updateTicketContrato("t1", abogado, { ...contrato, montoPago: 2000 });
+    expect(lotes[0].patch.contratoArrendamiento?.montoPago).toBe(2000);
+    expect(lotes[0].entradas).toEqual([
+      expect.objectContaining({ tipo: "contrato", actorRol: "abogado", visibleSolicitante: true }),
+    ]);
+
+    await service.updateTicketContrato("t1", actor, { ...contrato, montoPago: 3000 });
+    expect(lotes[1].entradas[0].visibleSolicitante).toBe(false);
+  });
+
+  it("no se edita el contrato en Pre-Cierre", async () => {
+    const { service } = montar(buildTicket({ id: "t1", estatus: "Pre-Cierre", contratoArrendamiento: { domicilio: "x" } as never }));
+    await expect(service.updateTicketContrato("t1", actor, {} as never)).rejects.toThrow(MENSAJE_BLOQUEO_PRE_CIERRE);
   });
 
   it("excluir del pipeline registra si/no y repetirlo no agrega entrada", async () => {

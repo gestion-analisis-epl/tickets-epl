@@ -305,7 +305,7 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
       size: 170, minSize: 120,
     }),
     columnHelper.accessor("areaEmpresa", {
-      header: "Area / Empresa",
+      header: "Empresa / Área",
       size: 160, minSize: 120,
       ...multiSelect(),
       enableGlobalFilter: false,
@@ -336,7 +336,7 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
       cell: (info) => <span className="truncate block">{info.getValue()}</span>,
     }),
     columnHelper.accessor("categoria", {
-      header: "Categoria",
+      header: "Categoría",
       size: 170, minSize: 130,
       ...multiSelect(),
       cell: (info) => <CategoriaBadge categoria={info.getValue()} />,
@@ -373,13 +373,13 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
     }),
     columnHelper.accessor("slaInterno", {
       ...multiSelect(),
-      header: "SLA (dias)",
+      header: "SLA (días)",
       size: 100, minSize: 90,
       cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
     }),
     columnHelper.accessor("diasHabilesTranscurridos", {
       ...multiSelect(),
-      header: "Dias transcurridos",
+      header: "Días transcurridos",
       size: 130, minSize: 110,
       cell: (info) => {
         const v = info.getValue();
@@ -407,7 +407,7 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
     }),
     columnHelper.accessor("diasPipeline", {
       ...multiSelect(),
-      header: "Dias en pipeline",
+      header: "Días en pipeline",
       size: 130, minSize: 110,
       cell: (info) => {
         const v = info.getValue();

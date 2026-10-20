@@ -1,4 +1,4 @@
-import { collection, doc, onSnapshot, orderBy, query, type DocumentReference, type FirestoreError } from "firebase/firestore";
+import { collection, doc, onSnapshot, orderBy, query, where, type DocumentReference, type FirestoreError } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { EntradaHistorial } from "@/types/historial";
 import type { RepositoryError } from "@/domain/tickets/ticket-repository";
@@ -15,9 +15,14 @@ export function nuevaEntradaHistorialRef(ticketId: string): DocumentReference {
 
 export const firestoreHistorialRepository: HistorialRepository = {
   // Un solo orderBy sobre un campo: usa el indice automatico, no requiere indice compuesto.
-  subscribe(ticketId, callback, onError) {
+  // Con el filtro del solicitante no se ordena aqui (evita un indice compuesto): lineaDeTiempo ordena en JS.
+  subscribe(ticketId, callback, onError, opciones) {
+    const entradas = collection(db, "tickets", ticketId, "historial");
+    const consulta = opciones?.soloVisibleSolicitante
+      ? query(entradas, where("visibleSolicitante", "==", true))
+      : query(entradas, orderBy("fecha", "desc"));
     return onSnapshot(
-      query(collection(db, "tickets", ticketId, "historial"), orderBy("fecha", "desc")),
+      consulta,
       (snap) => callback(snap.docs.map((d) => ({ ...(d.data() as EntradaHistorial), id: d.id }))),
       onError ? (err) => onError(toRepositoryError(err)) : undefined
     );

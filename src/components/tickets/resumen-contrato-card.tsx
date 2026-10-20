@@ -56,7 +56,7 @@ export function ResumenContratoCard({ ticket }: { ticket: Ticket }) {
   const campos: { etiqueta: string; valor: string }[] = ext
     ? [
         { etiqueta: "Sitio", valor: texto(sitio) },
-        { etiqueta: "Codigo", valor: texto(codigo) },
+        { etiqueta: "Código", valor: texto(codigo) },
         { etiqueta: "Domicilio", valor: texto(ext.domicilio) },
         { etiqueta: "Alta de arrendador", valor: texto(ext.altaArrendador) },
         { etiqueta: "Solicitante", valor: texto(ext.solicitante) },

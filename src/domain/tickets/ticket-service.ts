@@ -11,9 +11,10 @@ import { calcularPatchSolicitud, type SolicitudInput } from "./solicitud-rules";
 import { calcularBackfill } from "./backfill-rules";
 import { primeraEntradaPreCierre, ticketLlegoAPreCierreOCierre } from "@/domain/contratos/backfill-rules";
 import { calcularPatchSitio } from "./sitio-rules";
+import { calcularPatchContrato, type ContratoEdicionInput } from "./contrato-edicion-rules";
 import type { ActorHistorial } from "@/types/historial";
 import { bloqueadoPorPreCierre, MENSAJE_BLOQUEO_PRE_CIERRE } from "./etapa-permisos-rules";
-import { entradaExclusion, entradaSitio, entradasAsignacion, entradasSolicitud } from "./historial-rules";
+import { conVisibilidad, entradaContrato, entradaExclusion, entradaSitio, entradasAsignacion, entradasSolicitud } from "./historial-rules";
 
 export interface BackfillResultado {
   actualizados: number;
@@ -96,7 +97,7 @@ export function createTicketService(
       current, input, actor.uid, ahora
     );
     const estatusPrevio = current.estatus;
-    await repo.updateConHistorial(id, patch, entradasAsignacion(current, patch, actor, ahora));
+    await repo.updateConHistorial(id, patch, conVisibilidad(entradasAsignacion(current, patch, actor, ahora), current, actor));
 
     if (esCambioEstatus) {
       await sincronizarResumen({ ...current, ...patch } as Ticket, estatusPrevio).catch((err) =>
@@ -153,7 +154,7 @@ export function createTicketService(
     const ahora = new Date();
     const patch = calcularPatchSolicitud(current, input, servicio);
     const nombreServicio = (servicioId: string) => catalogo.findServicio(servicioId)?.servicio ?? null;
-    await repo.updateConHistorial(id, patch, entradasSolicitud(current, patch, actor, ahora, nombreServicio));
+    await repo.updateConHistorial(id, patch, conVisibilidad(entradasSolicitud(current, patch, actor, ahora, nombreServicio), current, actor));
     await refrescarResumenSiVisible({ ...current, ...patch } as Ticket);
   }
 
@@ -165,7 +166,19 @@ export function createTicketService(
     const ahora = new Date();
     const patch = calcularPatchSitio(sitio, actor.uid, ahora);
     const entrada = entradaSitio(current, patch, actor, ahora);
-    await repo.updateConHistorial(id, patch, entrada ? [entrada] : []);
+    await repo.updateConHistorial(id, patch, entrada ? conVisibilidad([entrada], current, actor) : []);
+    await refrescarResumenSiVisible({ ...current, ...patch } as Ticket);
+  }
+
+  async function updateTicketContrato(id: string, actor: ActorHistorial, input: ContratoEdicionInput): Promise<void> {
+    const current = await repo.getById(id);
+    if (!current) throw new Error("Ticket no encontrado.");
+    if (!current.contratoArrendamiento) throw new Error("El ticket no tiene datos de contrato.");
+    if (bloqueadoPorPreCierre(current.estatus)) throw new Error(MENSAJE_BLOQUEO_PRE_CIERRE);
+
+    const patch = calcularPatchContrato(current, input);
+    const entrada = entradaContrato(current, { ...current.contratoArrendamiento, ...input }, actor, new Date());
+    await repo.updateConHistorial(id, patch, entrada ? conVisibilidad([entrada], current, actor) : []);
     await refrescarResumenSiVisible({ ...current, ...patch } as Ticket);
   }
 
@@ -174,7 +187,7 @@ export function createTicketService(
     if (!current) throw new Error("Ticket no encontrado.");
 
     const entrada = entradaExclusion(current, excluido, actor, new Date());
-    await repo.updateConHistorial(id, { excluidoDelPipeline: excluido }, entrada ? [entrada] : []);
+    await repo.updateConHistorial(id, { excluidoDelPipeline: excluido }, entrada ? conVisibilidad([entrada], current, actor) : []);
   }
 
   async function deleteTicket(id: string): Promise<void> {
@@ -249,6 +262,7 @@ export function createTicketService(
     reenviarNotificacionReasignacion,
     updateTicketSolicitud,
     updateTicketSitio,
+    updateTicketContrato,
     updateTicketExclusion,
     deleteTicket,
     submitSatisfaccion,

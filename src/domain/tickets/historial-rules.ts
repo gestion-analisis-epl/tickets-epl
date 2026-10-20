@@ -1,10 +1,11 @@
-import type { Estatus, HistorialEntry, Ticket } from "@/types/ticket";
+import type { ContratoArrendamientoInput, Estatus, HistorialEntry, Ticket } from "@/types/ticket";
 import type { Role } from "@/types/user";
 import { tienePermiso, type AjustesPermisos } from "@/domain/users/permisos";
 import type { VistoBueno } from "@/types/resumen-contrato";
 import type { ActorHistorial, CambioCampo, EntradaHistorial, EntradaHistorialGuardada, TipoHistorial } from "@/types/historial";
 import { nombreDeUrl } from "@/domain/contratos/contrato-rules";
 import { findAbogado } from "@/lib/data/abogados";
+import { formatMonedaMXN } from "@/lib/text-format";
 
 export interface CampoVigilado {
   campo: keyof Ticket;
@@ -65,7 +66,7 @@ export const CAMPOS_ESTATUS: CampoVigilado[] = [
 
 export const CAMPOS_ASIGNACION: CampoVigilado[] = [
   { campo: "abogadoAsignadoId", etiqueta: "Abogado asignado", formato: textoAbogado },
-  { campo: "fechaAsignacion", etiqueta: "Fecha de asignacion" },
+  { campo: "fechaAsignacion", etiqueta: "Fecha de asignación" },
   { campo: "fechaCompromiso", etiqueta: "Fecha compromiso" },
 ];
 
@@ -74,23 +75,74 @@ export const CAMPOS_NOTAS_CIERRE: CampoVigilado[] = [{ campo: "notasCierre", eti
 // Incluye los derivados del servicio (categoria, puesto, SLA, fecha compromiso): solo aparecen si cambian.
 export function camposSolicitud(nombreServicio: (id: string) => string | null): CampoVigilado[] {
   return [
-    { campo: "areaEmpresa", etiqueta: "Area / Empresa" },
+    { campo: "areaEmpresa", etiqueta: "Empresa / Área" },
     {
       campo: "servicioId",
       etiqueta: "Servicio",
       formato: (valor) => (typeof valor === "string" && valor ? nombreServicio(valor) ?? valor : null),
     },
-    { campo: "descripcion", etiqueta: "Descripcion" },
-    { campo: "categoria", etiqueta: "Categoria" },
-    { campo: "puestoResponsableSugerido", etiqueta: "Puesto responsable sugerido" },
+    { campo: "descripcion", etiqueta: "Descripción" },
+    { campo: "categoria", etiqueta: "Categoría" },
+    { campo: "puestoResponsableSugerido", etiqueta: "Puesto responsable" },
     { campo: "slaInterno", etiqueta: "SLA interno" },
     { campo: "fechaCompromiso", etiqueta: "Fecha compromiso" },
   ];
 }
 
-export const CAMPOS_DOCUMENTOS: CampoVigilado[] = [{ campo: "documentacion", etiqueta: "Documentacion", formato: textoDocumentos }];
+export const CAMPOS_DOCUMENTOS: CampoVigilado[] = [{ campo: "documentacion", etiqueta: "Documentación", formato: textoDocumentos }];
 
 export const CAMPOS_SITIO: CampoVigilado[] = [{ campo: "sitioArrendamiento", etiqueta: "Sitio" }];
+
+const textoFecha = (valor: unknown): string | null => {
+  const texto = textoDeValor(valor);
+  if (!texto) return null;
+  const [anio, mes, dia] = texto.split("-");
+  return anio && mes && dia ? `${dia}/${mes}/${anio}` : texto;
+};
+const textoMonto = (valor: unknown): string | null => (typeof valor === "number" ? formatMonedaMXN(valor) : textoDeValor(valor));
+
+const CAMPOS_CONTRATO: { campo: keyof ContratoArrendamientoInput; etiqueta: string; formato: (v: unknown) => string | null }[] = [
+  { campo: "domicilio", etiqueta: "Domicilio", formato: textoDeValor },
+  { campo: "altaArrendador", etiqueta: "Alta de arrendador", formato: textoDeValor },
+  { campo: "solicitante", etiqueta: "Solicitante", formato: textoDeValor },
+  { campo: "periodoInicio", etiqueta: "Inicio del periodo de arrendamiento", formato: textoFecha },
+  { campo: "periodoFin", etiqueta: "Fin del periodo de arrendamiento", formato: textoFecha },
+  { campo: "condicionesPago", etiqueta: "Condiciones para pago", formato: textoDeValor },
+  { campo: "montoPago", etiqueta: "Monto de pago", formato: textoMonto },
+  { campo: "motivo", etiqueta: "Motivo", formato: textoDeValor },
+];
+
+export function entradaContrato(
+  antes: Ticket,
+  despues: ContratoArrendamientoInput,
+  actor: ActorHistorial,
+  ahora: Date
+): EntradaHistorial | null {
+  const previo = antes.contratoArrendamiento;
+  const cambios: CambioCampo[] = [];
+  for (const { campo, etiqueta, formato } of CAMPOS_CONTRATO) {
+    const valorAntes = formato(previo?.[campo]);
+    const valorDespues = formato(despues[campo]);
+    if (valorAntes !== valorDespues) cambios.push({ campo, etiqueta, antes: valorAntes, despues: valorDespues });
+  }
+  return construirEntrada("contrato", actor, ahora, cambios);
+}
+
+// El solicitante dueno ve lo que hizo el o el abogado asignado a ese ticket en ese momento.
+// Espejo de la regla de create/read de tickets/{id}/historial en firestore.rules.
+export function esVisibleParaSolicitante(actor: ActorHistorial, ticket: Pick<Ticket, "solicitanteId" | "abogadoAsignadoId">): boolean {
+  if (actor.uid === ticket.solicitanteId) return true;
+  return actor.rol === "abogado" && !!actor.abogadoId && actor.abogadoId === ticket.abogadoAsignadoId;
+}
+
+export function conVisibilidad(
+  entradas: EntradaHistorial[],
+  ticket: Pick<Ticket, "solicitanteId" | "abogadoAsignadoId">,
+  actor: ActorHistorial
+): EntradaHistorial[] {
+  const visible = esVisibleParaSolicitante(actor, ticket);
+  return entradas.map((e) => ({ ...e, visibleSolicitante: visible }));
+}
 
 export const CAMPOS_EXCLUSION: CampoVigilado[] = [
   { campo: "excluidoDelPipeline", etiqueta: "Excluido del pipeline", formato: textoExclusion },
@@ -207,18 +259,21 @@ export function entradaComentarioEliminado(
   ], comentarioId);
 }
 
-export function actorDesdeSesion(sesion: { uid: string | null; nombre: string | null; role: Role }): ActorHistorial | null {
+export function actorDesdeSesion(
+  sesion: { uid: string | null; nombre: string | null; role: Role; abogadoId?: string | null }
+): ActorHistorial | null {
   if (!sesion.uid) return null;
-  return { uid: sesion.uid, nombre: sesion.nombre ?? "", rol: sesion.role };
+  return { uid: sesion.uid, nombre: sesion.nombre ?? "", rol: sesion.role, abogadoId: sesion.abogadoId ?? null };
 }
 
 export const ETIQUETA_TIPO_HISTORIAL: Record<TipoHistorial, string> = {
   estatus: "Cambio de estatus",
-  asignacion: "Asignacion",
-  solicitud: "Edicion de la solicitud",
+  asignacion: "Asignación",
+  solicitud: "Edición de la solicitud",
   documentos: "Documentos",
   sitio: "Sitio",
-  exclusion: "Exclusion del pipeline",
+  contrato: "Edición del contrato / convenio",
+  exclusion: "Exclusión del pipeline",
   notas_cierre: "Notas de cierre",
   visto_bueno: "Visto bueno",
   cambios_solicitados: "Cambios solicitados",
@@ -242,6 +297,14 @@ export function lineaDeTiempo(entradas: EntradaHistorialGuardada[], historialEst
     .sort((a, b) => b.fecha.localeCompare(a.fecha))
     .map((h) => ({ origen: "estatus" as const, fecha: h.fecha, estatus: h.estatus }));
   return [...nuevas, ...previas];
+}
+
+// El solicitante dueno ve el historial filtrado (esVisibleParaSolicitante), salvo que ya tenga la vista completa.
+export function puedeVerHistorialFiltrado(
+  sesion: { uid: string | null; role: Role; abogadoId: string | null; permisos?: AjustesPermisos },
+  ticket: Pick<Ticket, "abogadoAsignadoId" | "solicitanteId">
+): boolean {
+  return !!sesion.uid && sesion.uid === ticket.solicitanteId && !puedeVerHistorial(sesion, ticket);
 }
 
 // Espejo de "allow read" de tickets/{id}/historial en firestore.rules (permiso ver_historial o abogado asignado).
