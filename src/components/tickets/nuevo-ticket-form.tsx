@@ -11,14 +11,15 @@ import { useAuthStore } from "@/stores/auth";
 import { AREAS_EMPRESA } from "@/lib/data/listas";
 import { findServicio } from "@/lib/catalogo";
 import {
-  SERVICIOS_ARRENDAMIENTO_IDS, SERVICIOS_CON_FORMATO_OBLIGATORIO_IDS, SERVICIO_CONTRATO_ARRENDAMIENTO_ID,
-  URL_FORMATO_SOLICITUD_ARRENDAMIENTO, CONDICIONES_PAGO_CODIGOS, CONDICIONES_PAGO_TIPOS, MOTIVO_CONTRATO_OPTIONS,
-  DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO, type DocumentoRequeridoArrendamientoKey,
+  SERVICIOS_ARRENDAMIENTO_IDS, SERVICIOS_CON_FORMATO_OBLIGATORIO_IDS, SERVICIOS_CON_DATOS_CONTRATO_IDS, SERVICIOS_CON_DOCUMENTOS_INDIVIDUALES_IDS,
+  URL_FORMATO_SOLICITUD_ARRENDAMIENTO, DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO, type DocumentoRequeridoArrendamientoKey,
 } from "@/lib/data/arrendamientos-temporal";
-import { toTitleCase, formatMontoInput, parseMontoInput } from "@/lib/text-format";
+import { parseMontoInput } from "@/lib/text-format";
 import { validarFormatoArrendamiento } from "@/lib/validar-formato";
+import { validarSolicitud, type ContratoCapturado } from "@/domain/tickets/nuevo-ticket-validacion";
 import { ServicioSelector } from "./servicio-selector";
 import { SitioSelector } from "./sitio-selector";
+import { DatosContratoFields } from "./datos-contrato-fields";
 import { SELECCION_VACIA, type SeleccionSitio } from "@/domain/sitios/sitios-rules";
 import { uploadTicketFile, deleteTicketDocument } from "@/lib/storage";
 import { createTicket } from "@/lib/tickets";
@@ -39,19 +40,7 @@ interface FormState {
 
 const EMPTY_FORM: FormState = { areaEmpresa: "", servicioId: "", descripcion: "" };
 
-interface ContratoFormState {
-  domicilio: string;
-  altaArrendador: string;
-  solicitante: string;
-  periodoInicio: string;
-  periodoFin: string;
-  condicionesCodigo: string;
-  condicionesTipo: string;
-  montoPago: string;
-  motivo: string;
-}
-
-const EMPTY_CONTRATO: ContratoFormState = {
+const EMPTY_CONTRATO: ContratoCapturado = {
   domicilio: "", altaArrendador: "", solicitante: "",
   periodoInicio: "", periodoFin: "", condicionesCodigo: "", condicionesTipo: "", montoPago: "", motivo: "",
 };
@@ -60,7 +49,7 @@ export function NuevoTicketForm() {
   const router = useRouter();
   const { uid, nombre } = useAuthStore();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [contrato, setContratoState] = useState<ContratoFormState>(EMPTY_CONTRATO);
+  const [contrato, setContratoState] = useState<ContratoCapturado>(EMPTY_CONTRATO);
   const [sitio, setSitio] = useState<SeleccionSitio>(SELECCION_VACIA);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [folioCreado, setFolioCreado] = useState<string | null>(null);
@@ -82,7 +71,8 @@ export function NuevoTicketForm() {
   const documentosUploading = Object.values(documentosFiles).some((fs) => fs.some((f) => f.status === "uploading"));
 
   const requiereFormato = SERVICIOS_CON_FORMATO_OBLIGATORIO_IDS.includes(form.servicioId);
-  const esContrato = form.servicioId === SERVICIO_CONTRATO_ARRENDAMIENTO_ID;
+  const requiereDocumentosIndividuales = SERVICIOS_CON_DOCUMENTOS_INDIVIDUALES_IDS.includes(form.servicioId);
+  const requiereDatosContrato = SERVICIOS_CON_DATOS_CONTRATO_IDS.includes(form.servicioId);
 
   function handleFilesSelected(selected: File[]) {
     const entries: UploadingFile[] = selected.map((file) => ({
@@ -93,6 +83,7 @@ export function NuevoTicketForm() {
       status: "uploading",
     }));
     setFiles((prev) => [...prev, ...entries]);
+    setErrors((prev) => ({ ...prev, documentacion: "" }));
 
     selected.forEach((file, i) => {
       const id = entries[i].id;
@@ -202,52 +193,29 @@ export function NuevoTicketForm() {
     setErrors((prev) => ({ ...prev, [key]: "" }));
   }
 
-  function setContrato<K extends keyof ContratoFormState>(key: K, value: ContratoFormState[K]) {
+  function setContrato<K extends keyof ContratoCapturado>(key: K, value: ContratoCapturado[K]) {
     setContratoState((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: "" }));
   }
 
-  function sanitizarContrato(key: keyof ContratoFormState, formatear: (v: string) => string) {
-    setContratoState((prev) => ({ ...prev, [key]: formatear(prev[key]) }));
-  }
-
   function validar(): boolean {
-    const next: Record<string, string> = {};
-    if (!form.areaEmpresa) next.areaEmpresa = "Selecciona el area o empresa solicitante.";
-    if (!form.servicioId) next.servicioId = "Selecciona el servicio que necesitas.";
-    if (!form.descripcion.trim()) next.descripcion = "Describe brevemente la solicitud.";
-
-    if (form.servicioId && !(sitio.clave && sitio.alias)) next.sitio = "Selecciona el sitio (clave y alias).";
-
-    if (requiereFormato) {
-      if (!(formatoFiles.length === 1 && formatoFiles[0].status === "done")) {
-        next.formato = "Adjunta el formato de solicitud de arrendamiento (obligatorio para este servicio).";
-      }
-      for (const doc of DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO) {
-        const archivos = documentosFiles[doc.key];
-        if (!(archivos.length === 1 && archivos[0].status === "done")) {
-          next[doc.key] = `Adjunta: ${doc.label}.`;
-        }
-      }
-    }
-
-    if (esContrato) {
-      if (!contrato.domicilio.trim()) next.domicilio = "Captura el domicilio.";
-      if (!contrato.altaArrendador.trim()) next.altaArrendador = "Captura el arrendador dado de alta.";
-      if (!contrato.solicitante.trim()) next.solicitante = "Captura el solicitante.";
-      if (!contrato.periodoInicio) next.periodoInicio = "Captura la fecha de inicio.";
-      if (!contrato.periodoFin) next.periodoFin = "Captura la fecha de fin.";
-      if (contrato.periodoInicio && contrato.periodoFin && contrato.periodoFin < contrato.periodoInicio) {
-        next.periodoFin = "La fecha de fin no puede ser anterior a la de inicio.";
-      }
-      if (!contrato.condicionesCodigo || !contrato.condicionesTipo) next.condicionesPago = "Selecciona las condiciones para pago.";
-      const monto = parseMontoInput(contrato.montoPago);
-      if (!contrato.montoPago.trim() || !Number.isFinite(monto) || monto <= 0) next.montoPago = "Captura un monto valido.";
-      if (!contrato.motivo) next.motivo = "Selecciona el motivo.";
-    }
-
+    const next = validarSolicitud({
+      areaEmpresa: form.areaEmpresa,
+      servicioId: form.servicioId,
+      descripcion: form.descripcion,
+      sitioListo: Boolean(sitio.clave && sitio.alias),
+      requiereFormato,
+      formatoListo: formatoFiles.length === 1 && formatoFiles[0].status === "done",
+      documentacionObligatoria: requiereFormato && !requiereDocumentosIndividuales,
+      documentosFaltantes: requiereDocumentosIndividuales
+        ? DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO.filter((d) => documentosFiles[d.key][0]?.status !== "done")
+        : [],
+      documentacionListos: files.filter((f) => f.status === "done").length,
+      requiereDatosContrato,
+      contrato,
+    });
     setErrors(next);
-    return Object.values(next).every((v) => !v);
+    return Object.keys(next).length === 0;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -257,7 +225,7 @@ export function NuevoTicketForm() {
     setSubmitError(null);
     setCreating(true);
     try {
-      const contratoArrendamiento: ContratoArrendamientoInput | undefined = esContrato
+      const contratoArrendamiento: ContratoArrendamientoInput | undefined = requiereDatosContrato
         ? {
             domicilio: contrato.domicilio,
             altaArrendador: contrato.altaArrendador,
@@ -270,7 +238,7 @@ export function NuevoTicketForm() {
           }
         : undefined;
 
-      const documentosArrendamiento: DocumentosArrendamientoInput | undefined = requiereFormato
+      const documentosArrendamiento: DocumentosArrendamientoInput | undefined = requiereDocumentosIndividuales
         ? (Object.fromEntries(
             DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO.map((doc) => [doc.key, documentosFiles[doc.key][0]?.url ?? ""])
           ) as unknown as DocumentosArrendamientoInput)
@@ -308,6 +276,7 @@ export function NuevoTicketForm() {
     setFiles([]);
     setFormatoFiles([]);
     setDocumentosFiles(DOCUMENTOS_FILES_VACIO);
+    setErrors({});
   }
 
   if (folioCreado) {
@@ -335,85 +304,123 @@ export function NuevoTicketForm() {
     );
   }
 
+  const ocupado = filesUploading || formatoUploading || documentosUploading || creating;
+
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
-      {/* Datos automaticos (no editables) */}
-      <section className="rounded-lg border border-border bg-surface p-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+    <form onSubmit={handleSubmit} className="max-w-[1400px]">
+      <section className="rounded-lg border border-border bg-surface p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm">
         <div><span className="text-muted">Fecha de solicitud: </span><span className="font-medium">{hoy}</span></div>
         <div><span className="text-muted">Solicitante: </span><span className="font-medium">{nombre}</span></div>
       </section>
 
-      <section className="section-card p-6 space-y-5">
-        <div>
-          <label className="field-label">
-            Area / Empresa solicitante <span className="text-danger">*</span>
-          </label>
-          <select
-            value={form.areaEmpresa}
-            onChange={(e) => set("areaEmpresa", e.target.value)}
-            className="w-full field"
-          >
-            <option value="">Selecciona un area o empresa...</option>
-            {AREAS_EMPRESA.map((a) => <option key={a} value={a}>{a}</option>)}
-          </select>
-          {errors.areaEmpresa && <p className="text-xs text-danger mt-1">{errors.areaEmpresa}</p>}
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-6 items-start">
+        <div className="space-y-6 min-w-0">
+          <section className="section-card p-5 sm:p-6 space-y-5">
+            <h2 className="section-title"><span className="text-accent mr-2 tabular-nums">1</span>Solicitud</h2>
 
-        <div>
-          <ServicioSelector
-            value={form.servicioId}
-            onChange={(v) => set("servicioId", v)}
-            error={errors.servicioId}
-            soloIds={SERVICIOS_ARRENDAMIENTO_IDS}
-          />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="field-label">
+                  Empresa / Área solicitante <span className="text-danger">*</span>
+                </label>
+                <select
+                  value={form.areaEmpresa}
+                  onChange={(e) => set("areaEmpresa", e.target.value)}
+                  className="w-full field"
+                >
+                  <option value="">Selecciona un area o empresa...</option>
+                  {AREAS_EMPRESA.map((a) => <option key={a} value={a}>{a}</option>)}
+                </select>
+                {errors.areaEmpresa && <p className="text-xs text-danger mt-1">{errors.areaEmpresa}</p>}
+              </div>
 
-          {servicioSeleccionado && (
-            <div className="mt-3 flex flex-wrap items-center gap-3 rounded-md bg-surface px-3 py-2 text-sm">
-              <CategoriaBadge categoria={servicioSeleccionado.categoria} />
-              <span className="text-muted">Puesto responsable: <span className="font-medium opacity-100">{servicioSeleccionado.puestoResponsable}</span></span>
-              <span className="text-muted">SLA interno: <span className="font-medium opacity-100">{servicioSeleccionado.slaInterno} dias habiles</span></span>
+              <div>
+                <ServicioSelector
+                  value={form.servicioId}
+                  onChange={(v) => set("servicioId", v)}
+                  error={errors.servicioId}
+                  soloIds={SERVICIOS_ARRENDAMIENTO_IDS}
+                />
+              </div>
             </div>
+
+            {servicioSeleccionado && (
+              <div className="flex flex-wrap items-center gap-3 rounded-md bg-surface px-3 py-2 text-sm">
+                <CategoriaBadge categoria={servicioSeleccionado.categoria} />
+                <span className="text-muted">Puesto responsable: <span className="font-medium opacity-100">{servicioSeleccionado.puestoResponsable}</span></span>
+                <span className="text-muted">SLA interno: <span className="font-medium opacity-100">{servicioSeleccionado.slaInterno} días hábiles</span></span>
+              </div>
+            )}
+
+            {servicioSeleccionado && (
+              <div>
+                <p className="eyebrow mb-3">Sitio</p>
+                <SitioSelector
+                  value={sitio}
+                  onChange={(v) => {
+                    setSitio(v);
+                    setErrors((prev) => ({ ...prev, sitio: "" }));
+                  }}
+                  error={errors.sitio}
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="field-label">
+                Descripción de la solicitud <span className="text-danger">*</span>
+              </label>
+              <textarea
+                value={form.descripcion}
+                onChange={(e) => set("descripcion", e.target.value)}
+                rows={4}
+                placeholder="Describe con el mayor detalle posible lo que necesitas..."
+                className="field w-full resize-y"
+              />
+              {errors.descripcion && <p className="text-xs text-danger mt-1">{errors.descripcion}</p>}
+            </div>
+          </section>
+
+          {requiereDatosContrato && (
+            <section className="section-card p-5 sm:p-6 space-y-5">
+              <h2 className="section-title"><span className="text-accent mr-2 tabular-nums">2</span>Datos del contrato / convenio</h2>
+              <DatosContratoFields contrato={contrato} errors={errors} onChange={setContrato} />
+            </section>
           )}
         </div>
 
-        {servicioSeleccionado && (
-          <div>
-            <p className="eyebrow mb-3">Sitio</p>
-            <SitioSelector
-              value={sitio}
-              onChange={(v) => {
-                setSitio(v);
-                setErrors((prev) => ({ ...prev, sitio: "" }));
-              }}
-              error={errors.sitio}
-            />
-          </div>
-        )}
+        <aside className="section-card p-5 sm:p-6 space-y-6 min-w-0">
+          <h2 className="section-title">
+            <span className="text-accent mr-2 tabular-nums">{requiereDatosContrato ? 3 : 2}</span>Documentos
+          </h2>
 
-        {requiereFormato && (
-          <div className="space-y-4">
-            <label className="field-label">
-              Subir Formato de Solicitud de Arrendamiento <span className="text-danger">*</span>
-            </label>
-            <a
-              href={URL_FORMATO_SOLICITUD_ARRENDAMIENTO}
-              download
-              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline mb-2"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Descargar formato oficial
-            </a>
-            <FileDropzone
-              files={formatoFiles}
-              onFilesSelected={handleFormatoSeleccionado}
-              onRemove={handleRemoveFormato}
-              multiple={false}
-            />
-            <p className="text-xs text-muted mt-1.5">
-              Descarga el formato oficial, llenalo, y sube aqui el mismo archivo — no se acepta otra plantilla.
-            </p>
-            {errors.formato && <p className="text-xs text-danger mt-1">{errors.formato}</p>}
+          {requiereFormato && (
+            <div>
+              <label className="field-label">
+                Formato de Solicitud de Arrendamiento <span className="text-danger">*</span>
+              </label>
+              <a
+                href={URL_FORMATO_SOLICITUD_ARRENDAMIENTO}
+                download
+                className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline mb-2"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Descargar formato oficial
+              </a>
+              <FileDropzone
+                files={formatoFiles}
+                onFilesSelected={handleFormatoSeleccionado}
+                onRemove={handleRemoveFormato}
+                multiple={false}
+              />
+              <p className="text-xs text-muted mt-1.5">
+                Descarga el formato oficial, llenalo, y sube aqui el mismo archivo — no se acepta otra plantilla.
+              </p>
+              {errors.formato && <p className="text-xs text-danger mt-1">{errors.formato}</p>}
+            </div>
+          )}
 
+          {requiereDocumentosIndividuales && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO.map((doc) => (
                 <div key={doc.key}>
@@ -430,160 +437,33 @@ export function NuevoTicketForm() {
                 </div>
               ))}
             </div>
+          )}
+
+          <div>
+            <label className="field-label">
+              Documentación adjunta {requiereFormato && !requiereDocumentosIndividuales && <span className="text-danger">*</span>}
+            </label>
+            {requiereFormato && !requiereDocumentosIndividuales && (
+              <p className="text-xs text-muted mb-2">
+                Adjunta aqui, en uno o varios archivos: {DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO.map((d) => d.label.toLowerCase()).join(", ")}.
+              </p>
+            )}
+            <FileDropzone files={files} onFilesSelected={handleFilesSelected} onRemove={handleRemoveFile} />
+            {errors.documentacion && <p className="text-xs text-danger mt-1">{errors.documentacion}</p>}
           </div>
-        )}
+        </aside>
+      </div>
 
-        {esContrato && (
-          <div className="space-y-4 rounded-md border border-border bg-surface/40 p-4">
-            <p className="eyebrow">Datos del contrato / convenio</p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="field-label">Domicilio <span className="text-danger">*</span></label>
-                <textarea
-                  value={contrato.domicilio}
-                  onChange={(e) => setContrato("domicilio", e.target.value)}
-                  onBlur={() => sanitizarContrato("domicilio", toTitleCase)}
-                  rows={2}
-                  className="field w-full resize-y"
-                />
-                {errors.domicilio && <p className="text-xs text-danger mt-1">{errors.domicilio}</p>}
-              </div>
-
-              <div>
-                <label className="field-label">Alta de Arrendador <span className="text-danger">*</span></label>
-                <input
-                  type="text"
-                  value={contrato.altaArrendador}
-                  onChange={(e) => setContrato("altaArrendador", e.target.value)}
-                  onBlur={() => sanitizarContrato("altaArrendador", toTitleCase)}
-                  className="w-full field"
-                />
-                {errors.altaArrendador && <p className="text-xs text-danger mt-1">{errors.altaArrendador}</p>}
-              </div>
-
-              <div>
-                <label className="field-label">Solicitante <span className="text-danger">*</span></label>
-                <input
-                  type="text"
-                  value={contrato.solicitante}
-                  onChange={(e) => setContrato("solicitante", e.target.value)}
-                  onBlur={() => sanitizarContrato("solicitante", toTitleCase)}
-                  className="w-full field"
-                />
-                {errors.solicitante && <p className="text-xs text-danger mt-1">{errors.solicitante}</p>}
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="field-label">Periodo de arrendamiento <span className="text-danger">*</span></label>
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="date"
-                    value={contrato.periodoInicio}
-                    onChange={(e) => setContrato("periodoInicio", e.target.value)}
-                    className="field"
-                  />
-                  <span className="text-sm text-muted">a</span>
-                  <input
-                    type="date"
-                    value={contrato.periodoFin}
-                    onChange={(e) => setContrato("periodoFin", e.target.value)}
-                    className="field"
-                  />
-                </div>
-                {(errors.periodoInicio || errors.periodoFin) && (
-                  <p className="text-xs text-danger mt-1">{errors.periodoInicio || errors.periodoFin}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="field-label">Condiciones para pago <span className="text-danger">*</span></label>
-                <div className="flex gap-2">
-                  <select
-                    value={contrato.condicionesCodigo}
-                    onChange={(e) => setContrato("condicionesCodigo", e.target.value)}
-                    className="w-24 field"
-                  >
-                    <option value="">Codigo...</option>
-                    {CONDICIONES_PAGO_CODIGOS.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  <select
-                    value={contrato.condicionesTipo}
-                    onChange={(e) => setContrato("condicionesTipo", e.target.value)}
-                    className="flex-1 field"
-                  >
-                    <option value="">Selecciona...</option>
-                    {CONDICIONES_PAGO_TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                {errors.condicionesPago && <p className="text-xs text-danger mt-1">{errors.condicionesPago}</p>}
-              </div>
-
-              <div>
-                <label className="field-label">Monto de pago (MXN) <span className="text-danger">*</span></label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={contrato.montoPago}
-                    onChange={(e) => setContrato("montoPago", formatMontoInput(e.target.value))}
-                    className="field w-full pl-7 pr-14"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted">MXN</span>
-                </div>
-                {errors.montoPago && <p className="text-xs text-danger mt-1">{errors.montoPago}</p>}
-              </div>
-
-              <div>
-                <label className="field-label">Motivo <span className="text-danger">*</span></label>
-                <select
-                  value={contrato.motivo}
-                  onChange={(e) => setContrato("motivo", e.target.value)}
-                  className="w-full field"
-                >
-                  <option value="">Selecciona...</option>
-                  {MOTIVO_CONTRATO_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                </select>
-                {errors.motivo && <p className="text-xs text-danger mt-1">{errors.motivo}</p>}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div>
-          <label className="field-label">
-            Descripcion de la solicitud <span className="text-danger">*</span>
-          </label>
-          <textarea
-            value={form.descripcion}
-            onChange={(e) => set("descripcion", e.target.value)}
-            rows={4}
-            placeholder="Describe con el mayor detalle posible lo que necesitas..."
-            className="field w-full resize-y"
-          />
-          {errors.descripcion && <p className="text-xs text-danger mt-1">{errors.descripcion}</p>}
+      <div className="mt-6 border-t border-border pt-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="submit" variant="success" disabled={ocupado}>
+            {filesUploading || formatoUploading || documentosUploading ? "Esperando archivos..." : creating ? "Guardando..." : "Crear ticket"}
+          </Button>
+          <Button type="button" variant="danger" onClick={() => router.push("/tickets")}>
+            Cancelar
+          </Button>
+          {submitError && <span className="text-sm text-danger">{submitError}</span>}
         </div>
-
-        <div>
-          <label className="field-label">Documentacion adjunta</label>
-          <FileDropzone files={files} onFilesSelected={handleFilesSelected} onRemove={handleRemoveFile} />
-        </div>
-      </section>
-
-      {submitError && (
-        <div className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger max-w-3xl">
-          {submitError}
-        </div>
-      )}
-
-      <div className="flex flex-wrap gap-3">
-        <Button type="submit" variant="success" disabled={filesUploading || formatoUploading || documentosUploading || creating}>
-          {filesUploading || formatoUploading || documentosUploading ? "Esperando archivos..." : creating ? "Guardando..." : "Crear ticket"}
-        </Button>
-        <Button type="button" variant="danger" onClick={() => router.push("/tickets")}>
-          Cancelar
-        </Button>
       </div>
     </form>
   );

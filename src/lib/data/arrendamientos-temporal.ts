@@ -14,8 +14,19 @@ export const SERVICIOS_ARRENDAMIENTO_IDS = [
 // Alta de Arrendadores y Cambio de Arrendador exigen adjuntar el formato oficial.
 export const SERVICIOS_CON_FORMATO_OBLIGATORIO_IDS = [SERVICIO_ALTA_ARRENDADOR_ID, SERVICIO_CAMBIO_ARRENDADOR_ID];
 
+// Los tres capturan los datos del contrato / convenio.
+export const SERVICIOS_CON_DATOS_CONTRATO_IDS = [
+  SERVICIO_ALTA_ARRENDADOR_ID,
+  SERVICIO_CAMBIO_ARRENDADOR_ID,
+  SERVICIO_CONTRATO_ARRENDAMIENTO_ID,
+];
+
+// Solo Alta pide cada documento por separado; Cambio usa un unico campo de documentacion adjunta.
+export const SERVICIOS_CON_DOCUMENTOS_INDIVIDUALES_IDS = [SERVICIO_ALTA_ARRENDADOR_ID];
+
 export const URL_FORMATO_SOLICITUD_ARRENDAMIENTO = "/plantillas/formato-solicitud-arrendamiento.docx";
 
+// Alta los pide por separado; en Cambio sirven de guia de lo que debe ir en la documentacion adjunta.
 export const DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO = [
   { key: "escrituras", label: "Escrituras de la propiedad" },
   { key: "identificacionArrendador", label: "Identificación oficial del arrendador" },
