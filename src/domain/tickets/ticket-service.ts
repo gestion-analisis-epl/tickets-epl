@@ -14,6 +14,7 @@ import { calcularPatchSitio } from "./sitio-rules";
 import { calcularPatchContrato, type ContratoEdicionInput } from "./contrato-edicion-rules";
 import type { ActorHistorial } from "@/types/historial";
 import { bloqueadoPorPreCierre, MENSAJE_BLOQUEO_PRE_CIERRE } from "./etapa-permisos-rules";
+import { requiereDatosContrato } from "./contrato-edicion-rules";
 import { conVisibilidad, entradaContrato, entradaExclusion, entradaSitio, entradasAsignacion, entradasSolicitud } from "./historial-rules";
 
 export interface BackfillResultado {
@@ -174,7 +175,7 @@ export function createTicketService(
   async function updateTicketContrato(id: string, actor: ActorHistorial, input: ContratoEdicionInput): Promise<void> {
     const current = await repo.getById(id);
     if (!current) throw new Error("Ticket no encontrado.");
-    if (!current.contratoArrendamiento) throw new Error("El ticket no tiene datos de contrato.");
+    if (!current.contratoArrendamiento && !requiereDatosContrato(current.servicioId)) throw new Error("El ticket no tiene datos de contrato.");
     if (bloqueadoPorPreCierre(current.estatus)) throw new Error(MENSAJE_BLOQUEO_PRE_CIERRE);
 
     const patch = calcularPatchContrato(current, input);

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   actorDesdeSesion,
   calcularCambios,
+  conVisibilidad,
   construirEntrada,
   entradaCambiosSolicitados,
   entradaComentarioEditado,
@@ -14,6 +15,7 @@ import {
   ETIQUETA_TIPO_HISTORIAL,
   lineaDeTiempo,
   puedeVerHistorial,
+  puedeVerHistorialFiltrado,
   textoDeValor,
   textoDocumentos,
   type CampoVigilado,
@@ -167,6 +169,7 @@ describe("entradas sin ticket: visto bueno, cambios solicitados y comentarios", 
     expect(entradaVistoBueno(actor, AHORA, visto)).toEqual({
       fecha: ISO, actorUid: "u1", actorNombre: "Ana", actorRol: "admin", tipo: "visto_bueno",
       cambios: [{ campo: "vistoBueno", etiqueta: "Visto bueno", antes: null, despues: "Jefe Uno (2026-10-08T10:00:00.000Z)" }],
+      visibleSolicitante: true,
     });
   });
 
@@ -258,5 +261,39 @@ describe("puedeVerHistorial", () => {
 
   it("sin abogado asignado nadie entra por esa via", () => {
     expect(puedeVerHistorial({ role: "abogado", abogadoId: null }, { abogadoAsignadoId: null })).toBe(false);
+  });
+});
+
+describe("visibilidad del historial para solicitante y abogados", () => {
+  const ticket = buildTicket({ solicitanteId: "sol1", abogadoAsignadoId: "Karina" });
+  const gerente: ActorHistorial = { uid: "g1", nombre: "Gerente", rol: "gerente_juridico", abogadoId: null };
+  const entrada = (tipo: Parameters<typeof construirEntrada>[0]) => ({ ...construirEntrada(tipo, gerente, AHORA, [{ campo: "x", etiqueta: "X", antes: "a", despues: "b" }])! });
+
+  it("los cambios de proceso de admin o gerente juridico si se ven", () => {
+    for (const tipo of ["estatus", "asignacion", "notas_cierre"] as const) {
+      expect(conVisibilidad([entrada(tipo)], ticket, gerente)[0].visibleSolicitante).toBe(true);
+    }
+  });
+
+  it("lo demas de admin o gerente juridico queda oculto", () => {
+    for (const tipo of ["sitio", "contrato", "exclusion", "solicitud", "documentos"] as const) {
+      expect(conVisibilidad([entrada(tipo)], ticket, gerente)[0].visibleSolicitante).toBe(false);
+    }
+  });
+
+  it("lo que hace el abogado asignado o el solicitante se ve completo", () => {
+    const asignado: ActorHistorial = { uid: "a1", nombre: "Karina", rol: "abogado", abogadoId: "Karina" };
+    expect(conVisibilidad([entrada("contrato")], ticket, asignado)[0].visibleSolicitante).toBe(true);
+    expect(conVisibilidad([entrada("solicitud")], ticket, { ...gerente, uid: "sol1", rol: "solicitante" })[0].visibleSolicitante).toBe(true);
+  });
+
+  it("cualquier abogado y el solicitante dueno tienen la vista filtrada, y el asignado la completa", () => {
+    const t = { abogadoAsignadoId: "Karina", solicitanteId: "sol1" };
+    expect(puedeVerHistorialFiltrado({ uid: "a2", role: "abogado", abogadoId: "Otro" }, t)).toBe(true);
+    expect(puedeVerHistorialFiltrado({ uid: "a1", role: "abogado", abogadoId: "Karina" }, t)).toBe(false);
+    expect(puedeVerHistorialFiltrado({ uid: "sol1", role: "solicitante", abogadoId: null }, t)).toBe(true);
+    expect(puedeVerHistorialFiltrado({ uid: "otro", role: "solicitante", abogadoId: null }, t)).toBe(false);
+    expect(puedeVerHistorialFiltrado({ uid: "m1", role: "mesa_control", abogadoId: null }, t)).toBe(false);
+    expect(puedeVerHistorialFiltrado({ uid: "g1", role: "gerente_juridico", abogadoId: null }, t)).toBe(false);
   });
 });

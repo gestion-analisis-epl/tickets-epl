@@ -78,3 +78,22 @@ describe("visibilidad del historial para el solicitante", () => {
     expect(conVisibilidad([e], t, { ...ABOGADO, rol: "admin" })[0].visibleSolicitante).toBe(false);
   });
 });
+
+describe("completar datos de contrato de un ticket anterior al formulario", () => {
+  const sinDatos = (extra = {}) => ticket({ contratoArrendamiento: undefined, servicioId: "JUR-C071", ...extra });
+
+  it("admin y abogado asignado pueden completarlos aunque el ticket este cerrado", () => {
+    expect(puedeEditarContrato({ role: "admin", abogadoId: null }, sinDatos({ estatus: "Cierre" }))).toBe(true);
+    expect(puedeEditarContrato({ role: "abogado", abogadoId: "ab1" }, sinDatos({ estatus: "Cierre" }))).toBe(true);
+  });
+
+  it("no en Pre-Cierre, ni otro abogado, ni en servicios sin datos de contrato", () => {
+    expect(puedeEditarContrato({ role: "admin", abogadoId: null }, sinDatos({ estatus: "Pre-Cierre" }))).toBe(false);
+    expect(puedeEditarContrato({ role: "abogado", abogadoId: "ab2" }, sinDatos())).toBe(false);
+    expect(puedeEditarContrato({ role: "admin", abogadoId: null }, sinDatos({ servicioId: "JUR-C074" }))).toBe(false);
+  });
+
+  it("editar datos ya capturados sigue bloqueado en Cierre", () => {
+    expect(puedeEditarContrato({ role: "admin", abogadoId: null }, ticket({ estatus: "Cierre" }))).toBe(false);
+  });
+});

@@ -2,7 +2,7 @@ import type { ContratoArrendamientoInput, Estatus, HistorialEntry, Ticket } from
 import type { Role } from "@/types/user";
 import { tienePermiso, type AjustesPermisos } from "@/domain/users/permisos";
 import type { VistoBueno } from "@/types/resumen-contrato";
-import type { ActorHistorial, CambioCampo, EntradaHistorial, EntradaHistorialGuardada, TipoHistorial } from "@/types/historial";
+import { esTipoDeProceso, type ActorHistorial, type CambioCampo, type EntradaHistorial, type EntradaHistorialGuardada, type TipoHistorial } from "@/types/historial";
 import { nombreDeUrl } from "@/domain/contratos/contrato-rules";
 import { findAbogado } from "@/lib/data/abogados";
 import { formatMonedaMXN } from "@/lib/text-format";
@@ -128,7 +128,9 @@ export function entradaContrato(
   return construirEntrada("contrato", actor, ahora, cambios);
 }
 
-// El solicitante dueno ve lo que hizo el o el abogado asignado a ese ticket en ese momento.
+// El solicitante dueno y los abogados ven los cambios de proceso (esTipoDeProceso) hechos por cualquiera, mas lo que
+// hizo el solicitante o el abogado asignado a ese ticket en ese momento. Lo demas de admin, gerente juridico o
+// Mesa de Control (sitio, contrato, exclusion...) queda oculto.
 // Espejo de la regla de create/read de tickets/{id}/historial en firestore.rules.
 export function esVisibleParaSolicitante(actor: ActorHistorial, ticket: Pick<Ticket, "solicitanteId" | "abogadoAsignadoId">): boolean {
   if (actor.uid === ticket.solicitanteId) return true;
@@ -140,8 +142,8 @@ export function conVisibilidad(
   ticket: Pick<Ticket, "solicitanteId" | "abogadoAsignadoId">,
   actor: ActorHistorial
 ): EntradaHistorial[] {
-  const visible = esVisibleParaSolicitante(actor, ticket);
-  return entradas.map((e) => ({ ...e, visibleSolicitante: visible }));
+  const delActor = esVisibleParaSolicitante(actor, ticket);
+  return entradas.map((e) => ({ ...e, visibleSolicitante: delActor || esTipoDeProceso(e.tipo) }));
 }
 
 export const CAMPOS_EXCLUSION: CampoVigilado[] = [
@@ -163,6 +165,7 @@ function nuevaEntrada(
     tipo,
     cambios,
     ...(comentarioId ? { comentarioId } : {}),
+    ...(esTipoDeProceso(tipo) ? { visibleSolicitante: true } : {}),
   };
 }
 
@@ -299,12 +302,14 @@ export function lineaDeTiempo(entradas: EntradaHistorialGuardada[], historialEst
   return [...nuevas, ...previas];
 }
 
-// El solicitante dueno ve el historial filtrado (esVisibleParaSolicitante), salvo que ya tenga la vista completa.
+// El solicitante dueno y cualquier abogado ven el historial filtrado (visibleSolicitante), salvo que ya tengan la
+// vista completa. Espejo de la rama de lectura filtrada en firestore.rules.
 export function puedeVerHistorialFiltrado(
   sesion: { uid: string | null; role: Role; abogadoId: string | null; permisos?: AjustesPermisos },
   ticket: Pick<Ticket, "abogadoAsignadoId" | "solicitanteId">
 ): boolean {
-  return !!sesion.uid && sesion.uid === ticket.solicitanteId && !puedeVerHistorial(sesion, ticket);
+  if (puedeVerHistorial(sesion, ticket)) return false;
+  return sesion.role === "abogado" || (!!sesion.uid && sesion.uid === ticket.solicitanteId);
 }
 
 // Espejo de "allow read" de tickets/{id}/historial en firestore.rules (permiso ver_historial o abogado asignado).

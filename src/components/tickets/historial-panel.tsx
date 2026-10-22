@@ -42,7 +42,7 @@ export function HistorialPanel({ ticket, soloVisibleSolicitante = false }: { tic
       <div className="shrink-0 space-y-2">
         <h2 className="eyebrow">Historial de cambios</h2>
         {soloVisibleSolicitante && (
-          <p className="text-xs text-muted">Aquí ves los cambios hechos por ti y por el abogado asignado a tu solicitud.</p>
+          <p className="text-xs text-muted">Aquí ves los cambios de etapa, responsable y cierre, y lo que hicieron el solicitante y el abogado asignado.</p>
         )}
         {rolesPresentes.length > 1 && (
           <div className="flex flex-wrap items-center gap-1.5" aria-label="Colores por rol">

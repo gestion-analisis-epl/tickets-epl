@@ -17,6 +17,20 @@ export const TIPOS_HISTORIAL = [
 
 export type TipoHistorial = (typeof TIPOS_HISTORIAL)[number];
 
+// Cambios de proceso (etapa, responsable, cierre, visto bueno, cambios pedidos): los ve el solicitante dueno y
+// cualquier abogado sin importar quien los haga. Sincronizar a mano con visibilidadSolicitanteValida en firestore.rules.
+export const TIPOS_HISTORIAL_PROCESO: readonly TipoHistorial[] = [
+  "estatus",
+  "asignacion",
+  "notas_cierre",
+  "visto_bueno",
+  "cambios_solicitados",
+];
+
+export function esTipoDeProceso(tipo: TipoHistorial): boolean {
+  return TIPOS_HISTORIAL_PROCESO.includes(tipo);
+}
+
 // Valores ya convertidos a texto legible (ver historial-rules.ts textoDeValor).
 export interface CambioCampo {
   campo: string;
@@ -45,8 +59,8 @@ export interface EntradaHistorial {
   // Solo comentario_editado, comentario_eliminado y cambios_solicitados (Plan D). Se omite la clave si no aplica:
   // el SDK de cliente rechaza valores undefined.
   comentarioId?: string;
-  // La ve el solicitante dueno: la hizo el o el abogado asignado en ese momento. Entradas previas
-  // no lo traen y quedan ocultas para el solicitante. Las reglas verifican que sea cierto.
+  // La ven el solicitante dueno y los abogados (vista filtrada): es un cambio de proceso, o la hizo el solicitante
+  // o el abogado asignado en ese momento. Entradas previas pueden no traerlo (ver Mantenimiento). Las reglas verifican que sea cierto.
   visibleSolicitante?: boolean;
 }
 

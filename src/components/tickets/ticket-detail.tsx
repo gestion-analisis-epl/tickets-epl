@@ -30,13 +30,18 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatFecha, formatFechaSolo } from "@/lib/format-fecha";
 import { formatMonedaMXN, formatMontoInput, parseMontoInput } from "@/lib/text-format";
-import { DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO, SERVICIOS_ARRENDAMIENTO_IDS } from "@/lib/data/arrendamientos-temporal";
+import {
+  DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO,
+  SERVICIOS_ARRENDAMIENTO_IDS,
+  SERVICIOS_CON_DOCUMENTOS_INDIVIDUALES_IDS,
+  SERVICIOS_CON_FORMATO_OBLIGATORIO_IDS,
+} from "@/lib/data/arrendamientos-temporal";
 import { isAdminRole } from "@/types/user";
 import { esUrlStorageSegura } from "@/lib/storage-ruta";
 import { slaEnPausa } from "@/domain/tickets/sla-pausa-rules";
 import { bloqueadoPorPreCierre, solicitudEditable } from "@/domain/tickets/etapa-permisos-rules";
 import { actorDesdeSesion, puedeVerHistorial, puedeVerHistorialFiltrado } from "@/domain/tickets/historial-rules";
-import { puedeEditarContrato } from "@/domain/tickets/contrato-edicion-rules";
+import { puedeEditarContrato, requiereDatosContrato } from "@/domain/tickets/contrato-edicion-rules";
 import { validarContrato, type ContratoCapturado } from "@/domain/tickets/nuevo-ticket-validacion";
 
 function nombreArchivo(url: string): string {
@@ -69,6 +74,11 @@ function EnlaceDocumento({ url, etiqueta }: { url: string; etiqueta: string }) {
       {etiqueta}
     </a>
   );
+}
+
+// Campo del contrato que nunca se capturo (tickets anteriores al formulario).
+function datoContrato(valor: string | null | undefined): React.ReactNode {
+  return valor ? valor : <span className="font-normal text-muted">Sin capturar</span>;
 }
 
 export function TicketDetail({ id }: { id: string }) {
@@ -174,22 +184,26 @@ export function TicketDetail({ id }: { id: string }) {
   const verHistorialFiltrado = puedeVerHistorialFiltrado({ uid, role, abogadoId, permisos }, ticket);
   const verHistorial = verHistorialCompleto || verHistorialFiltrado;
   const puedeEditarDatosContrato = puedeEditarContrato({ role, abogadoId }, ticket);
+  // Tickets anteriores al formulario de contrato: se muestran los campos vacios y se pueden completar.
+  const faltanDatosContrato = !ticket.contratoArrendamiento && requiereDatosContrato(ticket.servicioId);
+  const pideFormato = SERVICIOS_CON_FORMATO_OBLIGATORIO_IDS.includes(ticket.servicioId);
+  const pideDocumentosIndividuales = SERVICIOS_CON_DOCUMENTOS_INDIVIDUALES_IDS.includes(ticket.servicioId);
   // Participantes del hilo (sin Mesa de Control ni otros abogados), desde que el ticket llego a Pre-Cierre.
   const verConversacion = hiloVisible(ticket) && esParticipante({ uid, role, abogadoId }, ticket);
 
   function handleEditarContrato() {
-    const c = ticket!.contratoArrendamiento!;
-    const [codigo = "", ...resto] = c.condicionesPago.split(" - ");
+    const c = ticket!.contratoArrendamiento;
+    const [codigo = "", ...resto] = (c?.condicionesPago ?? "").split(" - ");
     setContratoForm({
-      domicilio: c.domicilio,
-      altaArrendador: c.altaArrendador,
-      solicitante: c.solicitante,
-      periodoInicio: c.periodoInicio,
-      periodoFin: c.periodoFin,
+      domicilio: c?.domicilio ?? "",
+      altaArrendador: c?.altaArrendador ?? "",
+      solicitante: c?.solicitante ?? ticket!.solicitanteNombre,
+      periodoInicio: c?.periodoInicio ?? "",
+      periodoFin: c?.periodoFin ?? "",
       condicionesCodigo: codigo,
       condicionesTipo: resto.join(" - "),
-      montoPago: formatMontoInput(String(c.montoPago)),
-      motivo: c.motivo,
+      montoPago: c ? formatMontoInput(String(c.montoPago)) : "",
+      motivo: c?.motivo ?? "",
     });
     setContratoErrors({});
     setContratoError(null);
@@ -597,23 +611,26 @@ export function TicketDetail({ id }: { id: string }) {
               </div>
             )}
 
-            {ticket.formatoArrendamientoUrl && (
+            {(ticket.formatoArrendamientoUrl || pideFormato) && (
               <div>
                 <p className="text-muted text-sm mb-1.5">Formato de solicitud de arrendamiento</p>
-                <EnlaceDocumento url={ticket.formatoArrendamientoUrl} etiqueta={nombreArchivo(ticket.formatoArrendamientoUrl)} />
+                {ticket.formatoArrendamientoUrl
+                  ? <EnlaceDocumento url={ticket.formatoArrendamientoUrl} etiqueta={nombreArchivo(ticket.formatoArrendamientoUrl)} />
+                  : <p className="text-sm text-muted">Sin adjuntar</p>}
               </div>
             )}
 
-            {ticket.documentosArrendamiento && (
+            {(ticket.documentosArrendamiento || pideDocumentosIndividuales) && (
               <div>
                 <p className="text-muted text-sm mb-1.5">Documentos de arrendamiento</p>
                 <ul className="space-y-1">
                   {DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO.map((doc) => {
-                    const url = ticket.documentosArrendamiento![doc.key];
-                    if (!url) return null;
+                    const url = ticket.documentosArrendamiento?.[doc.key];
                     return (
                       <li key={doc.key}>
-                        <EnlaceDocumento url={url} etiqueta={doc.label} />
+                        {url
+                          ? <EnlaceDocumento url={url} etiqueta={doc.label} />
+                          : <span className="text-sm text-muted">{doc.label}: sin adjuntar</span>}
                       </li>
                     );
                   })}
@@ -621,14 +638,14 @@ export function TicketDetail({ id }: { id: string }) {
               </div>
             )}
 
-            {ticket.contratoArrendamiento && (
+            {(ticket.contratoArrendamiento || faltanDatosContrato) && (
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-muted text-sm">Datos del contrato / convenio</p>
                   {puedeEditarDatosContrato && !editandoContrato && (
                     <Button variant="outline" size="sm" onClick={handleEditarContrato}>
                       <Pencil className="h-3.5 w-3.5" />
-                      Editar
+                      {faltanDatosContrato ? "Completar datos" : "Editar"}
                     </Button>
                   )}
                 </div>
@@ -648,19 +665,21 @@ export function TicketDetail({ id }: { id: string }) {
                   </div>
                 ) : (
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                  <div><dt className="text-muted">Domicilio</dt><dd className="font-medium">{ticket.contratoArrendamiento.domicilio}</dd></div>
-                  <div><dt className="text-muted">Alta de arrendador</dt><dd className="font-medium">{ticket.contratoArrendamiento.altaArrendador}</dd></div>
-                  <div><dt className="text-muted">Solicitante</dt><dd className="font-medium">{ticket.contratoArrendamiento.solicitante}</dd></div>
+                  <div><dt className="text-muted">Domicilio</dt><dd className="font-medium">{datoContrato(ticket.contratoArrendamiento?.domicilio)}</dd></div>
+                  <div><dt className="text-muted">Alta de arrendador</dt><dd className="font-medium">{datoContrato(ticket.contratoArrendamiento?.altaArrendador)}</dd></div>
+                  <div><dt className="text-muted">Solicitante</dt><dd className="font-medium">{datoContrato(ticket.contratoArrendamiento?.solicitante)}</dd></div>
                   <div>
                     <dt className="text-muted">Periodo de arrendamiento</dt>
                     <dd className="font-medium">
-                      {formatFechaSolo(ticket.contratoArrendamiento.periodoInicio)} — {formatFechaSolo(ticket.contratoArrendamiento.periodoFin)}
+                      {ticket.contratoArrendamiento
+                        ? `${formatFechaSolo(ticket.contratoArrendamiento.periodoInicio)} — ${formatFechaSolo(ticket.contratoArrendamiento.periodoFin)}`
+                        : datoContrato(null)}
                     </dd>
                   </div>
-                  <div><dt className="text-muted">Condiciones para pago</dt><dd className="font-medium">{ticket.contratoArrendamiento.condicionesPago}</dd></div>
-                  <div><dt className="text-muted">Monto de pago</dt><dd className="font-medium tabular-nums">{formatMonedaMXN(ticket.contratoArrendamiento.montoPago)}</dd></div>
-                  <div><dt className="text-muted">Motivo</dt><dd className="font-medium">{ticket.contratoArrendamiento.motivo}</dd></div>
-                  {ticket.contratoArrendamiento.notas && (
+                  <div><dt className="text-muted">Condiciones para pago</dt><dd className="font-medium">{datoContrato(ticket.contratoArrendamiento?.condicionesPago)}</dd></div>
+                  <div><dt className="text-muted">Monto de pago</dt><dd className="font-medium tabular-nums">{ticket.contratoArrendamiento ? formatMonedaMXN(ticket.contratoArrendamiento.montoPago) : datoContrato(null)}</dd></div>
+                  <div><dt className="text-muted">Motivo</dt><dd className="font-medium">{datoContrato(ticket.contratoArrendamiento?.motivo)}</dd></div>
+                  {ticket.contratoArrendamiento?.notas && (
                     <div className="sm:col-span-2"><dt className="text-muted">Notas</dt><dd>{ticket.contratoArrendamiento.notas}</dd></div>
                   )}
                 </dl>

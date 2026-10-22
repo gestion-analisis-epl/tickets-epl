@@ -8,6 +8,7 @@ import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { ExcluirTicketsSection } from "./excluir-tickets-section";
 import { ResumenesContratoSection } from "./resumenes-contrato-section";
+import { HistorialVisibilidadSection } from "./historial-visibilidad-section";
 import { usePermiso } from "@/hooks/use-permiso";
 
 interface ReenvioResultado {
@@ -198,6 +199,7 @@ export function MantenimientoPanel() {
     <div className="space-y-4 max-w-5xl">
       <ExcluirTicketsSection />
       <ResumenesContratoSection />
+      <HistorialVisibilidadSection />
 
       <section className="section-card p-6 space-y-3 max-w-2xl">
         <h2 className="eyebrow">Recalcular SLA historico</h2>
