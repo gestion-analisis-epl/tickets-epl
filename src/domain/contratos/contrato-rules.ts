@@ -83,11 +83,12 @@ export function construirResumenContrato(ticket: Ticket, ahora: Date, previo?: R
     documentos: documentosDelResumen(ticket, contratoUrl),
     sitioClave: ticket.sitioArrendamiento?.clave ?? null,
     sitioAlias: ticket.sitioArrendamiento?.alias ?? contrato?.sitio ?? null,
-    domicilio: contrato?.domicilio ?? null,
+    // Lo capturado en la ficha manda; si el ticket es anterior al formulario, se usa lo que la IA leyo del contrato.
+    domicilio: contrato?.domicilio || extraccion?.domicilio || null,
     solicitante: contrato?.solicitante || ticket.solicitanteNombre,
-    altaArrendador: contrato?.altaArrendador ?? null,
-    periodoInicio: contrato?.periodoInicio ?? null,
-    periodoFin: contrato?.periodoFin ?? null,
+    altaArrendador: contrato?.altaArrendador || extraccion?.altaArrendador || null,
+    periodoInicio: contrato?.periodoInicio || extraccion?.periodoInicio || null,
+    periodoFin: contrato?.periodoFin || extraccion?.periodoFin || null,
     condicionesPago: extraccion?.condicionesPago ?? contrato?.condicionesPago ?? null,
     metodoPago: contrato?.condicionesPago ?? null,
     montoPagoAnual: extraccion?.montoPagoAnual ?? contrato?.montoPago ?? null,
@@ -99,4 +100,18 @@ export function construirResumenContrato(ticket: Ticket, ahora: Date, previo?: R
     vistoBueno: previo?.vistoBueno ?? null,
     actualizadoEn: ahora.toISOString(),
   };
+}
+
+// Orden de claves estable: Firestore no conserva el orden en que se escribieron.
+function estable(valor: unknown): string {
+  return JSON.stringify(valor, (_, v) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)))
+      : v
+  );
+}
+
+// Dos resumenes iguales salvo la fecha de actualizacion (para no reescribir en balde).
+export function resumenSinCambios(a: ResumenContrato, b: ResumenContrato): boolean {
+  return estable({ ...a, actualizadoEn: "" }) === estable({ ...b, actualizadoEn: "" });
 }

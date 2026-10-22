@@ -179,9 +179,31 @@ describe("puedeGenerarResumen", () => {
     expect(puedeGenerarResumen({ uid: "x", role: "abogado" }, reciente, ahora).permitido).toBe(true);
   });
 
-  it("otro solicitante o el jefe de zona no pueden", () => {
+  it("otro solicitante o el gerente de area no pueden", () => {
     expect(puedeGenerarResumen({ uid: "otro", role: "solicitante" }, ticket).permitido).toBe(false);
-    expect(puedeGenerarResumen({ uid: "j", role: "jefe_zona" }, ticket).permitido).toBe(false);
     expect(puedeGenerarResumen({ uid: "g", role: "gerente_area" }, ticket).permitido).toBe(false);
+  });
+
+  describe("jefe de zona y Sitios", () => {
+    const ahora = new Date("2026-10-08T12:00:00.000Z");
+    const base = { extraccion: null, discrepancias: [], contratoNombre: null, generadoEn: null };
+    const enCierre = (extra: Partial<Ticket> = {}) => buildTicket({ estatus: "Cierre", ...extra });
+
+    it.each(["jefe_zona", "sitios"] as const)("%s puede si falta el resumen o fallo, sin elegir archivo", (role) => {
+      expect(puedeGenerarResumen({ uid: "x", role }, enCierre(), ahora)).toEqual({ permitido: true, puedeElegirArchivo: false });
+      expect(puedeGenerarResumen({ uid: "x", role }, enCierre({ resumenContrato: { ...base, estado: "error" } }), ahora).permitido).toBe(true);
+    });
+
+    it("no si el resumen ya esta listo, se esta generando o el ticket esta excluido", () => {
+      const sitios = { uid: "x", role: "sitios" as const };
+      expect(puedeGenerarResumen(sitios, enCierre({ resumenContrato: { ...base, estado: "listo" } }), ahora).permitido).toBe(false);
+      const reciente = enCierre({ resumenContrato: { ...base, estado: "pendiente", solicitadoEn: "2026-10-08T11:59:00.000Z" } });
+      expect(puedeGenerarResumen(sitios, reciente, ahora).permitido).toBe(false);
+      expect(puedeGenerarResumen(sitios, enCierre({ excluidoDelPipeline: true }), ahora).permitido).toBe(false);
+    });
+
+    it("no en tickets que nunca llegaron a Pre-Cierre o Cierre", () => {
+      expect(puedeGenerarResumen({ uid: "j", role: "jefe_zona" }, ticket, ahora).permitido).toBe(false);
+    });
   });
 });

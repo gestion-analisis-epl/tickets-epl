@@ -1,10 +1,11 @@
-import { isAdminRole, LEGAL_STAFF_ROLES, type Role } from "@/types/user";
+import { isAdminRole, LEGAL_STAFF_ROLES, esRolSoloResumen, type Role } from "@/types/user";
 import type { Ticket } from "@/types/ticket";
 import type { ResumenContratoTicket } from "@/types/resumen-contrato";
 import { encontrarContrato, nombreDeUrl, resumenReintentable } from "./contrato-rules";
 import { tipoContrato, type TipoContrato } from "./tipo-archivo";
 import { construirContenido, parsearExtraccion } from "./extraccion-rules";
 import { calcularDiscrepancias } from "./discrepancias-rules";
+import { ticketLlegoAPreCierreOCierre } from "./backfill-rules";
 
 export type ContenidoGemini = { tipo: "texto"; texto: string } | { tipo: "pdf"; base64: string };
 
@@ -25,6 +26,12 @@ export class ValidacionResumenError extends Error {}
 
 export function puedeGenerarResumen(actor: { uid: string; role: Role }, ticket: Ticket, ahora: Date = new Date()): { permitido: boolean; puedeElegirArchivo: boolean } {
   if (LEGAL_STAFF_ROLES.includes(actor.role) || isAdminRole(actor.role)) return { permitido: true, puedeElegirArchivo: true };
+  // Jefe de zona y Sitios no leen tickets: lo piden desde Pre-Cierre/Cierre. Solo si el resumen falta, fallo o quedo
+  // atascado, y en tickets que ya estan o estuvieron en esas etapas y no estan excluidos.
+  if (esRolSoloResumen(actor.role)) {
+    const permitido = ticketLlegoAPreCierreOCierre(ticket) && !ticket.excluidoDelPipeline && resumenReintentable(ticket.resumenContrato, ahora);
+    return { permitido, puedeElegirArchivo: false };
+  }
   const esDueno = actor.uid === ticket.solicitanteId;
   return { permitido: esDueno && resumenReintentable(ticket.resumenContrato, ahora), puedeElegirArchivo: false };
 }

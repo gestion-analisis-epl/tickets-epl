@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accionResumen, construirResumenContrato, documentosDelResumen, encontrarContrato, esPendienteObsoleto, nombreDeUrl, resumenReintentable } from "./contrato-rules";
+import { accionResumen, construirResumenContrato, documentosDelResumen, encontrarContrato, esPendienteObsoleto, nombreDeUrl, resumenReintentable, resumenSinCambios } from "./contrato-rules";
 import { buildTicket } from "@/test/ticket-fixture";
 import type { ResumenContratoTicket } from "@/types/resumen-contrato";
 
@@ -202,5 +202,43 @@ describe("documentosDelResumen", () => {
     expect(r.servicioId).toBe("JUR-C071");
     expect(r.documentos).toHaveLength(1);
     expect(r.estadoResumen).toBe("sin_contrato");
+  });
+});
+
+describe("datos del resumen cuando el ticket no tiene ficha de contrato", () => {
+  const ahora = new Date("2026-10-08T12:00:00.000Z");
+  const conIA = (contratoArrendamiento?: object) => buildTicket({
+    estatus: "Cierre",
+    contratoArrendamiento: contratoArrendamiento as never,
+    resumenContrato: {
+      estado: "listo", contratoNombre: "x.docx", generadoEn: ahora.toISOString(), discrepancias: [],
+      extraccion: {
+        sitio: null, codigo: null, domicilio: "Av. IA 5", altaArrendador: "Arrendador IA", solicitante: null,
+        periodoInicio: "2026-02-01", periodoFin: "2027-02-01", condicionesPago: null, montoPagoAnual: null, formaPago: null,
+      },
+    },
+  });
+
+  it("usa lo que leyo la IA del contrato", () => {
+    const r = construirResumenContrato(conIA(), ahora);
+    expect(r).toMatchObject({ domicilio: "Av. IA 5", altaArrendador: "Arrendador IA", periodoInicio: "2026-02-01", periodoFin: "2027-02-01" });
+  });
+
+  it("lo capturado en la ficha tiene prioridad sobre la IA", () => {
+    const r = construirResumenContrato(conIA({
+      domicilio: "Av. Ficha 1", altaArrendador: "Ficha SA", solicitante: "Ana", periodoInicio: "2026-01-01", periodoFin: "2027-01-01",
+      condicionesPago: "63 - Cheques", montoPago: 1, motivo: "x",
+    }), ahora);
+    expect(r).toMatchObject({ domicilio: "Av. Ficha 1", altaArrendador: "Ficha SA", periodoInicio: "2026-01-01" });
+  });
+});
+
+describe("resumenSinCambios", () => {
+  const ahora = new Date("2026-10-08T12:00:00.000Z");
+  it("ignora la fecha de actualizacion y el orden de las claves", () => {
+    const a = construirResumenContrato(buildTicket({ estatus: "Cierre" }), ahora);
+    const b = Object.fromEntries(Object.entries({ ...a, actualizadoEn: "otra" }).reverse()) as unknown as typeof a;
+    expect(resumenSinCambios(a, b)).toBe(true);
+    expect(resumenSinCambios(a, { ...a, domicilio: "otro" })).toBe(false);
   });
 });

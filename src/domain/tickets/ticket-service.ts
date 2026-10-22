@@ -1,7 +1,7 @@
 import { deleteTicketDocuments } from "@/lib/storage";
 import type { Estatus, SitioArrendamiento, Ticket } from "@/types/ticket";
 import type { ResumenContratoRepository } from "@/domain/contratos/resumen-contrato-repository";
-import { accionResumen, construirResumenContrato, ETAPAS_VISIBLES_JEFE_ZONA } from "@/domain/contratos/contrato-rules";
+import { accionResumen, construirResumenContrato, ETAPAS_VISIBLES_JEFE_ZONA, resumenSinCambios } from "@/domain/contratos/contrato-rules";
 import type { CatalogoLookup } from "@/domain/catalogo/catalogo-lookup";
 import type { TicketRepository } from "./ticket-repository";
 import type { TicketNotifier } from "./ticket-notifier";
@@ -244,12 +244,14 @@ export function createTicketService(
       if (!ticketLlegoAPreCierreOCierre(t)) continue;
       try {
         const previo = await resumenes.get(t.id);
+        const nuevo = construirResumenContrato(t, new Date(), previo);
         if (!previo) {
-          await resumenes.upsert(construirResumenContrato(t, new Date(), null));
+          await resumenes.upsert(nuevo);
           resultado.creados++;
-        } else if (previo.servicioId === undefined || (previo.excluido ?? false) !== !!t.excluidoDelPipeline) {
-          // Resumen anterior a los campos de servicio y documentos, o con la marca de exclusion desfasada: se reconstruye conservando el visto bueno.
-          await resumenes.upsert(construirResumenContrato(t, new Date(), previo));
+        } else if (!resumenSinCambios(previo, nuevo)) {
+          // Resumen desfasado respecto al ticket (campos nuevos, exclusion, datos leidos del contrato...):
+          // se reconstruye conservando el visto bueno.
+          await resumenes.upsert(nuevo);
           resultado.actualizados++;
         }
         const entrada = primeraEntradaPreCierre(t);

@@ -10,6 +10,7 @@ import { esJefeZona, puedeDarVistoBueno } from "@/types/user";
 import { actorDesdeSesion } from "@/domain/tickets/historial-rules";
 import { ConversacionPanel } from "@/components/tickets/conversacion-panel";
 import { solicitarCambios } from "@/lib/conversacion";
+import { solicitarResumenContrato } from "@/lib/contratos";
 import { MAX_TEXTO_COMENTARIO, validarTextoComentario } from "@/domain/tickets/conversacion-rules";
 import { Button } from "@/components/ui/button";
 import { EstatusBadge } from "@/components/ui/badge";
@@ -47,6 +48,8 @@ export function PreCierreDetalle({ id }: { id: string }) {
   const [enviandoCambios, setEnviandoCambios] = useState(false);
   const [errorCambios, setErrorCambios] = useState<string | null>(null);
   const [cambiosEnviados, setCambiosEnviados] = useState(false);
+  const [generandoResumen, setGenerandoResumen] = useState(false);
+  const [errorResumen, setErrorResumen] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -69,6 +72,8 @@ export function PreCierreDetalle({ id }: { id: string }) {
   // Alta y Cambio de arrendador no llevan un contrato adjunto: su informacion son los datos capturados y los documentos.
   const sinContratoEsperado = resumen.servicioId === SERVICIO_ALTA_ARRENDADOR_ID || resumen.servicioId === SERVICIO_CAMBIO_ARRENDADOR_ID;
   const aviso = sinContratoEsperado && resumen.estadoResumen === "sin_contrato" ? undefined : AVISO_ESTADO[resumen.estadoResumen];
+  // Con contrato adjunto pero sin resumen (aun no se genera o fallo): se puede pedir desde aqui.
+  const puedeGenerarResumen = (resumen.estadoResumen === "pendiente" || resumen.estadoResumen === "error") && !!resumen.contratoUrl;
   const servicio = resumen.servicioId ? findServicio(resumen.servicioId)?.servicio ?? null : null;
   const documentos = resumen.documentos ?? [];
   const mostrarVistoBueno = puedeDarVistoBueno(role) && resumen.estatus === "Pre-Cierre" && !resumen.vistoBueno;
@@ -99,6 +104,19 @@ export function PreCierreDetalle({ id }: { id: string }) {
       setErrorCambios(err instanceof Error ? err.message : "No se pudieron pedir los cambios. Intenta de nuevo.");
     } finally {
       setEnviandoCambios(false);
+    }
+  }
+
+  // Si el resumen no existe o fallo, cualquiera que vea esta pantalla puede pedirlo (el servidor valida el permiso).
+  async function generarResumen() {
+    setGenerandoResumen(true);
+    setErrorResumen(null);
+    try {
+      await solicitarResumenContrato(id);
+    } catch (err) {
+      setErrorResumen(err instanceof Error ? err.message : "No se pudo generar el resumen. Intenta de nuevo en unos minutos.");
+    } finally {
+      setGenerandoResumen(false);
     }
   }
 
@@ -139,7 +157,19 @@ export function PreCierreDetalle({ id }: { id: string }) {
         {aviso && (
           <div role="status" className="flex items-start gap-2 rounded-md border border-border bg-surface p-3 text-sm">
             <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-            <p>{aviso}</p>
+            <div className="space-y-2">
+              <p>{aviso}</p>
+              {puedeGenerarResumen && (
+                <>
+                  <Button variant="outline" size="sm" onClick={generarResumen} disabled={generandoResumen}>
+                    {generandoResumen && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {generandoResumen ? "Generando el resumen..." : "Generar resumen del contrato"}
+                  </Button>
+                  {generandoResumen && <p className="text-xs text-muted">Puede tardar hasta un minuto. No cierres esta pantalla.</p>}
+                  {errorResumen && <p role="alert" className="text-sm text-danger">{errorResumen}</p>}
+                </>
+              )}
+            </div>
           </div>
         )}
 

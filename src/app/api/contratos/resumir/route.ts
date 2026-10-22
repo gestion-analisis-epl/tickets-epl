@@ -63,7 +63,9 @@ export async function POST(request: Request) {
 
     const caller = (await getAdminDb().collection("users").doc(uid).get()).data();
     const permiso = puedeGenerarResumen({ uid, role: (caller?.role ?? "solicitante") as Role }, ticket);
-    if (!permiso.permitido) return NextResponse.json({ error: "No puedes generar el resumen de este ticket." }, { status: 403 });
+    if (!permiso.permitido) {
+      return NextResponse.json({ error: "No se puede generar el resumen ahora: puede que ya se este generando. Espera unos minutos e intenta de nuevo." }, { status: 403 });
+    }
 
     const deps: DepsResumen = { cargarTicket, descargar, prepararContenido, llamarGemini, guardar, ahora: () => new Date() };
     const resumen = await generarResumenContrato(deps, ticketId, permiso.puedeElegirArchivo ? archivoUrl : undefined);
