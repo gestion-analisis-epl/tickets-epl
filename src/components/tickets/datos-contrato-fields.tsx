@@ -11,16 +11,26 @@ interface Props {
 }
 
 function Error({ mensaje }: { mensaje?: string }) {
-  return mensaje ? <p className="text-xs text-danger mt-1">{mensaje}</p> : null;
+  return mensaje ? <p className="text-sm text-danger mt-1.5">{mensaje}</p> : null;
 }
 
+function Ayuda({ children }: { children: React.ReactNode }) {
+  return <p className="text-xs text-muted mt-1.5">{children}</p>;
+}
+
+function Etiqueta({ children }: { children: React.ReactNode }) {
+  return <label className="field-label">{children} <span className="text-danger" aria-label="obligatorio">*</span></label>;
+}
+
+// Una sola columna en pantallas chicas y dos en las demas: cada dato con su propia etiqueta y todo el ancho
+// de su columna, para que ningun texto (p. ej. "Transferencia") quede cortado.
 export function DatosContratoFields({ contrato, errors, onChange }: Props) {
   const titulo = (key: "domicilio" | "altaArrendador" | "solicitante") => () => onChange(key, toTitleCase(contrato[key]));
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-      <div className="sm:col-span-2 xl:col-span-3">
-        <label className="field-label">Domicilio <span className="text-danger">*</span></label>
+    <div className="grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
+      <div className="min-w-0 sm:col-span-2">
+        <Etiqueta>Domicilio del inmueble</Etiqueta>
         <textarea
           value={contrato.domicilio}
           onChange={(e) => onChange("domicilio", e.target.value)}
@@ -28,11 +38,12 @@ export function DatosContratoFields({ contrato, errors, onChange }: Props) {
           rows={2}
           className="field w-full resize-y"
         />
+        <Ayuda>Calle, número, colonia, ciudad y código postal.</Ayuda>
         <Error mensaje={errors.domicilio} />
       </div>
 
-      <div className="xl:col-span-2">
-        <label className="field-label">Alta de Arrendador <span className="text-danger">*</span></label>
+      <div className="min-w-0">
+        <Etiqueta>Arrendador dado de alta</Etiqueta>
         <input
           type="text"
           value={contrato.altaArrendador}
@@ -40,11 +51,12 @@ export function DatosContratoFields({ contrato, errors, onChange }: Props) {
           onBlur={titulo("altaArrendador")}
           className="w-full field"
         />
+        <Ayuda>Nombre de la persona o empresa dueña del inmueble.</Ayuda>
         <Error mensaje={errors.altaArrendador} />
       </div>
 
-      <div>
-        <label className="field-label">Solicitante <span className="text-danger">*</span></label>
+      <div className="min-w-0">
+        <Etiqueta>Solicitante</Etiqueta>
         <input
           type="text"
           value={contrato.solicitante}
@@ -52,36 +64,42 @@ export function DatosContratoFields({ contrato, errors, onChange }: Props) {
           onBlur={titulo("solicitante")}
           className="w-full field"
         />
+        <Ayuda>Quién pide este trámite.</Ayuda>
         <Error mensaje={errors.solicitante} />
       </div>
 
-      <div className="sm:col-span-2 xl:col-span-3">
-        <label className="field-label">Periodo de arrendamiento <span className="text-danger">*</span></label>
-        <div className="flex flex-wrap items-center gap-2">
-          <input type="date" value={contrato.periodoInicio} onChange={(e) => onChange("periodoInicio", e.target.value)} className="field" />
-          <span className="text-sm text-muted">a</span>
-          <input type="date" value={contrato.periodoFin} onChange={(e) => onChange("periodoFin", e.target.value)} className="field" />
-        </div>
-        <Error mensaje={errors.periodoInicio || errors.periodoFin} />
+      <div className="min-w-0">
+        <Etiqueta>Fecha de inicio del arrendamiento</Etiqueta>
+        <input type="date" value={contrato.periodoInicio} onChange={(e) => onChange("periodoInicio", e.target.value)} className="field w-full" />
+        <Error mensaje={errors.periodoInicio} />
       </div>
 
-      <div>
-        <label className="field-label">Condiciones para pago <span className="text-danger">*</span></label>
-        <div className="flex gap-2">
-          <select value={contrato.condicionesCodigo} onChange={(e) => onChange("condicionesCodigo", e.target.value)} className="w-24 field">
-            <option value="">Código...</option>
-            {CONDICIONES_PAGO_CODIGOS.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={contrato.condicionesTipo} onChange={(e) => onChange("condicionesTipo", e.target.value)} className="flex-1 field">
-            <option value="">Selecciona...</option>
-            {CONDICIONES_PAGO_TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
-        <Error mensaje={errors.condicionesPago} />
+      <div className="min-w-0">
+        <Etiqueta>Fecha de fin del arrendamiento</Etiqueta>
+        <input type="date" value={contrato.periodoFin} onChange={(e) => onChange("periodoFin", e.target.value)} className="field w-full" />
+        <Error mensaje={errors.periodoFin} />
       </div>
 
-      <div>
-        <label className="field-label">Monto de pago (MXN) <span className="text-danger">*</span></label>
+      <div className="min-w-0">
+        <Etiqueta>Código de las condiciones de pago</Etiqueta>
+        <select value={contrato.condicionesCodigo} onChange={(e) => onChange("condicionesCodigo", e.target.value)} className="w-full field">
+          <option value="">Selecciona una opción</option>
+          {CONDICIONES_PAGO_CODIGOS.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <Error mensaje={!contrato.condicionesCodigo ? errors.condicionesPago : undefined} />
+      </div>
+
+      <div className="min-w-0">
+        <Etiqueta>Forma de pago</Etiqueta>
+        <select value={contrato.condicionesTipo} onChange={(e) => onChange("condicionesTipo", e.target.value)} className="w-full field">
+          <option value="">Selecciona una opción</option>
+          {CONDICIONES_PAGO_TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <Error mensaje={contrato.condicionesCodigo && !contrato.condicionesTipo ? errors.condicionesPago : undefined} />
+      </div>
+
+      <div className="min-w-0">
+        <Etiqueta>Monto de pago</Etiqueta>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
           <input
@@ -89,17 +107,18 @@ export function DatosContratoFields({ contrato, errors, onChange }: Props) {
             inputMode="decimal"
             value={contrato.montoPago}
             onChange={(e) => onChange("montoPago", formatMontoInput(e.target.value))}
-            className="field w-full pl-7 pr-14"
+            className="field w-full pl-7 pr-16"
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted">MXN</span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted">pesos</span>
         </div>
+        <Ayuda>Solo números, por ejemplo 12,500.00.</Ayuda>
         <Error mensaje={errors.montoPago} />
       </div>
 
-      <div>
-        <label className="field-label">Motivo <span className="text-danger">*</span></label>
+      <div className="min-w-0">
+        <Etiqueta>Motivo del trámite</Etiqueta>
         <select value={contrato.motivo} onChange={(e) => onChange("motivo", e.target.value)} className="w-full field">
-          <option value="">Selecciona...</option>
+          <option value="">Selecciona una opción</option>
           {MOTIVO_CONTRATO_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
         </select>
         <Error mensaje={errors.motivo} />
