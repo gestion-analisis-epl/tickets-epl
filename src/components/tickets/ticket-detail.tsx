@@ -667,7 +667,7 @@ export function TicketDetail({ id }: { id: string }) {
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
                   <div><dt className="text-muted">Domicilio</dt><dd className="font-medium">{datoContrato(ticket.contratoArrendamiento?.domicilio)}</dd></div>
                   <div><dt className="text-muted">Alta de arrendador</dt><dd className="font-medium">{datoContrato(ticket.contratoArrendamiento?.altaArrendador)}</dd></div>
-                  <div><dt className="text-muted">Solicitante</dt><dd className="font-medium">{datoContrato(ticket.contratoArrendamiento?.solicitante)}</dd></div>
+                  <div><dt className="text-muted">Solicitante</dt><dd className="font-medium">{datoContrato(ticket.contratoArrendamiento?.solicitante || ticket.solicitanteNombre)}</dd></div>
                   <div>
                     <dt className="text-muted">Periodo de arrendamiento</dt>
                     <dd className="font-medium">
