@@ -1,6 +1,7 @@
 import type { Estatus, Ticket } from "@/types/ticket";
 import { esArchivoContrato } from "./tipo-archivo";
-import type { ResumenContrato, ResumenContratoTicket } from "@/types/resumen-contrato";
+import type { DocumentoResumen, ResumenContrato, ResumenContratoTicket } from "@/types/resumen-contrato";
+import { DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO } from "@/lib/data/arrendamientos-temporal";
 
 // Etapas en que se crea o refresca el resumen (accionResumen). La LECTURA del jefe de zona no se limita
 // a estas etapas: conserva los tickets que regresan a correccion (ver firestore.rules).
@@ -50,6 +51,21 @@ export function accionResumen(estatusPrevio: Estatus, estatusNuevo: Estatus): "u
   return "ninguna";
 }
 
+// Lo que se adjunto al ticket (formato, documentos de Alta, documentacion), sin el contrato que ya se ofrece aparte.
+export function documentosDelResumen(ticket: Ticket, contratoUrl: string | null): DocumentoResumen[] {
+  const docs: DocumentoResumen[] = [];
+  const vistos = new Set<string>(contratoUrl ? [contratoUrl] : []);
+  const agregar = (etiqueta: string, url: string | undefined) => {
+    if (!url || vistos.has(url)) return;
+    vistos.add(url);
+    docs.push({ etiqueta, url });
+  };
+  agregar("Formato de solicitud de arrendamiento", ticket.formatoArrendamientoUrl);
+  for (const d of DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO) agregar(d.label, ticket.documentosArrendamiento?.[d.key]);
+  for (const url of ticket.documentacion ?? []) agregar(nombreDeUrl(url) || "Documento adjunto", url);
+  return docs;
+}
+
 export function construirResumenContrato(ticket: Ticket, ahora: Date, previo?: ResumenContrato | null): ResumenContrato {
   const contrato = ticket.contratoArrendamiento;
   const gemini = ticket.resumenContrato;
@@ -61,6 +77,9 @@ export function construirResumenContrato(ticket: Ticket, ahora: Date, previo?: R
     ticketId: ticket.id,
     folio: ticket.folio,
     estatus: ticket.estatus,
+    servicioId: ticket.servicioId,
+    motivo: contrato?.motivo ?? null,
+    documentos: documentosDelResumen(ticket, contratoUrl),
     sitioClave: ticket.sitioArrendamiento?.clave ?? null,
     sitioAlias: ticket.sitioArrendamiento?.alias ?? contrato?.sitio ?? null,
     domicilio: contrato?.domicilio ?? null,

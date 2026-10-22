@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accionResumen, construirResumenContrato, encontrarContrato, esPendienteObsoleto, nombreDeUrl, resumenReintentable } from "./contrato-rules";
+import { accionResumen, construirResumenContrato, documentosDelResumen, encontrarContrato, esPendienteObsoleto, nombreDeUrl, resumenReintentable } from "./contrato-rules";
 import { buildTicket } from "@/test/ticket-fixture";
 import type { ResumenContratoTicket } from "@/types/resumen-contrato";
 
@@ -177,5 +177,30 @@ describe("pendiente obsoleto y reintento", () => {
     expect(resumenReintentable(pendiente("2026-10-08T11:00:00.000Z"), ahora)).toBe(true);
     expect(resumenReintentable(pendiente("2026-10-08T11:59:00.000Z"), ahora)).toBe(false);
     expect(resumenReintentable({ ...base, estado: "listo" }, ahora)).toBe(false);
+  });
+});
+
+describe("documentosDelResumen", () => {
+  it("lista formato, documentos de Alta y documentacion, sin repetir ni incluir el contrato aparte", () => {
+    const contrato = url("1_CONTRATO_ARRENDAMIENTO.docx");
+    const ticket = buildTicket({
+      formatoArrendamientoUrl: url("2_formato.docx"),
+      documentosArrendamiento: { escrituras: url("3_esc.pdf"), identificacionArrendador: url("4_ine.pdf"), predial: "", comprobanteDomicilio: url("3_esc.pdf") },
+      documentacion: [contrato, url("5_extra.pdf")],
+    });
+    expect(documentosDelResumen(ticket, contrato).map((d) => d.etiqueta)).toEqual([
+      "Formato de solicitud de arrendamiento",
+      "Escrituras de la propiedad",
+      "Identificación oficial del arrendador",
+      "extra.pdf",
+    ]);
+  });
+
+  it("el resumen de un ticket de Alta lleva servicio, motivo y documentos", () => {
+    const ticket = buildTicket({ servicioId: "JUR-C071", formatoArrendamientoUrl: url("2_formato.docx") });
+    const r = construirResumenContrato(ticket, new Date("2026-10-08T12:00:00.000Z"));
+    expect(r.servicioId).toBe("JUR-C071");
+    expect(r.documentos).toHaveLength(1);
+    expect(r.estadoResumen).toBe("sin_contrato");
   });
 });

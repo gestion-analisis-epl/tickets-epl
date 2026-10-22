@@ -41,11 +41,20 @@ export interface VistoBueno {
   fecha: string;
 }
 
+export interface DocumentoResumen {
+  etiqueta: string;
+  url: string;
+}
+
 // Documento resumenesContrato/{ticketId}: lo unico que ve el jefe de zona.
 export interface ResumenContrato {
   ticketId: string;
   folio: string;
   estatus: Estatus;
+  // Ausentes en resumenes previos: se completan con "Crear resumenes faltantes" (Mantenimiento).
+  servicioId?: string;
+  motivo?: string | null;
+  documentos?: DocumentoResumen[];
   sitioClave: string | null;
   sitioAlias: string | null;
   domicilio: string | null;

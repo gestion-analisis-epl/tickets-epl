@@ -93,7 +93,7 @@ export function ResumenesContratoSection() {
 
       <div className="space-y-2 border-b border-border pb-3">
         <p className="text-sm text-muted">
-          Paso 1. Crea la ficha de resumen de todo ticket que esta o estuvo en Pre-Cierre o Cierre y no la tiene, para que el
+          Paso 1. Crea la ficha de resumen de todo ticket que esta o estuvo en Pre-Cierre o Cierre y no la tiene (y completa las que se crearon antes de que incluyeran servicio y documentos), para que el
           jefe de zona y Sitios lo vean (los que regresaron a una etapa anterior aparecen &quot;En correccion&quot;). No modifica
           el historial ni el SLA.
         </p>
@@ -102,7 +102,7 @@ export function ResumenesContratoSection() {
         </Button>
         {faltantes && (
           <div className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
-            Listo. Resumenes creados: {faltantes.creados}. Conversaciones habilitadas: {faltantes.conversacionesMarcadas}.
+            Listo. Resumenes creados: {faltantes.creados}. Resumenes actualizados: {faltantes.actualizados}. Conversaciones habilitadas: {faltantes.conversacionesMarcadas}.
             {faltantes.errores.length > 0 && (
               <ul className="list-disc pl-5 text-danger">
                 {faltantes.errores.map((e) => <li key={e}>{e}</li>)}

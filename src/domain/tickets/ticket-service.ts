@@ -24,6 +24,7 @@ export interface BackfillResultado {
 
 export interface ResumenesFaltantesResultado {
   creados: number;
+  actualizados: number;
   conversacionesMarcadas: number;
   errores: string[];
 }
@@ -232,14 +233,19 @@ export function createTicketService(
   // Crea el documento de resumen de todo ticket que esta o estuvo en Pre-Cierre/Cierre y no lo tiene, y marca la
   // conversacion como abierta en los que ya pasaron por Pre-Cierre. No toca el historial ni el SLA: es un arreglo de datos.
   async function crearResumenesFaltantes(tickets: Ticket[]): Promise<ResumenesFaltantesResultado> {
-    const resultado: ResumenesFaltantesResultado = { creados: 0, conversacionesMarcadas: 0, errores: [] };
+    const resultado: ResumenesFaltantesResultado = { creados: 0, actualizados: 0, conversacionesMarcadas: 0, errores: [] };
 
     for (const t of tickets) {
       if (!ticketLlegoAPreCierreOCierre(t)) continue;
       try {
-        if (!(await resumenes.get(t.id))) {
+        const previo = await resumenes.get(t.id);
+        if (!previo) {
           await resumenes.upsert(construirResumenContrato(t, new Date(), null));
           resultado.creados++;
+        } else if (previo.servicioId === undefined) {
+          // Resumen anterior a los campos de servicio y documentos: se reconstruye conservando el visto bueno.
+          await resumenes.upsert(construirResumenContrato(t, new Date(), previo));
+          resultado.actualizados++;
         }
         const entrada = primeraEntradaPreCierre(t);
         if (entrada && !t.conversacionAbiertaEn) {
