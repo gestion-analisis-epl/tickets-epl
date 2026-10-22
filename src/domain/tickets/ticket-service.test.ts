@@ -271,6 +271,22 @@ describe("historial en el mismo lote que el cambio", () => {
     expect(lotes[1].entradas).toEqual([]);
   });
 
+  it("excluir un ticket marca su resumen (y conserva el visto bueno); devolverlo lo desmarca", async () => {
+    const { service, resumenes } = montar(buildTicket({ id: "t1" }));
+    await service.updateTicketAsignacion("t1", actor, input("Pre-Cierre"));
+    resumenes.get("t1")!.vistoBueno = { uid: "j1", nombre: "Jefe", fecha: "2026-10-01T00:00:00.000Z" };
+    await service.updateTicketExclusion("t1", actor, true);
+    expect(resumenes.get("t1")).toMatchObject({ excluido: true, vistoBueno: { uid: "j1" } });
+    await service.updateTicketExclusion("t1", actor, false);
+    expect(resumenes.get("t1")?.excluido).toBe(false);
+  });
+
+  it("excluir un ticket sin resumen no crea ninguno", async () => {
+    const { service, resumenes } = montar(buildTicket({ id: "t1" }));
+    await service.updateTicketExclusion("t1", actor, true);
+    expect(resumenes.size).toBe(0);
+  });
+
   it("si el lote falla no se guarda nada, no se avisa y el error llega a quien llamo", async () => {
     const ticket = buildTicket({ id: "t1" });
     const { service, avisos } = montar(ticket, { loteRoto: true });

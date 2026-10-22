@@ -77,6 +77,7 @@ export function construirResumenContrato(ticket: Ticket, ahora: Date, previo?: R
     ticketId: ticket.id,
     folio: ticket.folio,
     estatus: ticket.estatus,
+    excluido: !!ticket.excluidoDelPipeline,
     servicioId: ticket.servicioId,
     motivo: contrato?.motivo ?? null,
     documentos: documentosDelResumen(ticket, contratoUrl),

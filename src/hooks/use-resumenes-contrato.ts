@@ -22,7 +22,7 @@ export function useResumenes() {
     const suscribir = esJefeZona(role) ? subscribeResumenesTodos : subscribeResumenes;
     const unsubscribe = suscribir(
       (data) => {
-        setResumenes(ordenarResumenesJefeZona(data));
+        setResumenes(ordenarResumenesJefeZona(data.filter((r) => !r.excluido)));
         setLoading(false);
       },
       (err) => {
@@ -49,7 +49,7 @@ export function useResumen(id: string) {
     const unsubscribe = subscribeResumen(
       id,
       (r) => {
-        setResumen(r);
+        setResumen(r?.excluido ? null : r);
         setLoading(false);
       },
       (err) => {

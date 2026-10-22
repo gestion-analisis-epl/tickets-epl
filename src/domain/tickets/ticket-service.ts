@@ -189,6 +189,10 @@ export function createTicketService(
 
     const entrada = entradaExclusion(current, excluido, actor, new Date());
     await repo.updateConHistorial(id, { excluidoDelPipeline: excluido }, entrada ? conVisibilidad([entrada], current, actor) : []);
+
+    // El resumen es lo unico que ven jefe de zona y Sitios: la marca viaja con el, conservando el visto bueno.
+    const previo = await resumenes.get(id);
+    if (previo) await resumenes.upsert(construirResumenContrato({ ...current, excluidoDelPipeline: excluido }, new Date(), previo));
   }
 
   async function deleteTicket(id: string): Promise<void> {
@@ -242,8 +246,8 @@ export function createTicketService(
         if (!previo) {
           await resumenes.upsert(construirResumenContrato(t, new Date(), null));
           resultado.creados++;
-        } else if (previo.servicioId === undefined) {
-          // Resumen anterior a los campos de servicio y documentos: se reconstruye conservando el visto bueno.
+        } else if (previo.servicioId === undefined || (previo.excluido ?? false) !== !!t.excluidoDelPipeline) {
+          // Resumen anterior a los campos de servicio y documentos, o con la marca de exclusion desfasada: se reconstruye conservando el visto bueno.
           await resumenes.upsert(construirResumenContrato(t, new Date(), previo));
           resultado.actualizados++;
         }

@@ -52,6 +52,8 @@ export interface ResumenContrato {
   folio: string;
   estatus: Estatus;
   // Ausentes en resumenes previos: se completan con "Crear resumenes faltantes" (Mantenimiento).
+  // Espejo de Ticket.excluidoDelPipeline: los tickets de prueba o excluidos no se muestran a jefe de zona ni a Sitios.
+  excluido?: boolean;
   servicioId?: string;
   motivo?: string | null;
   documentos?: DocumentoResumen[];
