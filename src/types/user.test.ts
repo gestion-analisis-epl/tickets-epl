@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { esJefeZona, esRolSoloResumen, esSitios, puedeDarVistoBueno, ROLES_SOLO_RESUMEN, isAdminRole, isSolicitanteRole, LEGAL_STAFF_ROLES, puedeSupervisar, STAFF_ROLES, type Role } from "./user";
+import { esJefeZona, esRolSoloResumen, esSitios, puedeDarVistoBueno, ROLES_SOLO_RESUMEN, isAdminRole, isSolicitanteRole, LEGAL_STAFF_ROLES, puedeSupervisar, puedeVerDashboard, STAFF_ROLES, type Role } from "./user";
 
 describe("isSolicitanteRole", () => {
   it.each<[Role, boolean]>([
@@ -99,5 +99,25 @@ describe("roles de solo resumen", () => {
     expect(puedeDarVistoBueno("sitios")).toBe(false);
     expect(puedeDarVistoBueno("admin")).toBe(false);
     expect(puedeDarVistoBueno(null)).toBe(false);
+  });
+});
+
+describe("puedeVerDashboard", () => {
+  it.each<[Role, boolean]>([
+    ["solicitante", false],
+    ["gerente_area", false],
+    ["mesa_control", true],
+    ["abogado", true],
+    ["gerente_juridico", true],
+    ["admin", true],
+    ["jefe_zona", false],
+    ["sitios", false],
+  ])("%s -> %s", (role, esperado) => {
+    expect(puedeVerDashboard(role)).toBe(esperado);
+  });
+
+  it("un rol ausente no ve el dashboard", () => {
+    expect(puedeVerDashboard(null)).toBe(false);
+    expect(puedeVerDashboard(undefined)).toBe(false);
   });
 });

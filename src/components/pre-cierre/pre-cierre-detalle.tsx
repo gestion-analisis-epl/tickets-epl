@@ -60,7 +60,7 @@ export function PreCierreDetalle({ id }: { id: string }) {
       <div className="flex flex-col items-center justify-center h-48 gap-2 text-center">
         <ShieldAlert className="h-6 w-6 text-muted" />
         <p className="text-sm font-medium text-muted">{forbidden ? "No tienes acceso a este resumen" : "Resumen no encontrado"}</p>
-        <Link href="/pre-cierre" className="text-sm underline">Volver a Pre-Cierre</Link>
+        <Link href="/pre-cierre" className="text-sm underline">Volver a Pre-Cierre / Cierre</Link>
       </div>
     );
   }
@@ -119,7 +119,7 @@ export function PreCierreDetalle({ id }: { id: string }) {
   const encabezado = (
     <div className="space-y-6">
       <Link href="/pre-cierre" className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Pre-Cierre
+        <ArrowLeft className="h-4 w-4" /> Pre-Cierre / Cierre
       </Link>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -254,5 +254,5 @@ export function PreCierreDetalle({ id }: { id: string }) {
     </>
   );
 
-  return <DosColumnas encabezado={encabezado} izquierda={izquierda} derecha={derecha} />;
+  return <DosColumnas encabezado={encabezado} izquierda={izquierda} derecha={derecha} igualarAltura={false} />;
 }

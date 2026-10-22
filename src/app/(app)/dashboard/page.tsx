@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { StatTile } from "@/components/dashboard/stat-tile";
 import { KpiDrawer } from "@/components/dashboard/kpi-drawer";
@@ -8,6 +9,8 @@ import { BarList } from "@/components/dashboard/bar-list";
 import { useTickets } from "@/hooks/use-tickets";
 import { computeDashboardStats, type KpiKey } from "@/lib/dashboard-stats";
 import { useCategoriasStore } from "@/stores/categorias";
+import { useAuthStore } from "@/stores/auth";
+import { puedeVerDashboard } from "@/types/user";
 
 const CHART_VARS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)", "var(--chart-6)", "var(--chart-7)"];
 
@@ -19,10 +22,20 @@ function slaStatus(pct: number | null): { color: "good" | "warning" | "critical"
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const role = useAuthStore((s) => s.role);
+  const autorizado = puedeVerDashboard(role);
   const { tickets, loading } = useTickets();
   const categorias = useCategoriasStore((s) => s.categorias);
   const [kpi, setKpi] = useState<KpiKey | null>(null);
   const stats = computeDashboardStats(tickets, categorias.map((c) => c.nombre));
+
+  // Comodidad de UI, igual que la redireccion de los roles de solo resumen en el layout.
+  useEffect(() => {
+    if (!autorizado) router.replace("/");
+  }, [autorizado, router]);
+
+  if (!autorizado) return null;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">

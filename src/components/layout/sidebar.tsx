@@ -12,7 +12,7 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { useAuthStore, type Role } from "@/stores/auth";
 import { signOutUser } from "@/lib/auth-actions";
-import { isAdminRole } from "@/types/user";
+import { isAdminRole, ROLES_DASHBOARD } from "@/types/user";
 import { usePermiso } from "@/hooks/use-permiso";
 
 interface NavItem {
@@ -27,10 +27,10 @@ const ROLES_SIN_SOLO_RESUMEN: Role[] = ["solicitante", "gerente_area", "mesa_con
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Inicio",              href: "/",              icon: Home,          exact: true, roles: ROLES_SIN_SOLO_RESUMEN },
-  { label: "Dashboard",           href: "/dashboard",      icon: BarChart2,    roles: ROLES_SIN_SOLO_RESUMEN },
+  { label: "Dashboard",           href: "/dashboard",      icon: BarChart2,    roles: ROLES_DASHBOARD },
   { label: "Tickets",             href: "/tickets",        icon: ClipboardList, roles: ROLES_SIN_SOLO_RESUMEN },
   { label: "Nuevo ticket",        href: "/tickets/nuevo",  icon: PlusCircle,   roles: ROLES_SIN_SOLO_RESUMEN },
-  { label: "Pre-Cierre",          href: "/pre-cierre",     icon: ClipboardCheck, roles: ["jefe_zona", "sitios"] },
+  { label: "Pre-Cierre / Cierre",       href: "/pre-cierre",     icon: ClipboardCheck, roles: ["jefe_zona", "sitios"] },
   { label: "Catalogo de servicios", href: "/catalogo",     icon: BookOpen,     roles: ["mesa_control", "abogado", "gerente_juridico", "admin"] },
 ];
 

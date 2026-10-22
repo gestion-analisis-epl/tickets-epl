@@ -424,7 +424,7 @@ export function UsuariosPanel() {
                 onChange={setFormSupervisaUids}
               />
               <p className="text-xs text-muted mt-1">
-                Solo lectura: los ve en su lista, en el detalle y en el dashboard, pero no puede editarlos.
+                Solo lectura: los ve en su lista y en el detalle, pero no puede editarlos.
               </p>
             </div>
           )}

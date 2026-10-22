@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { ClipboardList, PlusCircle, BarChart2, BookOpen } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
+import { ROLES_DASHBOARD } from "@/types/user";
 
 const ACCIONES = [
   { label: "Nuevo ticket", desc: "Levanta una solicitud para el area Legal.", href: "/tickets/nuevo", icon: PlusCircle },
   { label: "Ver tickets", desc: "Consulta el estatus de las solicitudes.", href: "/tickets", icon: ClipboardList },
-  { label: "Dashboard", desc: "KPIs de estatus, SLA y satisfaccion.", href: "/dashboard", icon: BarChart2 },
+  { label: "Dashboard", desc: "KPIs de estatus, SLA y satisfaccion.", href: "/dashboard", icon: BarChart2, roles: ROLES_DASHBOARD },
   { label: "Catalogo de servicios", desc: "Los 70 servicios estandarizados.", href: "/catalogo", icon: BookOpen, roles: ["mesa_control", "abogado", "gerente_juridico", "admin"] },
 ];
 

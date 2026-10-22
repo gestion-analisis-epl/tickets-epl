@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { VerComoBanner } from "@/components/layout/ver-como";
 import { CatalogoProvider } from "@/components/providers/catalogo-provider";
 import { useAuthStore } from "@/stores/auth";
 import { esRolSoloResumen } from "@/types/user";
@@ -46,6 +47,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen bg-background">
         <Sidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
         <div className="flex-1 min-w-0 flex flex-col">
+          <VerComoBanner />
           <Topbar onOpenMobileNav={() => setMobileNavOpen(true)} />
           <main className="flex-1 min-w-0 overflow-x-hidden">{children}</main>
         </div>

@@ -1,5 +1,6 @@
 import { Menu } from "lucide-react";
 import { NotificationBell } from "./notification-bell";
+import { VerComoSelector } from "./ver-como";
 
 interface TopbarProps {
   onOpenMobileNav: () => void;
@@ -17,7 +18,10 @@ export function Topbar({ onOpenMobileNav }: TopbarProps) {
         <Menu className="h-5 w-5" />
       </button>
       <div className="flex-1" />
-      <NotificationBell />
+      <div className="flex items-center gap-3">
+        <VerComoSelector />
+        <NotificationBell />
+      </div>
     </header>
   );
 }

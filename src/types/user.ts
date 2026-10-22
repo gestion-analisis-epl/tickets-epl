@@ -52,6 +52,13 @@ export function puedeDarVistoBueno(role: Role | null | undefined): boolean {
   return esJefeZona(role);
 }
 
+// Dashboard: solo admin y el equipo Legal. Solicitante y gerente_area ven sus tickets, no los KPIs del area.
+// Es una comodidad de UI: no hay regla de Firestore especifica, el dashboard se calcula con lo que cada rol ya puede leer.
+export const ROLES_DASHBOARD: Role[] = ["mesa_control", "abogado", "gerente_juridico", "admin"];
+export function puedeVerDashboard(role: Role | null | undefined): boolean {
+  return !!role && ROLES_DASHBOARD.includes(role);
+}
+
 export interface AppUser {
   uid: string;
   nombre: string;

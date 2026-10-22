@@ -4,11 +4,35 @@ import type { AjustesPermisos } from "@/domain/users/permisos";
 
 export type { Role };
 
+const CLAVE_VER_COMO = "ver-como-rol";
+
+function leerVerComo(): Role | null {
+  try {
+    return (sessionStorage.getItem(CLAVE_VER_COMO) as Role | null) || null;
+  } catch {
+    return null;
+  }
+}
+
+function guardarVerComo(rol: Role | null) {
+  try {
+    if (rol) sessionStorage.setItem(CLAVE_VER_COMO, rol);
+    else sessionStorage.removeItem(CLAVE_VER_COMO);
+  } catch {
+    // sessionStorage no disponible: la simulacion solo dura lo que la pestana.
+  }
+}
+
 interface AuthState {
   uid: string | null;
   nombre: string | null;
   email: string | null;
+  // Rol efectivo para la UI: el real, o el simulado si un admin usa "Ver como".
   role: Role;
+  // Rol y permisos guardados en users/{uid}; los que aplican firestore.rules y las rutas API.
+  roleReal: Role;
+  // Solo cuando roleReal === "admin": rol que la UI simula. No cambia nada en Firestore.
+  verComo: Role | null;
   // Liga a Abogado.id (data/abogados.ts) cuando role === "abogado" — permite
   // saber si el usuario es el abogado asignado a un ticket (ver ticket-detail.tsx).
   abogadoId: string | null;
@@ -16,6 +40,7 @@ interface AuthState {
   supervisaUids: string[];
   // Excepciones a los permisos de su rol (ver domain/users/permisos.ts).
   permisos: AjustesPermisos;
+  permisosReales: AjustesPermisos;
   status: "loading" | "signed-in" | "signed-out";
   setUser: (user: {
     uid: string;
@@ -26,19 +51,46 @@ interface AuthState {
     supervisaUids?: string[];
     permisos?: AjustesPermisos;
   }) => void;
+  // Ignorado si la cuenta real no es admin.
+  setVerComo: (rol: Role | null) => void;
   clearUser: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   uid: null,
   nombre: null,
   email: null,
   role: "solicitante",
+  roleReal: "solicitante",
+  verComo: null,
   abogadoId: null,
   supervisaUids: [],
   permisos: {},
+  permisosReales: {},
   status: "loading",
-  setUser: ({ uid, nombre, email, role, abogadoId, supervisaUids, permisos }) =>
-    set({ uid, nombre, email, role, abogadoId: abogadoId ?? null, supervisaUids: supervisaUids ?? [], permisos: permisos ?? {}, status: "signed-in" }),
-  clearUser: () => set({ uid: null, nombre: null, email: null, role: "solicitante", abogadoId: null, supervisaUids: [], permisos: {}, status: "signed-out" }),
+  setUser: ({ uid, nombre, email, role, abogadoId, supervisaUids, permisos }) => {
+    const verComo = role === "admin" ? leerVerComo() : null;
+    set({
+      uid, nombre, email,
+      role: verComo ?? role,
+      roleReal: role,
+      verComo,
+      abogadoId: abogadoId ?? null,
+      supervisaUids: supervisaUids ?? [],
+      permisos: verComo ? {} : permisos ?? {},
+      permisosReales: permisos ?? {},
+      status: "signed-in",
+    });
+  },
+  setVerComo: (rol) => {
+    const { roleReal, permisosReales } = get();
+    if (roleReal !== "admin") return;
+    const verComo = rol && rol !== "admin" ? rol : null;
+    guardarVerComo(verComo);
+    set({ verComo, role: verComo ?? roleReal, permisos: verComo ? {} : permisosReales });
+  },
+  clearUser: () => {
+    guardarVerComo(null);
+    set({ uid: null, nombre: null, email: null, role: "solicitante", roleReal: "solicitante", verComo: null, abogadoId: null, supervisaUids: [], permisos: {}, permisosReales: {}, status: "signed-out" });
+  },
 }));
