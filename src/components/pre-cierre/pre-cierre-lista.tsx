@@ -30,6 +30,7 @@ import { SortIcon, FilterDropdown, ColumnVisibilityMenu } from "@/components/ui/
 import { enCorreccion } from "@/domain/contratos/resumen-presentacion";
 import { multiSelectColumn } from "@/lib/table-filter";
 import { normalizar } from "@/lib/busqueda";
+import { findServicio } from "@/lib/catalogo";
 import type { ResumenContrato } from "@/types/resumen-contrato";
 
 const busquedaGlobal: FilterFn<ResumenContrato> = (row, columnId, filterValue: string) =>
@@ -61,6 +62,14 @@ export function PreCierreLista() {
           {info.getValue()}
         </Link>
       ),
+    }),
+    columnHelper.accessor((r) => (r.servicioId ? findServicio(r.servicioId)?.servicio ?? r.servicioId : "—"), {
+      id: "servicio",
+      header: "Servicio",
+      size: 280, minSize: 180,
+      ...multiSelect(),
+      // Se pasa a la linea siguiente en vez de cortarse: los nombres de servicio son largos.
+      cell: (info) => <span className="block whitespace-normal break-words">{info.getValue()}</span>,
     }),
     columnHelper.accessor((r) => r.sitioClave ?? "—", {
       id: "sitioClave",
@@ -201,7 +210,7 @@ export function PreCierreLista() {
             type="text"
             value={globalFilter}
             onChange={(e) => setGlobalFilter(e.target.value)}
-            placeholder="Buscar por folio, sitio, solicitante, etapa o visto bueno..."
+            placeholder="Buscar por folio, servicio, sitio, solicitante, etapa o visto bueno..."
             className="field w-full pl-9 pr-3"
           />
         </div>
