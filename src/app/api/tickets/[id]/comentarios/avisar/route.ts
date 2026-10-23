@@ -8,11 +8,12 @@ import type { NuevoComentario } from "@/types/comentario";
 export const runtime = "nodejs";
 
 interface Params {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 // El cliente avisa "cree el comentario X"; aqui se valida que quien llama es su autor y que no se aviso antes.
-export async function POST(request: Request, { params }: Params) {
+export async function POST(request: Request, props: Params) {
+  const params = await props.params;
   try {
     const uid = await verifyCallerToken(request);
     const body = await request.json().catch(() => null);

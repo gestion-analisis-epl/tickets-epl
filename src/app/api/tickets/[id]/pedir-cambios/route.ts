@@ -17,7 +17,7 @@ import type { Role } from "@/types/user";
 export const runtime = "nodejs";
 
 interface Params {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 // Ticket, resumen, comentario e historial en una transaccion. Se vuelve a comprobar que el ticket siga en
@@ -34,7 +34,8 @@ async function guardar(db: Firestore, op: OperacionPedirCambios): Promise<void> 
   });
 }
 
-export async function POST(request: Request, { params }: Params) {
+export async function POST(request: Request, props: Params) {
+  const params = await props.params;
   try {
     const uid = await verifyCallerToken(request);
     const body = await request.json().catch(() => null);

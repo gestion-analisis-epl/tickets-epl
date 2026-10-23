@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 interface Params {
-  params: { ticketId: string };
+  params: Promise<{ ticketId: string }>;
 }
 
 // Sin autenticacion Firebase a proposito: se llega aqui desde un link de
@@ -29,7 +29,8 @@ async function ticketConToken(ticketId: string, token: string) {
   return { ticket, ref } as const;
 }
 
-export async function GET(request: Request, { params }: Params) {
+export async function GET(request: Request, props: Params) {
+  const params = await props.params;
   const token = new URL(request.url).searchParams.get("token") ?? "";
   const resultado = await ticketConToken(params.ticketId, token);
   if ("error" in resultado) {
@@ -46,7 +47,8 @@ export async function GET(request: Request, { params }: Params) {
   });
 }
 
-export async function POST(request: Request, { params }: Params) {
+export async function POST(request: Request, props: Params) {
+  const params = await props.params;
   try {
     const body = await request.json();
     const token = String(body.token ?? "");

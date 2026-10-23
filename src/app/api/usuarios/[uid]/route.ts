@@ -11,7 +11,7 @@ import { isSolicitanteRole, puedeSupervisar, type Role } from "@/types/user";
 export const runtime = "nodejs";
 
 interface Params {
-  params: { uid: string };
+  params: Promise<{ uid: string }>;
 }
 
 async function hayGestorTras(uid: string, despues: CuentaGestion | null): Promise<boolean> {
@@ -28,7 +28,8 @@ async function hayGestorTras(uid: string, despues: CuentaGestion | null): Promis
 // El correo solo se deja editar para staff — el de un solicitante es su
 // identidad de Google. "activo" tambien se refleja en Auth.disabled, que es
 // lo que de verdad bloquea el login (Firestore por si solo no lo hace).
-export async function PATCH(request: Request, { params }: Params) {
+export async function PATCH(request: Request, props: Params) {
+  const params = await props.params;
   try {
     const callerUid = await requirePermiso(request, "gestionar_usuarios");
     const { uid } = params;
@@ -166,7 +167,8 @@ export async function PATCH(request: Request, { params }: Params) {
 
 // Borrado definitivo: cuenta de Auth + doc de Firestore. No hay soft-delete
 // aqui (para eso esta "activo", ver PATCH arriba).
-export async function DELETE(request: Request, { params }: Params) {
+export async function DELETE(request: Request, props: Params) {
+  const params = await props.params;
   try {
     const callerUid = await requirePermiso(request, "gestionar_usuarios");
     const { uid } = params;
