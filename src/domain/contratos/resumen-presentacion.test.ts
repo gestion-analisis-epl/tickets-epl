@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formaPagoLabel, formatMonto, NO_DISPONIBLE, sitioYCodigoResumen, textoDiscrepancia, textoODisponible } from "./resumen-presentacion";
+import { agruparDocumentos, formaPagoLabel, formatMonto, NO_DISPONIBLE, sitioYCodigoResumen, textoDiscrepancia, textoODisponible } from "./resumen-presentacion";
 
 describe("resumen-presentacion", () => {
   it("formatea el monto en pesos mexicanos", () => {
@@ -36,5 +36,28 @@ describe("sitioYCodigoResumen", () => {
 
   it("devuelve null si tampoco hay dato en la ficha", () => {
     expect(sitioYCodigoResumen({ sitio: " ", codigo: null }, { clave: "", alias: "" })).toEqual({ sitio: null, codigo: null });
+  });
+});
+
+describe("agruparDocumentos", () => {
+  const doc = (etiqueta: string, grupo?: "formato" | "arrendamiento" | "adjunto") => ({ etiqueta, url: `https://x/${etiqueta}`, grupo });
+
+  it("separa en las mismas secciones que la solicitud y omite las vacias", () => {
+    const grupos = agruparDocumentos([doc("a.pdf", "adjunto"), doc("Formato", "formato"), doc("Predial", "arrendamiento")]);
+    expect(grupos.map((g) => g.titulo)).toEqual([
+      "Formato de solicitud de arrendamiento",
+      "Documentos de arrendamiento",
+      "Documentación adjunta",
+    ]);
+  });
+
+  it("resumenes previos sin grupo van en una sola lista", () => {
+    expect(agruparDocumentos([doc("a.pdf"), doc("b.pdf")])).toEqual([
+      expect.objectContaining({ titulo: "Documentos del ticket" }),
+    ]);
+  });
+
+  it("sin documentos no hay secciones", () => {
+    expect(agruparDocumentos([])).toEqual([]);
   });
 });

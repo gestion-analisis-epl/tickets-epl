@@ -41,9 +41,13 @@ export interface VistoBueno {
   fecha: string;
 }
 
+export type GrupoDocumento = "formato" | "arrendamiento" | "adjunto";
+
 export interface DocumentoResumen {
   etiqueta: string;
   url: string;
+  // Ausente en resumenes previos: se completa con "Crear resumenes faltantes" (Mantenimiento).
+  grupo?: GrupoDocumento;
 }
 
 // Documento resumenesContrato/{ticketId}: lo unico que ve el jefe de zona.
@@ -55,6 +59,10 @@ export interface ResumenContrato {
   // Espejo de Ticket.excluidoDelPipeline: los tickets de prueba o excluidos no se muestran a jefe de zona ni a Sitios.
   excluido?: boolean;
   servicioId?: string;
+  // Datos de la solicitud (no los del area legal). Ausentes en resumenes previos.
+  areaEmpresa?: string;
+  descripcion?: string;
+  fechaSolicitud?: string; // ISO
   motivo?: string | null;
   documentos?: DocumentoResumen[];
   sitioClave: string | null;

@@ -18,7 +18,7 @@ import { formatFecha, formatFechaSolo } from "@/lib/format-fecha";
 import { esUrlStorageSegura } from "@/lib/storage-ruta";
 import { findServicio } from "@/lib/catalogo";
 import { SERVICIO_ALTA_ARRENDADOR_ID, SERVICIO_CAMBIO_ARRENDADOR_ID } from "@/lib/data/arrendamientos-temporal";
-import { formaPagoLabel, formatMonto, textoDiscrepancia, textoODisponible } from "@/domain/contratos/resumen-presentacion";
+import { agruparDocumentos, formaPagoLabel, formatMonto, NO_DISPONIBLE, textoDiscrepancia, textoODisponible } from "@/domain/contratos/resumen-presentacion";
 import type { EstadoResumen } from "@/types/resumen-contrato";
 
 const AVISO_ESTADO: Partial<Record<EstadoResumen, string>> = {
@@ -187,7 +187,10 @@ export function PreCierreDetalle({ id }: { id: string }) {
         <section className="section-card p-6 space-y-4">
           <h2 className="text-lg font-semibold">Datos del ticket</h2>
           <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Campo label="Solicitante">{textoODisponible(resumen.solicitante)}</Campo>
+            <Campo label="Empresa / Área">{textoODisponible(resumen.areaEmpresa)}</Campo>
             <Campo label="Servicio">{textoODisponible(servicio)}</Campo>
+            <Campo label="Fecha de solicitud">{resumen.fechaSolicitud ? formatFecha(resumen.fechaSolicitud) : NO_DISPONIBLE}</Campo>
             {resumen.motivo && <Campo label="Motivo">{resumen.motivo}</Campo>}
             <Campo label="Sitio">
               {resumen.sitioClave ? `${resumen.sitioClave}${resumen.sitioAlias ? ` — ${resumen.sitioAlias}` : ""}` : textoODisponible(null)}
@@ -195,13 +198,19 @@ export function PreCierreDetalle({ id }: { id: string }) {
             <Campo label="Codigo">{textoODisponible(resumen.sitioClave)}</Campo>
             <Campo label="Domicilio">{textoODisponible(resumen.domicilio)}</Campo>
             <Campo label="Alta de arrendador">{textoODisponible(resumen.altaArrendador)}</Campo>
-            <Campo label="Solicitante">{textoODisponible(resumen.solicitante)}</Campo>
             <Campo label="Periodo">{textoODisponible(periodo)}</Campo>
             <Campo label="Metodo de pago">{textoODisponible(resumen.metodoPago)}</Campo>
             <Campo label="Condiciones de pago">{textoODisponible(resumen.condicionesPago)}</Campo>
             <Campo label="Monto anual">{formatMonto(resumen.montoPagoAnual)}</Campo>
             <Campo label="Forma de pago">{formaPagoLabel(resumen.formaPago)}</Campo>
           </dl>
+
+          {resumen.descripcion && (
+            <div>
+              <p className="field-label">Descripción</p>
+              <p className="text-sm whitespace-pre-wrap">{resumen.descripcion}</p>
+            </div>
+          )}
 
           {resumen.contratoUrl && !esUrlStorageSegura(resumen.contratoUrl) && resumen.contratoNombre && (
             <p className="text-sm">Contrato original: {resumen.contratoNombre}</p>
@@ -218,11 +227,11 @@ export function PreCierreDetalle({ id }: { id: string }) {
             </a>
           )}
 
-          {documentos.length > 0 && (
-            <div className="space-y-1.5 border-t border-border pt-4">
-              <p className="field-label">Documentos del ticket</p>
+          {agruparDocumentos(documentos).map((g) => (
+            <div key={g.titulo} className="space-y-1.5 border-t border-border pt-4">
+              <p className="field-label">{g.titulo}</p>
               <ul className="space-y-1">
-                {documentos.map((d) => (
+                {g.documentos.map((d) => (
                   <li key={d.url}>
                     {esUrlStorageSegura(d.url) ? (
                       <a href={d.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-medium underline">
@@ -235,7 +244,7 @@ export function PreCierreDetalle({ id }: { id: string }) {
                 ))}
               </ul>
             </div>
-          )}
+          ))}
 
           {resumen.estadoResumen === "listo" && <p className="text-xs text-muted">Resumen generado automáticamente; no sustituye la revisión legal del contrato.</p>}
         </section>

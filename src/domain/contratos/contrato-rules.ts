@@ -1,6 +1,6 @@
 import type { Estatus, Ticket } from "@/types/ticket";
 import { esArchivoContrato } from "./tipo-archivo";
-import type { DocumentoResumen, ResumenContrato, ResumenContratoTicket } from "@/types/resumen-contrato";
+import type { DocumentoResumen, GrupoDocumento, ResumenContrato, ResumenContratoTicket } from "@/types/resumen-contrato";
 import { DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO } from "@/lib/data/arrendamientos-temporal";
 
 // Etapas en que se crea o refresca el resumen (accionResumen). La LECTURA del jefe de zona no se limita
@@ -55,14 +55,14 @@ export function accionResumen(estatusPrevio: Estatus, estatusNuevo: Estatus): "u
 export function documentosDelResumen(ticket: Ticket, contratoUrl: string | null): DocumentoResumen[] {
   const docs: DocumentoResumen[] = [];
   const vistos = new Set<string>(contratoUrl ? [contratoUrl] : []);
-  const agregar = (etiqueta: string, url: string | undefined) => {
+  const agregar = (grupo: GrupoDocumento, etiqueta: string, url: string | undefined) => {
     if (!url || vistos.has(url)) return;
     vistos.add(url);
-    docs.push({ etiqueta, url });
+    docs.push({ etiqueta, url, grupo });
   };
-  agregar("Formato de solicitud de arrendamiento", ticket.formatoArrendamientoUrl);
-  for (const d of DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO) agregar(d.label, ticket.documentosArrendamiento?.[d.key]);
-  for (const url of ticket.documentacion ?? []) agregar(nombreDeUrl(url) || "Documento adjunto", url);
+  agregar("formato", "Formato de solicitud de arrendamiento", ticket.formatoArrendamientoUrl);
+  for (const d of DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO) agregar("arrendamiento", d.label, ticket.documentosArrendamiento?.[d.key]);
+  for (const url of ticket.documentacion ?? []) agregar("adjunto", nombreDeUrl(url) || "Documento adjunto", url);
   return docs;
 }
 
@@ -79,6 +79,9 @@ export function construirResumenContrato(ticket: Ticket, ahora: Date, previo?: R
     estatus: ticket.estatus,
     excluido: !!ticket.excluidoDelPipeline,
     servicioId: ticket.servicioId,
+    areaEmpresa: ticket.areaEmpresa,
+    descripcion: ticket.descripcion,
+    fechaSolicitud: ticket.fechaSolicitud,
     motivo: contrato?.motivo ?? null,
     documentos: documentosDelResumen(ticket, contratoUrl),
     sitioClave: ticket.sitioArrendamiento?.clave ?? null,

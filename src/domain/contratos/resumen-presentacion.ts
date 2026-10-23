@@ -1,4 +1,4 @@
-import type { Discrepancia, FormaPago, ResumenContrato } from "@/types/resumen-contrato";
+import type { Discrepancia, DocumentoResumen, FormaPago, GrupoDocumento, ResumenContrato } from "@/types/resumen-contrato";
 import type { Estatus } from "@/types/ticket";
 import { ETAPAS_VISIBLES_JEFE_ZONA } from "./contrato-rules";
 
@@ -54,7 +54,23 @@ export function formaPagoLabel(forma: FormaPago | null): string {
   return forma ? FORMA_PAGO_LABEL[forma] : NO_DISPONIBLE;
 }
 
-const CAMPO_LABEL: Record<Discrepancia["campo"], string> = {
+const TITULO_GRUPO: Record<GrupoDocumento, string> = {
+  formato: "Formato de solicitud de arrendamiento",
+  arrendamiento: "Documentos de arrendamiento",
+  adjunto: "Documentación adjunta",
+};
+
+// Mismas secciones que la solicitud. Los resumenes previos no traen grupo: van todos juntos hasta que se actualicen.
+export function agruparDocumentos(documentos: DocumentoResumen[]): { titulo: string; documentos: DocumentoResumen[] }[] {
+  if (documentos.length > 0 && documentos.every((d) => !d.grupo)) {
+    return [{ titulo: "Documentos del ticket", documentos }];
+  }
+  return (["formato", "arrendamiento", "adjunto"] as const)
+    .map((g) => ({ titulo: TITULO_GRUPO[g], documentos: documentos.filter((d) => (d.grupo ?? "adjunto") === g) }))
+    .filter((g) => g.documentos.length > 0);
+}
+
+const CAMPO_LABEL:Record<Discrepancia["campo"], string> = {
   domicilio: "Domicilio",
   periodo: "Periodo",
   arrendador: "Arrendador",

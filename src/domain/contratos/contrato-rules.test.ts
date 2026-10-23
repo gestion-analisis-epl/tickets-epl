@@ -196,6 +196,17 @@ describe("documentosDelResumen", () => {
     ]);
   });
 
+  it("marca el grupo de cada documento y el resumen lleva area, descripcion y fecha de la solicitud", () => {
+    const ticket = buildTicket({
+      formatoArrendamientoUrl: url("2_formato.docx"),
+      documentosArrendamiento: { escrituras: url("3_esc.pdf") } as never,
+      documentacion: [url("5_extra.pdf")],
+    });
+    expect(documentosDelResumen(ticket, null).map((d) => d.grupo)).toEqual(["formato", "arrendamiento", "adjunto"]);
+    const r = construirResumenContrato(ticket, new Date("2026-10-08T12:00:00.000Z"));
+    expect(r).toMatchObject({ areaEmpresa: ticket.areaEmpresa, descripcion: ticket.descripcion, fechaSolicitud: ticket.fechaSolicitud });
+  });
+
   it("el resumen de un ticket de Alta lleva servicio, motivo y documentos", () => {
     const ticket = buildTicket({ servicioId: "JUR-C071", formatoArrendamientoUrl: url("2_formato.docx") });
     const r = construirResumenContrato(ticket, new Date("2026-10-08T12:00:00.000Z"));
