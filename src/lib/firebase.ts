@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, type Firestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { FIRESTORE_DATABASE_ID, STORAGE_BUCKET } from "./firebase-config";
 
@@ -18,7 +18,21 @@ const firebaseConfig = {
 
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app, FIRESTORE_DATABASE_ID);
+// Caché en IndexedDB solo en cliente; si ya estaba inicializado reutiliza la instancia
+function crearFirestore(): Firestore {
+  if (typeof window === "undefined") return getFirestore(app, FIRESTORE_DATABASE_ID);
+  try {
+    return initializeFirestore(
+      app,
+      { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) },
+      FIRESTORE_DATABASE_ID,
+    );
+  } catch {
+    return getFirestore(app, FIRESTORE_DATABASE_ID);
+  }
+}
+
+export const db = crearFirestore();
 export const storage = getStorage(app, `gs://${STORAGE_BUCKET}`);
 
 // Explicito aunque ya sea el default del SDK: la sesion sobrevive a cerrar el
