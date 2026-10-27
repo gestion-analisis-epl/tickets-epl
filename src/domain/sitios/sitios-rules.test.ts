@@ -271,3 +271,19 @@ describe("campoBloqueado", () => {
     expect(campoBloqueado(SELECCION_VACIA, "clave", "alias")).toBe(false);
   });
 });
+
+describe("parseFilasSitios: geolocalizacion", () => {
+  const ENC = ["anun_Clave", "anun_Alias", "anun_Geolocalizacion"];
+  it("lee la columna cuando existe", () => {
+    expect(parseFilasSitios([ENC, ["C1", "Alias", "20.5,-100.4"]])).toEqual([{ clave: "C1", alias: "Alias", geolocalizacion: "20.5,-100.4" }]);
+  });
+  it("no falla si la hoja no trae la columna y no agrega la llave", () => {
+    expect(parseFilasSitios([["anun_Clave", "anun_Alias"], ["C1", "Alias"]])).toEqual([{ clave: "C1", alias: "Alias" }]);
+  });
+  it("una celda vacia no agrega la llave", () => {
+    expect(parseFilasSitios([ENC, ["C1", "Alias", ""]])).toEqual([{ clave: "C1", alias: "Alias" }]);
+  });
+  it("al juntar filas del mismo sitio conserva la primera geolocalizacion no vacia", () => {
+    expect(parseFilasSitios([ENC, ["C1", "Alias", ""], ["C1", "Alias", "1,2"]])).toEqual([{ clave: "C1", alias: "Alias", geolocalizacion: "1,2" }]);
+  });
+});

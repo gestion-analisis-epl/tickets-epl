@@ -5,6 +5,8 @@
 export interface Sitio {
   clave: string;
   alias: string;
+  // Columna opcional anun_Geolocalizacion (enlace o "lat,lng"); ausente si la hoja no la trae.
+  geolocalizacion?: string;
 }
 
 export type CampoSitio = "clave" | "alias";
@@ -17,6 +19,7 @@ export const SELECCION_VACIA: SeleccionSitio = { clave: "", alias: "" };
 const CAMPOS: CampoSitio[] = ["clave", "alias"];
 
 const ENCABEZADOS = { clave: "anun_Clave", alias: "anun_Alias" } as const;
+const ENCABEZADO_GEOLOCALIZACION = "anun_geolocalizacion";
 
 function texto(celda: unknown): string {
   return celda == null ? "" : String(celda).replace(/\s+/g, " ").trim();
@@ -60,21 +63,26 @@ export function parseFilasSitios(filas: unknown[][]): Sitio[] {
     indice[campo] = i;
   }
 
+  const indiceGeo = encabezados.indexOf(ENCABEZADO_GEOLOCALIZACION);
+
   const candidatos: Sitio[] = [];
   for (const fila of filas.slice(1)) {
     const sitio: Sitio = { clave: texto(fila[indice.clave]), alias: texto(fila[indice.alias]) };
+    const geo = indiceGeo === -1 ? "" : texto(fila[indiceGeo]);
+    if (geo) sitio.geolocalizacion = geo;
     if (sitio.clave && sitio.alias) candidatos.push(sitio);
   }
   unificarAlias(candidatos);
 
   // Se junta despues de unificar: dos variantes del mismo alias bajo una clave son un solo sitio.
-  const vistos = new Set<string>();
-  return candidatos.filter((s) => {
+  const porLlave = new Map<string, Sitio>();
+  for (const s of candidatos) {
     const llave = `${s.clave}\u0000${s.alias}`;
-    if (vistos.has(llave)) return false;
-    vistos.add(llave);
-    return true;
-  });
+    const previo = porLlave.get(llave);
+    if (!previo) porLlave.set(llave, s);
+    else if (!previo.geolocalizacion && s.geolocalizacion) previo.geolocalizacion = s.geolocalizacion;
+  }
+  return Array.from(porLlave.values());
 }
 
 type Filtro = Partial<Record<CampoSitio, string>>;
