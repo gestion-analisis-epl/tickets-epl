@@ -1,5 +1,6 @@
 import { deleteTicketDocuments } from "@/lib/storage";
-import type { Estatus, SitioArrendamiento, Ticket } from "@/types/ticket";
+import type { Estatus, RevisionLegal, SitioArrendamiento, Ticket } from "@/types/ticket";
+import { normalizarRevisionLegal, revisionLegalPendiente, RevisionLegalIncompletaError } from "./revision-legal-rules";
 import type { ResumenContratoRepository } from "@/domain/contratos/resumen-contrato-repository";
 import { accionResumen, construirResumenContrato, ETAPAS_VISIBLES_JEFE_ZONA, resumenSinCambios } from "@/domain/contratos/contrato-rules";
 import type { CatalogoLookup } from "@/domain/catalogo/catalogo-lookup";
@@ -13,7 +14,7 @@ import { primeraEntradaPreCierre, ticketLlegoAPreCierreOCierre } from "@/domain/
 import { calcularPatchSitio } from "./sitio-rules";
 import { calcularPatchContrato, type ContratoEdicionInput } from "./contrato-edicion-rules";
 import type { ActorHistorial } from "@/types/historial";
-import { bloqueadoPorPreCierre, MENSAJE_BLOQUEO_PRE_CIERRE } from "./etapa-permisos-rules";
+import { bloqueadoPorPreCierre, MENSAJE_BLOQUEO_PRE_CIERRE, solicitudEditable } from "./etapa-permisos-rules";
 import { requiereDatosContrato } from "./contrato-edicion-rules";
 import { conVisibilidad, entradaContrato, entradaExclusion, entradaSitio, entradasAsignacion, entradasSolicitud } from "./historial-rules";
 
@@ -93,6 +94,10 @@ export function createTicketService(
   async function updateTicketAsignacion(id: string, actor: ActorHistorial, input: AsignacionInput): Promise<void> {
     const current = await repo.getById(id);
     if (!current) throw new Error("Ticket no encontrado.");
+    if ((input.estatus === "Pre-Cierre" || input.estatus === "Cierre") && solicitudEditable(current.estatus)) {
+      const faltantes = revisionLegalPendiente(current);
+      if (faltantes.length > 0) throw new RevisionLegalIncompletaError(faltantes);
+    }
 
     const ahora = new Date();
     const { patch, esNuevaAsignacion, esReasignacion, esCambioEstatus } = calcularPatchAsignacion(
@@ -182,6 +187,14 @@ export function createTicketService(
     const entrada = entradaContrato(current, { ...current.contratoArrendamiento, ...input }, actor, new Date());
     await repo.updateConHistorial(id, patch, entrada ? conVisibilidad([entrada], current, actor) : []);
     await refrescarResumenSiVisible({ ...current, ...patch } as Ticket);
+  }
+
+  async function updateTicketRevisionLegal(id: string, revision: RevisionLegal): Promise<void> {
+    const current = await repo.getById(id);
+    if (!current) throw new Error("Ticket no encontrado.");
+    if (!current.altaArrendador) throw new Error("El ticket no es una alta de arrendador.");
+    if (!solicitudEditable(current.estatus)) throw new Error("La revisión legal ya no se puede editar porque el ticket está en Pre-Cierre o Cierre.");
+    await repo.update(id, { revisionLegal: normalizarRevisionLegal(revision) });
   }
 
   async function updateTicketExclusion(id: string, actor: ActorHistorial, excluido: boolean): Promise<void> {
@@ -276,6 +289,7 @@ export function createTicketService(
     updateTicketSolicitud,
     updateTicketSitio,
     updateTicketContrato,
+    updateTicketRevisionLegal,
     updateTicketExclusion,
     deleteTicket,
     submitSatisfaccion,

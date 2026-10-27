@@ -11,6 +11,7 @@ import { Loader2, Search } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import { actorDesdeSesion } from "@/domain/tickets/historial-rules";
 import { updateTicketAsignacion } from "@/lib/tickets";
+import { RevisionLegalIncompletaError } from "@/domain/tickets/revision-legal-rules";
 import { findServicio } from "@/lib/catalogo";
 import { ESTATUS_VALUES, type Estatus, type Ticket } from "@/types/ticket";
 import { Badge, ESTATUS_TONE, TONE_SURFACE_CLASSES, CategoriaBadge } from "@/components/ui/badge";
@@ -188,8 +189,8 @@ export function TicketsKanban({ tickets }: { tickets: Ticket[] }) {
         abogadoAsignadoId: ticket.abogadoAsignadoId,
         notasCierre: ticket.notasCierre,
       });
-    } catch {
-      setDragError(`No se pudo mover ${ticket.folio}. Intenta de nuevo.`);
+    } catch (err) {
+      setDragError(err instanceof RevisionLegalIncompletaError ? err.message : `No se pudo mover ${ticket.folio}. Intenta de nuevo.`);
     } finally {
       setMovingIds((prev) => {
         const next = new Set(prev);

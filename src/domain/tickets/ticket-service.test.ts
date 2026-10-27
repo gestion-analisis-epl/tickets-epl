@@ -311,3 +311,50 @@ describe("bloqueo de la solicitud en Pre-Cierre", () => {
     expect(lotes).toHaveLength(2);
   });
 });
+
+describe("revision legal", () => {
+  const alta = { tipoAlta: "nuevo" as const, domicilio: { calle: "a", numero: "1", interior: "", colonia: "c", municipio: "m", estado: "e", cp: "1", entreCalles: "x" }, documentos: {} };
+  const COMPLETA = {
+    tipoPropietario: "fisica" as const, nombrePropietario: "Juan", acreditaPropiedad: true, documentoPropiedad: "u",
+    hayLimitacion: false, escenarioBeneficiario: "propietario" as const, hayCondicionPago: false,
+  };
+
+  it("no deja pasar a Pre-Cierre un ticket de Alta con la revision incompleta", async () => {
+    const { service, resumenes } = montar(buildTicket({ id: "t1", servicioId: "JUR-C071", altaArrendador: alta }));
+    await expect(service.updateTicketAsignacion("t1", actor, input("Pre-Cierre"))).rejects.toThrow(/revisión legal/);
+    expect(resumenes.has("t1")).toBe(false);
+  });
+
+  it("no deja pasar directo a Cierre con la revision incompleta, y con revision completa si", async () => {
+    const incompleta = montar(buildTicket({ id: "t1", servicioId: "JUR-C071", altaArrendador: alta }));
+    await expect(incompleta.service.updateTicketAsignacion("t1", actor, input("Cierre"))).rejects.toThrow(/revisión legal/);
+    const completa = montar(buildTicket({ id: "t1", servicioId: "JUR-C071", altaArrendador: alta, revisionLegal: COMPLETA }));
+    await expect(completa.service.updateTicketAsignacion("t1", actor, input("Cierre"))).resolves.toBeUndefined();
+  });
+
+  it("deja pasar a Pre-Cierre cuando la revision esta completa", async () => {
+    const { service } = montar(buildTicket({ id: "t1", servicioId: "JUR-C071", altaArrendador: alta, revisionLegal: COMPLETA }));
+    await expect(service.updateTicketAsignacion("t1", actor, input("Pre-Cierre"))).resolves.toBeUndefined();
+  });
+
+  it("no bloquea tickets sin altaArrendador (anteriores)", async () => {
+    const { service } = montar(buildTicket({ id: "t1" }));
+    await expect(service.updateTicketAsignacion("t1", actor, input("Pre-Cierre"))).resolves.toBeUndefined();
+  });
+
+  it("guardar la revision normaliza y no deja llaves undefined", async () => {
+    // El fake aplica el patch de repo.update directamente sobre el ticket que se le pasa.
+    const t = buildTicket({ id: "t1", servicioId: "JUR-C071", altaArrendador: alta, estatus: "Proceso en tramite" });
+    const { service } = montar(t);
+    await service.updateTicketRevisionLegal("t1", { ...COMPLETA, tipoLimitacion: "sobra" });
+    expect(t.revisionLegal?.tipoLimitacion).toBeUndefined();
+    expect(Object.values(t.revisionLegal ?? {}).includes(undefined)).toBe(false);
+  });
+
+  it("no guarda la revision en Pre-Cierre ni en Cierre", async () => {
+    for (const estatus of ["Pre-Cierre", "Cierre"] as const) {
+      const { service } = montar(buildTicket({ id: "t2", servicioId: "JUR-C071", altaArrendador: alta, estatus }));
+      await expect(service.updateTicketRevisionLegal("t2", COMPLETA)).rejects.toThrow(/Pre-Cierre o Cierre/);
+    }
+  });
+});
