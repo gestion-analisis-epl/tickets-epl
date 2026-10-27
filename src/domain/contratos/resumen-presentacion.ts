@@ -40,6 +40,42 @@ export function textoODisponible(valor: string | null | undefined): string {
   return valor && valor.trim() ? valor : NO_DISPONIBLE;
 }
 
+export interface DatoResumen {
+  label: string;
+  valor: string;
+}
+
+// "Datos del ticket" de Pre-Cierre/Cierre: solo los campos con informacion. Uno vacio no se muestra y
+// aparece solo cuando el resumen se actualiza con su dato.
+export function datosDelTicket(
+  r: Pick<
+    ResumenContrato,
+    "solicitante" | "areaEmpresa" | "motivo" | "sitioClave" | "sitioAlias" | "domicilio" | "altaArrendador"
+    | "metodoPago" | "condicionesPago" | "montoPagoAnual" | "formaPago"
+  >,
+  extra: { servicio: string | null; fechaSolicitud: string | null; periodo: string | null }
+): DatoResumen[] {
+  const lleno = (v: string | null | undefined) => (v && v.trim() ? v : null);
+  const sitio = r.sitioClave ? `${r.sitioClave}${r.sitioAlias ? ` — ${r.sitioAlias}` : ""}` : null;
+  const candidatos: [string, string | null][] = [
+    ["Solicitante", lleno(r.solicitante)],
+    ["Empresa / Área", lleno(r.areaEmpresa)],
+    ["Servicio", lleno(extra.servicio)],
+    ["Fecha de solicitud", lleno(extra.fechaSolicitud)],
+    ["Motivo", lleno(r.motivo)],
+    ["Sitio", sitio],
+    ["Codigo", lleno(r.sitioClave)],
+    ["Domicilio", lleno(r.domicilio)],
+    ["Alta de arrendador", lleno(r.altaArrendador)],
+    ["Periodo", lleno(extra.periodo)],
+    ["Metodo de pago", lleno(r.metodoPago)],
+    ["Condiciones de pago", lleno(r.condicionesPago)],
+    ["Monto anual", r.montoPagoAnual === null ? null : formatMonto(r.montoPagoAnual)],
+    ["Forma de pago", r.formaPago ? formaPagoLabel(r.formaPago) : null],
+  ];
+  return candidatos.flatMap(([label, valor]) => (valor ? [{ label, valor }] : []));
+}
+
 const FORMA_PAGO_LABEL: Record<FormaPago, string> = {
   mensual: "Mensual",
   bimestral: "Bimestral",

@@ -18,7 +18,7 @@ import { formatFecha, formatFechaSolo } from "@/lib/format-fecha";
 import { esUrlStorageSegura } from "@/lib/storage-ruta";
 import { findServicio } from "@/lib/catalogo";
 import { SERVICIO_ALTA_ARRENDADOR_ID, SERVICIO_CAMBIO_ARRENDADOR_ID } from "@/lib/data/arrendamientos-temporal";
-import { agruparDocumentos, formaPagoLabel, formatMonto, NO_DISPONIBLE, textoDiscrepancia, textoODisponible } from "@/domain/contratos/resumen-presentacion";
+import { agruparDocumentos, datosDelTicket, textoDiscrepancia } from "@/domain/contratos/resumen-presentacion";
 import type { EstadoResumen } from "@/types/resumen-contrato";
 
 const AVISO_ESTADO: Partial<Record<EstadoResumen, string>> = {
@@ -187,22 +187,13 @@ export function PreCierreDetalle({ id }: { id: string }) {
         <section className="section-card p-6 space-y-4">
           <h2 className="text-lg font-semibold">Datos del ticket</h2>
           <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Campo label="Solicitante">{textoODisponible(resumen.solicitante)}</Campo>
-            <Campo label="Empresa / Área">{textoODisponible(resumen.areaEmpresa)}</Campo>
-            <Campo label="Servicio">{textoODisponible(servicio)}</Campo>
-            <Campo label="Fecha de solicitud">{resumen.fechaSolicitud ? formatFecha(resumen.fechaSolicitud) : NO_DISPONIBLE}</Campo>
-            {resumen.motivo && <Campo label="Motivo">{resumen.motivo}</Campo>}
-            <Campo label="Sitio">
-              {resumen.sitioClave ? `${resumen.sitioClave}${resumen.sitioAlias ? ` — ${resumen.sitioAlias}` : ""}` : textoODisponible(null)}
-            </Campo>
-            <Campo label="Codigo">{textoODisponible(resumen.sitioClave)}</Campo>
-            <Campo label="Domicilio">{textoODisponible(resumen.domicilio)}</Campo>
-            <Campo label="Alta de arrendador">{textoODisponible(resumen.altaArrendador)}</Campo>
-            <Campo label="Periodo">{textoODisponible(periodo)}</Campo>
-            <Campo label="Metodo de pago">{textoODisponible(resumen.metodoPago)}</Campo>
-            <Campo label="Condiciones de pago">{textoODisponible(resumen.condicionesPago)}</Campo>
-            <Campo label="Monto anual">{formatMonto(resumen.montoPagoAnual)}</Campo>
-            <Campo label="Forma de pago">{formaPagoLabel(resumen.formaPago)}</Campo>
+            {datosDelTicket(resumen, {
+              servicio,
+              fechaSolicitud: resumen.fechaSolicitud ? formatFecha(resumen.fechaSolicitud) : null,
+              periodo,
+            }).map((d) => (
+              <Campo key={d.label} label={d.label}>{d.valor}</Campo>
+            ))}
           </dl>
 
           {resumen.descripcion && (
