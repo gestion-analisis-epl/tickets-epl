@@ -8,6 +8,7 @@ interface Props {
   contrato: ContratoCapturado;
   errors: Record<string, string>;
   onChange: <K extends keyof ContratoCapturado>(key: K, value: ContratoCapturado[K]) => void;
+  ocultarDomicilio?: boolean;
 }
 
 function Error({ mensaje }: { mensaje?: string }) {
@@ -24,23 +25,25 @@ function Etiqueta({ children }: { children: React.ReactNode }) {
 
 // Una sola columna en pantallas chicas y dos en las demas: cada dato con su propia etiqueta y todo el ancho
 // de su columna, para que ningun texto (p. ej. "Transferencia") quede cortado.
-export function DatosContratoFields({ contrato, errors, onChange }: Props) {
+export function DatosContratoFields({ contrato, errors, onChange, ocultarDomicilio }: Props) {
   const titulo = (key: "domicilio" | "altaArrendador" | "solicitante") => () => onChange(key, toTitleCase(contrato[key]));
 
   return (
     <div className="grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
-      <div className="min-w-0 sm:col-span-2">
-        <Etiqueta>Domicilio del inmueble</Etiqueta>
-        <textarea
-          value={contrato.domicilio}
-          onChange={(e) => onChange("domicilio", e.target.value)}
-          onBlur={titulo("domicilio")}
-          rows={2}
-          className="field w-full resize-y"
-        />
-        <Ayuda>Calle, número, colonia, ciudad y código postal.</Ayuda>
-        <Error mensaje={errors.domicilio} />
-      </div>
+      {!ocultarDomicilio && (
+        <div className="min-w-0 sm:col-span-2">
+          <Etiqueta>Domicilio del inmueble</Etiqueta>
+          <textarea
+            value={contrato.domicilio}
+            onChange={(e) => onChange("domicilio", e.target.value)}
+            onBlur={titulo("domicilio")}
+            rows={2}
+            className="field w-full resize-y"
+          />
+          <Ayuda>Calle, número, colonia, ciudad y código postal.</Ayuda>
+          <Error mensaje={errors.domicilio} />
+        </div>
+      )}
 
       <div className="min-w-0">
         <Etiqueta>Arrendador dado de alta</Etiqueta>

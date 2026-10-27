@@ -12,7 +12,7 @@ import { AREAS_EMPRESA } from "@/lib/data/listas";
 import { findServicio } from "@/lib/catalogo";
 import {
   SERVICIOS_ARRENDAMIENTO_IDS, SERVICIOS_CON_FORMATO_OBLIGATORIO_IDS, SERVICIOS_CON_DATOS_CONTRATO_IDS, SERVICIOS_CON_DOCUMENTOS_INDIVIDUALES_IDS,
-  URL_FORMATO_SOLICITUD_ARRENDAMIENTO, DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO, type DocumentoRequeridoArrendamientoKey,
+  URL_FORMATO_SOLICITUD_ARRENDAMIENTO, DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO, SERVICIO_ALTA_ARRENDADOR_ID, type DocumentoRequeridoArrendamientoKey,
 } from "@/lib/data/arrendamientos-temporal";
 import { parseMontoInput } from "@/lib/text-format";
 import { validarFormatoArrendamiento } from "@/lib/validar-formato";
@@ -20,13 +20,16 @@ import { validarSolicitud, type ContratoCapturado } from "@/domain/tickets/nuevo
 import { ServicioSelector } from "./servicio-selector";
 import { SitioSelector } from "./sitio-selector";
 import { DatosContratoFields } from "./datos-contrato-fields";
-import { SELECCION_VACIA, type SeleccionSitio } from "@/domain/sitios/sitios-rules";
+import { AltaArrendadorFields } from "./alta-arrendador-fields";
+import { DOMICILIO_VACIO, ETIQUETAS_DOMICILIO, documentosAltaRequeridos, domicilioTexto, type AltaCapturada } from "@/domain/tickets/alta-arrendador-rules";
+import { useSitios } from "@/hooks/use-sitios";
+import { SELECCION_VACIA, sitioDeSeleccion, type SeleccionSitio } from "@/domain/sitios/sitios-rules";
 import { uploadTicketFile, deleteTicketDocument } from "@/lib/storage";
 import { createTicket } from "@/lib/tickets";
 import { solicitarResumenContrato } from "@/lib/contratos";
 import { encontrarContrato } from "@/domain/contratos/contrato-rules";
 import { precargarSitios } from "@/lib/sitios";
-import type { ContratoArrendamientoInput, DocumentosArrendamientoInput } from "@/types/ticket";
+import type { AltaArrendadorInput, ContratoArrendamientoInput, DocumentoAltaKey, DocumentosArrendamientoInput } from "@/types/ticket";
 
 const DOCUMENTOS_FILES_VACIO = Object.fromEntries(
   DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO.map((d) => [d.key, []])
@@ -45,6 +48,10 @@ const EMPTY_CONTRATO: ContratoCapturado = {
   periodoInicio: "", periodoFin: "", condicionesCodigo: "", condicionesTipo: "", montoPago: "", motivo: "",
 };
 
+const EMPTY_ALTA: AltaCapturada = { tipoAlta: "", motivoCambio: "", domicilio: DOMICILIO_VACIO };
+
+const CLAVES_ERROR_ALTA = ["tipoAlta", "motivoCambio", ...Object.keys(ETIQUETAS_DOMICILIO)];
+
 export function NuevoTicketForm() {
   const router = useRouter();
   const { uid, nombre } = useAuthStore();
@@ -58,6 +65,9 @@ export function NuevoTicketForm() {
   const [files, setFiles] = useState<UploadingFile[]>([]);
   const [formatoFiles, setFormatoFiles] = useState<UploadingFile[]>([]);
   const [documentosFiles, setDocumentosFiles] = useState(DOCUMENTOS_FILES_VACIO);
+  const [alta, setAlta] = useState<AltaCapturada>(EMPTY_ALTA);
+  const [altaDocsFiles, setAltaDocsFiles] = useState<Partial<Record<DocumentoAltaKey, UploadingFile[]>>>({});
+  const { sitios } = useSitios();
   // Los archivos se suben a esta carpeta temporal antes de que exista un folio real.
   const [draftId] = useState(() => crypto.randomUUID());
 
@@ -68,10 +78,15 @@ export function NuevoTicketForm() {
   const servicioSeleccionado = form.servicioId ? findServicio(form.servicioId) : undefined;
   const filesUploading = files.some((f) => f.status === "uploading");
   const formatoUploading = formatoFiles.some((f) => f.status === "uploading" || f.status === "validando");
-  const documentosUploading = Object.values(documentosFiles).some((fs) => fs.some((f) => f.status === "uploading"));
+  const esAlta = form.servicioId === SERVICIO_ALTA_ARRENDADOR_ID;
+  const docsAlta = documentosAltaRequeridos(alta.tipoAlta);
+  const geolocalizacion = sitioDeSeleccion(sitios, sitio)?.geolocalizacion ?? null;
+  const documentosUploading =
+    Object.values(documentosFiles).some((fs) => fs.some((f) => f.status === "uploading")) ||
+    Object.values(altaDocsFiles).some((fs) => fs?.some((f) => f.status === "uploading"));
 
   const requiereFormato = SERVICIOS_CON_FORMATO_OBLIGATORIO_IDS.includes(form.servicioId);
-  const requiereDocumentosIndividuales = SERVICIOS_CON_DOCUMENTOS_INDIVIDUALES_IDS.includes(form.servicioId);
+  const requiereDocumentosIndividuales = SERVICIOS_CON_DOCUMENTOS_INDIVIDUALES_IDS.includes(form.servicioId) && !esAlta;
   const requiereDatosContrato = SERVICIOS_CON_DATOS_CONTRATO_IDS.includes(form.servicioId);
 
   function handleFilesSelected(selected: File[]) {
@@ -188,6 +203,39 @@ export function NuevoTicketForm() {
     }
   }
 
+  function handleAltaDocSeleccionado(key: DocumentoAltaKey, selected: File[]) {
+    const file = selected[0];
+    if (!file) return;
+    const anterior = altaDocsFiles[key]?.[0];
+    const entry: UploadingFile = { id: crypto.randomUUID(), name: file.name, size: file.size, progress: 0, status: "uploading" };
+    setAltaDocsFiles((prev) => ({ ...prev, [key]: [entry] }));
+    setErrors((prev) => ({ ...prev, [key]: "" }));
+
+    uploadTicketFile(
+      `tickets-drafts/${draftId}`,
+      file,
+      (pct) => setAltaDocsFiles((prev) => ({ ...prev, [key]: (prev[key] ?? []).map((f) => (f.id === entry.id ? { ...f, progress: pct } : f)) }))
+    )
+      .then(({ url, path }) => {
+        setAltaDocsFiles((prev) => ({ ...prev, [key]: (prev[key] ?? []).map((f) => (f.id === entry.id ? { ...f, status: "done", progress: 100, url, path } : f)) }));
+      })
+      .catch((err) => {
+        setAltaDocsFiles((prev) => ({ ...prev, [key]: (prev[key] ?? []).map((f) => (f.id === entry.id ? { ...f, status: "error", error: err?.message } : f)) }));
+      });
+
+    if (anterior?.status === "done" && anterior.path) {
+      deleteTicketDocument(anterior.path).catch(() => {});
+    }
+  }
+
+  async function handleRemoveAltaDoc(key: DocumentoAltaKey, id: string) {
+    const target = altaDocsFiles[key]?.find((f) => f.id === id);
+    setAltaDocsFiles((prev) => ({ ...prev, [key]: [] }));
+    if (target?.status === "done" && target.path) {
+      try { await deleteTicketDocument(target.path); } catch { /* ya se quito de la lista, no bloquea al usuario */ }
+    }
+  }
+
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: "" }));
@@ -206,13 +254,16 @@ export function NuevoTicketForm() {
       sitioListo: Boolean(sitio.clave && sitio.alias),
       requiereFormato,
       formatoListo: formatoFiles.length === 1 && formatoFiles[0].status === "done",
-      documentacionObligatoria: requiereFormato && !requiereDocumentosIndividuales,
-      documentosFaltantes: requiereDocumentosIndividuales
-        ? DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO.filter((d) => documentosFiles[d.key][0]?.status !== "done")
-        : [],
+      documentacionObligatoria: requiereFormato && !requiereDocumentosIndividuales && !esAlta,
+      documentosFaltantes: esAlta
+        ? docsAlta.filter((d) => altaDocsFiles[d.key]?.[0]?.status !== "done")
+        : requiereDocumentosIndividuales
+          ? DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO.filter((d) => documentosFiles[d.key][0]?.status !== "done")
+          : [],
       documentacionListos: files.filter((f) => f.status === "done").length,
       requiereDatosContrato,
-      contrato,
+      contrato: esAlta ? { ...contrato, domicilio: domicilioTexto(alta.domicilio) } : contrato,
+      ...(esAlta ? { alta } : {}),
     });
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -227,7 +278,7 @@ export function NuevoTicketForm() {
     try {
       const contratoArrendamiento: ContratoArrendamientoInput | undefined = requiereDatosContrato
         ? {
-            domicilio: contrato.domicilio,
+            domicilio: esAlta ? domicilioTexto(alta.domicilio) : contrato.domicilio,
             altaArrendador: contrato.altaArrendador,
             solicitante: contrato.solicitante,
             periodoInicio: contrato.periodoInicio,
@@ -244,6 +295,18 @@ export function NuevoTicketForm() {
           ) as unknown as DocumentosArrendamientoInput)
         : undefined;
 
+      const altaArrendador: AltaArrendadorInput | undefined = esAlta
+        ? {
+            tipoAlta: alta.tipoAlta as "nuevo" | "cambio",
+            ...(alta.tipoAlta === "cambio" ? { motivoCambio: alta.motivoCambio.trim() } : {}),
+            domicilio: alta.domicilio,
+            ...(geolocalizacion ? { geolocalizacion } : {}),
+            documentos: Object.fromEntries(
+              docsAlta.map((d) => [d.key, altaDocsFiles[d.key]?.[0]?.url ?? ""]).filter(([, url]) => url)
+            ),
+          }
+        : undefined;
+
       const documentacion = files.filter((f) => f.status === "done" && f.url).map((f) => f.url!);
 
       const { id, folio } = await createTicket({
@@ -256,6 +319,7 @@ export function NuevoTicketForm() {
         formatoArrendamientoUrl: requiereFormato ? formatoFiles[0]?.url : undefined,
         documentosArrendamiento,
         contratoArrendamiento,
+        ...(altaArrendador ? { altaArrendador } : {}),
         sitioArrendamiento: { clave: sitio.clave, alias: sitio.alias },
       });
       setFolioCreado(folio);
@@ -276,6 +340,8 @@ export function NuevoTicketForm() {
     setFiles([]);
     setFormatoFiles([]);
     setDocumentosFiles(DOCUMENTOS_FILES_VACIO);
+    setAlta(EMPTY_ALTA);
+    setAltaDocsFiles({});
     setErrors({});
   }
 
@@ -384,7 +450,15 @@ export function NuevoTicketForm() {
           {requiereDatosContrato && (
             <section className="section-card p-5 sm:p-6 space-y-5">
               <h2 className="section-title"><span className="text-accent mr-2 tabular-nums">2</span>Datos del contrato / convenio</h2>
-              <DatosContratoFields contrato={contrato} errors={errors} onChange={setContrato} />
+              {esAlta && (
+                <AltaArrendadorFields
+                  alta={alta}
+                  errors={errors}
+                  geolocalizacion={geolocalizacion}
+                  onChange={(a) => { setAlta(a); setErrors((prev) => { const sig = { ...prev }; for (const k of CLAVES_ERROR_ALTA) delete sig[k]; return sig; }); }}
+                />
+              )}
+              <DatosContratoFields contrato={contrato} errors={errors} onChange={setContrato} ocultarDomicilio={esAlta} />
             </section>
           )}
         </div>
@@ -439,11 +513,30 @@ export function NuevoTicketForm() {
             </div>
           )}
 
+          {esAlta && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {docsAlta.map((doc) => (
+                <div key={doc.key}>
+                  <label className="field-label">
+                    {doc.label} <span className="text-danger">*</span>
+                  </label>
+                  <FileDropzone
+                    files={altaDocsFiles[doc.key] ?? []}
+                    onFilesSelected={(selected) => handleAltaDocSeleccionado(doc.key, selected)}
+                    onRemove={(id) => handleRemoveAltaDoc(doc.key, id)}
+                    multiple={false}
+                  />
+                  {errors[doc.key] && <p className="text-xs text-danger mt-1">{errors[doc.key]}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+
           <div>
             <label className="field-label">
-              Documentación adjunta {requiereFormato && !requiereDocumentosIndividuales && <span className="text-danger">*</span>}
+              Documentación adjunta {requiereFormato && !requiereDocumentosIndividuales && !esAlta && <span className="text-danger">*</span>}
             </label>
-            {requiereFormato && !requiereDocumentosIndividuales && (
+            {requiereFormato && !requiereDocumentosIndividuales && !esAlta && (
               <p className="text-xs text-muted mb-2">
                 Adjunta aqui, en uno o varios archivos: {DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO.map((d) => d.label.toLowerCase()).join(", ")}.
               </p>
