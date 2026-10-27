@@ -8,11 +8,15 @@ import { useAuthStore } from "@/stores/auth";
 import { usePermiso } from "@/hooks/use-permiso";
 import { auth } from "@/lib/firebase";
 import { useTicket } from "@/hooks/use-ticket";
-import { updateTicketAsignacion, updateTicketSolicitud, updateTicketSitio, updateTicketContrato, submitSatisfaccion, deleteTicket } from "@/lib/tickets";
+import { updateTicketAsignacion, updateTicketSolicitud, updateTicketSitio, updateTicketContrato, updateTicketRevisionLegal, submitSatisfaccion, deleteTicket } from "@/lib/tickets";
 import { findServicio } from "@/lib/catalogo";
 import { ResumenContratoCard } from "./resumen-contrato-card";
 import { HistorialPanel } from "./historial-panel";
 import { DatosContratoFields } from "./datos-contrato-fields";
+import { RevisionLegalPanel } from "./revision-legal-panel";
+import { puedeEditarRevisionLegal, RevisionLegalIncompletaError } from "@/domain/tickets/revision-legal-rules";
+import { DOCUMENTOS_ALTA, ETIQUETAS_DOMICILIO } from "@/domain/tickets/alta-arrendador-rules";
+import type { DomicilioDesglosado } from "@/types/ticket";
 import { ConversacionPanel } from "./conversacion-panel";
 import { esParticipante, hiloEscribible, hiloVisible } from "@/domain/tickets/conversacion-rules";
 import { DosColumnas } from "@/components/layout/dos-columnas";
@@ -35,6 +39,7 @@ import {
   SERVICIOS_ARRENDAMIENTO_IDS,
   SERVICIOS_CON_DOCUMENTOS_INDIVIDUALES_IDS,
   SERVICIOS_CON_FORMATO_OBLIGATORIO_IDS,
+  SERVICIO_ALTA_ARRENDADOR_ID,
 } from "@/lib/data/arrendamientos-temporal";
 import { isAdminRole } from "@/types/user";
 import { esUrlStorageSegura } from "@/lib/storage-ruta";
@@ -172,6 +177,7 @@ export function TicketDetail({ id }: { id: string }) {
     ...ticket.documentacion,
     ...(ticket.formatoArrendamientoUrl ? [ticket.formatoArrendamientoUrl] : []),
     ...(ticket.documentosArrendamiento ? Object.values(ticket.documentosArrendamiento).filter((u): u is string => !!u) : []),
+    ...(ticket.altaArrendador ? Object.values(ticket.altaArrendador.documentos).filter((u): u is string => !!u) : []),
   ];
 
   const esArrendamiento = SERVICIOS_ARRENDAMIENTO_IDS.includes(ticket.servicioId);
@@ -184,6 +190,9 @@ export function TicketDetail({ id }: { id: string }) {
   const verHistorialFiltrado = puedeVerHistorialFiltrado({ uid, role, abogadoId, permisos }, ticket);
   const verHistorial = verHistorialCompleto || verHistorialFiltrado;
   const puedeEditarDatosContrato = puedeEditarContrato({ role, abogadoId }, ticket);
+  const puedeEditarRevision = puedeEditarRevisionLegal({ role, abogadoId }, ticket);
+  // Informacion legal interna: solo la ve quien puede editar (Legal/admin), no el solicitante.
+  const verRevisionLegal = !!ticket.altaArrendador && ticket.servicioId === SERVICIO_ALTA_ARRENDADOR_ID && puedeEditar;
   // Tickets anteriores al formulario de contrato: se muestran los campos vacios y se pueden completar.
   const faltanDatosContrato = !ticket.contratoArrendamiento && requiereDatosContrato(ticket.servicioId);
   const pideFormato = SERVICIOS_CON_FORMATO_OBLIGATORIO_IDS.includes(ticket.servicioId);
@@ -274,8 +283,8 @@ export function TicketDetail({ id }: { id: string }) {
         notasCierre: notasForm || null,
       });
       setSaveOk(true);
-    } catch {
-      setSaveError("No se pudo guardar. Intenta de nuevo.");
+    } catch (err) {
+      setSaveError(err instanceof RevisionLegalIncompletaError ? err.message : "No se pudo guardar. Intenta de nuevo.");
     } finally {
       setSaving(false);
     }
@@ -620,7 +629,7 @@ export function TicketDetail({ id }: { id: string }) {
               </div>
             )}
 
-            {(ticket.documentosArrendamiento || pideDocumentosIndividuales) && (
+            {!ticket.altaArrendador && (ticket.documentosArrendamiento || pideDocumentosIndividuales) && (
               <div>
                 <p className="text-muted text-sm mb-1.5">Documentos de arrendamiento</p>
                 <ul className="space-y-1">
@@ -638,6 +647,39 @@ export function TicketDetail({ id }: { id: string }) {
               </div>
             )}
 
+            {ticket.altaArrendador && (
+              <>
+                <div>
+                  <p className="text-muted text-sm mb-1.5">Alta de arrendador</p>
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                    <div><dt className="text-muted">Tipo de alta</dt><dd className="font-medium">{ticket.altaArrendador.tipoAlta === "cambio" ? "Cambio de arrendador" : "Nuevo arrendador"}</dd></div>
+                    {ticket.altaArrendador.tipoAlta === "cambio" && (
+                      <div><dt className="text-muted">Motivo del cambio</dt><dd className="font-medium">{datoContrato(ticket.altaArrendador.motivoCambio)}</dd></div>
+                    )}
+                    {(Object.keys(ETIQUETAS_DOMICILIO) as (keyof DomicilioDesglosado)[]).map((campo) => (
+                      <div key={campo}><dt className="text-muted">{ETIQUETAS_DOMICILIO[campo]}</dt><dd className="font-medium">{datoContrato(ticket.altaArrendador?.domicilio[campo])}</dd></div>
+                    ))}
+                    <div><dt className="text-muted">Geolocalización</dt><dd className="font-medium">{datoContrato(ticket.altaArrendador.geolocalizacion)}</dd></div>
+                  </dl>
+                </div>
+                <div>
+                  <p className="text-muted text-sm mb-1.5">Documentos de alta de arrendador</p>
+                  <ul className="space-y-1">
+                    {DOCUMENTOS_ALTA.filter((d) => !(d.key === "contratoAnterior" && ticket.altaArrendador?.tipoAlta === "nuevo")).map((doc) => {
+                      const url = ticket.altaArrendador?.documentos[doc.key];
+                      return (
+                        <li key={doc.key}>
+                          {url
+                            ? <EnlaceDocumento url={url} etiqueta={doc.label} />
+                            : <span className="text-sm text-muted">{doc.label}: sin adjuntar</span>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </>
+            )}
+
             {(ticket.contratoArrendamiento || faltanDatosContrato) && (
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -651,7 +693,7 @@ export function TicketDetail({ id }: { id: string }) {
                 </div>
                 {editandoContrato && contratoForm ? (
                   <div className="space-y-4">
-                    <DatosContratoFields contrato={contratoForm} errors={contratoErrors} onChange={handleCambioContrato} />
+                    <DatosContratoFields contrato={contratoForm} errors={contratoErrors} onChange={handleCambioContrato} ocultarDomicilio={!!ticket.altaArrendador} />
                     <p className="text-xs text-muted">Los cambios quedan registrados en el historial del ticket.</p>
                     {contratoError && <p className="text-sm text-danger">{contratoError}</p>}
                     <div className="flex gap-3">
@@ -689,6 +731,18 @@ export function TicketDetail({ id }: { id: string }) {
           </>
         )}
       </section>
+
+      {verRevisionLegal && (
+        <section className="section-card p-6 space-y-4">
+          <h2 className="eyebrow">Revisión legal</h2>
+          <RevisionLegalPanel
+            ticketId={id}
+            revision={ticket.revisionLegal}
+            editable={puedeEditarRevision}
+            onGuardar={(rev) => updateTicketRevisionLegal(id, rev)}
+          />
+        </section>
+      )}
 
       {/* Asignacion / estatus (ambar, editable solo por Legal/admin) */}
       <section className="section-card p-6 space-y-4">
