@@ -253,3 +253,20 @@ describe("resumenSinCambios", () => {
     expect(resumenSinCambios(a, { ...a, domicilio: "otro" })).toBe(false);
   });
 });
+
+describe("documentosDelResumen: alta de arrendador", () => {
+  it("incluye los documentos del bloque altaArrendador con su etiqueta", () => {
+    const t = buildTicket({
+      altaArrendador: {
+        tipoAlta: "cambio",
+        domicilio: { calle: "a", numero: "1", interior: "", colonia: "c", municipio: "m", estado: "e", cp: "1", entreCalles: "x" },
+        documentos: { predial: "https://x/predial.pdf", contratoAnterior: "https://x/ant.pdf" },
+      },
+    });
+    const docs = documentosDelResumen(t, null);
+    expect(docs).toEqual(expect.arrayContaining([
+      { etiqueta: "Predial", url: "https://x/predial.pdf", grupo: "arrendamiento" },
+      { etiqueta: "Contrato anterior", url: "https://x/ant.pdf", grupo: "arrendamiento" },
+    ]));
+  });
+});

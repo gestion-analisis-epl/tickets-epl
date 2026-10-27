@@ -2,6 +2,7 @@ import type { Estatus, Ticket } from "@/types/ticket";
 import { esArchivoContrato } from "./tipo-archivo";
 import type { DocumentoResumen, GrupoDocumento, ResumenContrato, ResumenContratoTicket } from "@/types/resumen-contrato";
 import { DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO } from "@/lib/data/arrendamientos-temporal";
+import { DOCUMENTOS_ALTA } from "@/domain/tickets/alta-arrendador-rules";
 
 // Etapas en que se crea o refresca el resumen (accionResumen). La LECTURA del jefe de zona no se limita
 // a estas etapas: conserva los tickets que regresan a correccion (ver firestore.rules).
@@ -62,6 +63,7 @@ export function documentosDelResumen(ticket: Ticket, contratoUrl: string | null)
   };
   agregar("formato", "Formato de solicitud de arrendamiento", ticket.formatoArrendamientoUrl);
   for (const d of DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO) agregar("arrendamiento", d.label, ticket.documentosArrendamiento?.[d.key]);
+  for (const d of DOCUMENTOS_ALTA) agregar("arrendamiento", d.label, ticket.altaArrendador?.documentos[d.key]);
   for (const url of ticket.documentacion ?? []) agregar("adjunto", nombreDeUrl(url) || "Documento adjunto", url);
   return docs;
 }
