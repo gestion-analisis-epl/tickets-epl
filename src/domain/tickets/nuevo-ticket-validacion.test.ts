@@ -14,6 +14,16 @@ const BASE: SolicitudCapturada = {
 };
 
 describe("validarSolicitud", () => {
+  it("con bloque de alta valida tipo, motivo y domicilio desglosado y no marca el domicilio de texto", () => {
+    const e = validarSolicitud({
+      ...BASE,
+      contrato: { ...CONTRATO_OK, domicilio: "" },
+      alta: { tipoAlta: "cambio", motivoCambio: "", domicilio: { calle: "", numero: "", interior: "", colonia: "", municipio: "", estado: "", cp: "", entreCalles: "" } },
+    });
+    expect(e.motivoCambio).toBeTruthy();
+    expect(e.calle).toBeTruthy();
+    expect(e.domicilio).toBeUndefined();
+  });
   it("una solicitud completa no tiene errores", () => {
     expect(validarSolicitud(BASE)).toEqual({});
   });

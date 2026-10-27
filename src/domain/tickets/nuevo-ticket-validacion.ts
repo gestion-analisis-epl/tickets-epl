@@ -1,4 +1,5 @@
 import { parseMontoInput } from "@/lib/text-format";
+import { validarAlta, type AltaCapturada } from "./alta-arrendador-rules";
 
 export interface ContratoCapturado {
   domicilio: string;
@@ -24,6 +25,7 @@ export interface SolicitudCapturada {
   documentosFaltantes: { key: string; label: string }[];
   requiereDatosContrato: boolean;
   contrato: ContratoCapturado;
+  alta?: AltaCapturada;
 }
 
 export function validarContrato(contrato: ContratoCapturado): Record<string, string> {
@@ -59,5 +61,10 @@ export function validarSolicitud(s: SolicitudCapturada): Record<string, string> 
   for (const doc of s.documentosFaltantes) errores[doc.key] = `Adjunta: ${doc.label}.`;
 
   if (s.requiereDatosContrato) Object.assign(errores, validarContrato(s.contrato));
+  if (s.alta) {
+    // El domicilio de texto se arma con los campos desglosados: el error visible es el de cada campo.
+    delete errores.domicilio;
+    Object.assign(errores, validarAlta(s.alta));
+  }
   return errores;
 }
