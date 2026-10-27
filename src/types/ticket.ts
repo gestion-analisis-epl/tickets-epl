@@ -53,6 +53,65 @@ export interface DocumentosArrendamientoInput {
   comprobanteDomicilio: string;
 }
 
+export type TipoAlta = "nuevo" | "cambio";
+
+export interface DomicilioDesglosado {
+  calle: string;
+  numero: string;
+  interior: string; // opcional: "" si no aplica
+  colonia: string;
+  municipio: string;
+  estado: string;
+  cp: string;
+  entreCalles: string;
+}
+
+export type DocumentoAltaKey =
+  | "identificaciones" | "personalidadLegal" | "acreditacionPropiedad"
+  | "predial" | "comprobanteDomicilio" | "contratoAnterior";
+
+// Solo Alta de Arrendadores (JUR-C071). Lo llena el solicitante.
+export interface AltaArrendadorInput {
+  tipoAlta: TipoAlta;
+  motivoCambio?: string; // solo si tipoAlta === "cambio"
+  domicilio: DomicilioDesglosado;
+  geolocalizacion?: string; // copiada de la hoja de sitios; ausente si la hoja no la trae
+  documentos: Partial<Record<DocumentoAltaKey, string>>; // URLs de Storage
+}
+
+export type TipoPropietario = "fisica" | "moral";
+export type EscenarioBeneficiario = "propietario" | "tercero" | "varios";
+export type ModalidadVarios = "equitativo" | "representante";
+
+export interface Beneficiario {
+  nombre: string;
+  porcentaje: number; // centesimas de por ciento: 10000 = 100 %
+}
+
+// Lo llena el abogado asignado. Todo opcional: se guarda a medias.
+export interface RevisionLegal {
+  tipoPropietario?: TipoPropietario;
+  nombrePropietario?: string; // persona fisica: nombre completo; moral: razon social
+  representanteLegal?: string; // solo moral
+  documentoPersonalidad?: string; // solo moral (URL)
+  acreditaPropiedad?: boolean;
+  documentoPropiedad?: string; // si acreditaPropiedad === true
+  cartaAutorizacion?: string; // si acreditaPropiedad === false
+  hayLimitacion?: boolean;
+  tipoLimitacion?: string; // si hayLimitacion === true
+  escenarioBeneficiario?: EscenarioBeneficiario;
+  beneficiarioNombre?: string; // escenario "tercero"
+  documentoBeneficiario?: string; // escenario "tercero"
+  clausulaEspecial?: boolean; // escenario "tercero": recordatorio del abogado
+  modalidadVarios?: ModalidadVarios; // escenario "varios"
+  beneficiarios?: Beneficiario[]; // escenario "varios"
+  representanteComun?: number; // indice en beneficiarios, modalidad "representante"
+  documentoRepresentante?: string; // modalidad "representante"
+  cartaRepresentante?: string; // modalidad "representante"
+  hayCondicionPago?: boolean;
+  condicionPago?: string; // si hayCondicionPago === true
+}
+
 export interface Ticket {
   id: string; // ID de documento de Firestore (autogenerado, estable) — usar para rutas/lookups
   folio: string; // JUR-0001... — SOLO exhibicion, nunca usar para identificar el ticket
@@ -70,6 +129,8 @@ export interface Ticket {
   formatoArrendamientoUrl?: string;
   documentosArrendamiento?: DocumentosArrendamientoInput;
   contratoArrendamiento?: ContratoArrendamientoInput;
+  altaArrendador?: AltaArrendadorInput; // JUR-C071; ausente en tickets previos
+  revisionLegal?: RevisionLegal; // la llena el abogado asignado
   resumenContrato?: ResumenContratoTicket; // lo escribe el servidor (Plan B)
   // Los 4 servicios de arrendamiento. Ausente en tickets previos al selector.
   sitioArrendamiento?: SitioArrendamiento;
