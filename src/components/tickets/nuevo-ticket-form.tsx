@@ -52,7 +52,7 @@ interface FormState {
 const EMPTY_FORM: FormState = { areaEmpresa: "", servicioId: "", descripcion: "" };
 
 const EMPTY_CONTRATO: ContratoCapturado = {
-  domicilio: "", altaArrendador: "", solicitante: "",
+  domicilio: "", altaArrendador: "",
   periodoInicio: "", periodoFin: "", condicionesCodigo: "", condicionesTipo: "", montoPago: "", motivo: "",
 };
 
@@ -61,7 +61,7 @@ const EMPTY_ALTA: AltaCapturada = { tipoAlta: "", motivoCambio: "" };
 // Que errores de validacion le tocan a cada seccion; los documentos reciben el resto.
 const CLAVES_SOLICITUD = ["areaEmpresa", "servicioId", "sitio", "descripcion"];
 const CLAVES_ALTA = ["tipoAlta", "motivoCambio"];
-const CLAVES_CONTRATO = ["domicilio", "altaArrendador", "solicitante", "periodoInicio", "periodoFin", "condicionesPago", "montoPago", "motivo"];
+const CLAVES_CONTRATO = ["domicilio", "altaArrendador", "periodoInicio", "periodoFin", "condicionesPago", "montoPago", "motivo"];
 
 export function NuevoTicketForm() {
   const router = useRouter();
@@ -313,7 +313,7 @@ export function NuevoTicketForm() {
         ? {
             domicilio: contrato.domicilio,
             altaArrendador: contrato.altaArrendador,
-            solicitante: contrato.solicitante,
+            solicitante: nombre,
             periodoInicio: contrato.periodoInicio,
             periodoFin: contrato.periodoFin,
             condicionesPago: `${contrato.condicionesCodigo} - ${contrato.condicionesTipo}`,

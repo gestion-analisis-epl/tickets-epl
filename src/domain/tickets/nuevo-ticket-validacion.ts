@@ -4,7 +4,6 @@ import { validarAlta, type AltaCapturada } from "./alta-arrendador-rules";
 export interface ContratoCapturado {
   domicilio: string;
   altaArrendador: string;
-  solicitante: string;
   periodoInicio: string;
   periodoFin: string;
   condicionesCodigo: string;
@@ -32,7 +31,6 @@ export function validarContrato(contrato: ContratoCapturado): Record<string, str
   const errores: Record<string, string> = {};
   if (!contrato.domicilio.trim()) errores.domicilio = "Captura el domicilio.";
   if (!contrato.altaArrendador.trim()) errores.altaArrendador = "Captura el arrendador dado de alta.";
-  if (!contrato.solicitante.trim()) errores.solicitante = "Captura el solicitante.";
   if (!contrato.periodoInicio) errores.periodoInicio = "Captura la fecha de inicio.";
   if (!contrato.periodoFin) errores.periodoFin = "Captura la fecha de fin.";
   if (contrato.periodoInicio && contrato.periodoFin && contrato.periodoFin < contrato.periodoInicio) {

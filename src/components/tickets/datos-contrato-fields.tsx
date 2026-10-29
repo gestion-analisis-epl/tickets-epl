@@ -14,7 +14,7 @@ interface Props {
 // Una sola columna en pantallas chicas y dos en las demas: cada dato con su propia etiqueta y todo el ancho
 // de su columna, para que ningun texto (p. ej. "Transferencia") quede cortado.
 export function DatosContratoFields({ contrato, errors, onChange }: Props) {
-  const titulo = (key: "domicilio" | "altaArrendador" | "solicitante") => () => onChange(key, toTitleCase(contrato[key]));
+  const titulo = (key: "domicilio" | "altaArrendador") => () => onChange(key, toTitleCase(contrato[key]));
 
   return (
     <div className="grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
@@ -38,18 +38,6 @@ export function DatosContratoFields({ contrato, errors, onChange }: Props) {
           onChange={(e) => onChange("altaArrendador", e.target.value)}
           onBlur={titulo("altaArrendador")}
           aria-invalid={!!errors.altaArrendador}
-          className="w-full field"
-        />
-      </Campo>
-
-      <Campo id="contrato-solicitante" etiqueta="Solicitante" ayuda="Quién pide este trámite." error={errors.solicitante}>
-        <input
-          id="contrato-solicitante"
-          type="text"
-          value={contrato.solicitante}
-          onChange={(e) => onChange("solicitante", e.target.value)}
-          onBlur={titulo("solicitante")}
-          aria-invalid={!!errors.solicitante}
           className="w-full field"
         />
       </Campo>

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { validarSolicitud, type SolicitudCapturada } from "./nuevo-ticket-validacion";
 
 const CONTRATO_OK = {
-  domicilio: "Av. Reforma 1", altaArrendador: "Juan Perez", solicitante: "Ana Lopez",
+  domicilio: "Av. Reforma 1", altaArrendador: "Juan Perez",
   periodoInicio: "2026-01-01", periodoFin: "2027-01-01", condicionesCodigo: "63", condicionesTipo: "Transferencia",
   montoPago: "12,500.00", motivo: "Alta de Arrendador",
 };
@@ -25,6 +25,11 @@ describe("validarSolicitud", () => {
   });
   it("una solicitud completa no tiene errores", () => {
     expect(validarSolicitud(BASE)).toEqual({});
+  });
+
+  it("el solicitante no se captura ni se valida: sale del usuario que crea el ticket", () => {
+    expect(validarSolicitud(BASE)).not.toHaveProperty("solicitante");
+    expect(Object.keys(CONTRATO_OK)).not.toContain("solicitante");
   });
 
   it("exige cada documento individual que falte", () => {

@@ -213,7 +213,6 @@ export function TicketDetail({ id }: { id: string }) {
     setContratoForm({
       domicilio: c?.domicilio ?? "",
       altaArrendador: c?.altaArrendador ?? "",
-      solicitante: c?.solicitante ?? ticket!.solicitanteNombre,
       periodoInicio: c?.periodoInicio ?? "",
       periodoFin: c?.periodoFin ?? "",
       condicionesCodigo: codigo,
@@ -243,7 +242,8 @@ export function TicketDetail({ id }: { id: string }) {
       await updateTicketContrato(id, actor, {
         domicilio: contratoForm.domicilio,
         altaArrendador: contratoForm.altaArrendador,
-        solicitante: contratoForm.solicitante,
+        // No se captura: es quien creo el ticket (se conserva el que ya tenia el contrato).
+        solicitante: ticket!.contratoArrendamiento?.solicitante || ticket!.solicitanteNombre,
         periodoInicio: contratoForm.periodoInicio,
         periodoFin: contratoForm.periodoFin,
         condicionesPago: `${contratoForm.condicionesCodigo} - ${contratoForm.condicionesTipo}`,
