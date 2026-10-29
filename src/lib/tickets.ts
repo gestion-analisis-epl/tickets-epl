@@ -26,3 +26,4 @@ export const submitSatisfaccion = ticketService.submitSatisfaccion;
 export const backfillSlaHistorico = ticketService.backfillSlaHistorico;
 export const crearResumenesFaltantes = ticketService.crearResumenesFaltantes;
 export type { ResumenesFaltantesResultado } from "@/domain/tickets/ticket-service";
+export const updateTicketAltaRetroactiva = ticketService.updateTicketAltaRetroactiva;

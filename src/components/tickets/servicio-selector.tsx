@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Campo } from "@/components/forms/campo";
 import { findServicio } from "@/lib/catalogo";
+import { cn } from "@/lib/utils";
 import { useCatalogoStore } from "@/stores/catalogo";
 import { useCategoriasStore } from "@/stores/categorias";
 import type { CatalogoServicio, Categoria } from "@/types/catalogo";
@@ -12,9 +14,11 @@ interface ServicioSelectorProps {
   error?: string;
   // TEMPORAL: si se pasa, Categoria queda fija y Servicio solo lista estos ids.
   soloIds?: string[];
+  // Con "contents" los dos campos se acomodan en la cuadricula de quien los usa.
+  className?: string;
 }
 
-export function ServicioSelector({ value, onChange, error, soloIds }: ServicioSelectorProps) {
+export function ServicioSelector({ value, onChange, error, soloIds, className }: ServicioSelectorProps) {
   const servicios = useCatalogoStore((s) => s.servicios);
   const categorias = useCategoriasStore((s) => s.categorias);
   const [categoria, setCategoria] = useState<Categoria | "">(() => findServicio(value)?.categoria ?? "");
@@ -37,80 +41,57 @@ export function ServicioSelector({ value, onChange, error, soloIds }: ServicioSe
     }, {} as Partial<Record<Categoria, CatalogoServicio[]>>);
   }, [servicios]);
 
+  let categoriaElegida: string;
+  let opcionesCategoria: string[];
+  let placeholderCategoria: string | null;
+  let serviciosVisibles: CatalogoServicio[];
+  let servicioBloqueado = false;
+  let placeholderServicio = "Selecciona un servicio...";
+
   if (soloIds) {
     const serviciosPermitidos = servicios.filter((s) => soloIds.includes(s.id));
-    const categoriasPermitidas = Array.from(new Set(serviciosPermitidos.map((s) => s.categoria)));
-    const categoriaActual = categoria || serviciosPermitidos[0]?.categoria || "";
-    const serviciosDeLaCategoriaPermitida = categoriaActual
-      ? serviciosPermitidos.filter((s) => s.categoria === categoriaActual)
+    opcionesCategoria = Array.from(new Set(serviciosPermitidos.map((s) => s.categoria)));
+    categoriaElegida = categoria || serviciosPermitidos[0]?.categoria || "";
+    placeholderCategoria = null;
+    serviciosVisibles = categoriaElegida
+      ? serviciosPermitidos.filter((s) => s.categoria === categoriaElegida)
       : serviciosPermitidos;
-
-    return (
-      <>
-        <div>
-          <label className="field-label">
-            Categoria <span className="text-danger">*</span>
-          </label>
-          <select
-            value={categoriaActual}
-            onChange={(e) => handleCategoriaChange(e.target.value)}
-            className="w-full field"
-          >
-            {categoriasPermitidas.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-
-        <div className="mt-4">
-          <label className="field-label">
-            Servicio <span className="text-danger">*</span>
-          </label>
-          <select
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-full field"
-          >
-            <option value="">Selecciona un servicio...</option>
-            {serviciosDeLaCategoriaPermitida.map((s) => <option key={s.id} value={s.id}>{s.servicio}</option>)}
-          </select>
-          {error && <p className="text-xs text-danger mt-1">{error}</p>}
-        </div>
-      </>
-    );
+  } else {
+    categoriaElegida = categoria;
+    opcionesCategoria = categorias.map((c) => c.nombre);
+    placeholderCategoria = "Selecciona una categoría...";
+    serviciosVisibles = categoria ? serviciosPorCategoria[categoria] ?? [] : [];
+    servicioBloqueado = !categoria;
+    if (!categoria) placeholderServicio = "Primero elige una categoría";
   }
 
-  const serviciosDeLaCategoria = categoria ? serviciosPorCategoria[categoria] ?? [] : [];
-
   return (
-    <>
-      <div>
-        <label className="field-label">
-          Categoria <span className="text-danger">*</span>
-        </label>
+    <div className={cn("grid grid-cols-1 gap-6", className)}>
+      <Campo id="servicio-categoria" etiqueta="Categoría">
         <select
-          value={categoria}
+          id="servicio-categoria"
+          value={categoriaElegida}
           onChange={(e) => handleCategoriaChange(e.target.value)}
           className="w-full field"
         >
-          <option value="">Selecciona una categoria...</option>
-          {categorias.map((c) => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
+          {placeholderCategoria && <option value="">{placeholderCategoria}</option>}
+          {opcionesCategoria.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-      </div>
+      </Campo>
 
-      <div className="mt-4">
-        <label className="field-label">
-          Servicio <span className="text-danger">*</span>
-        </label>
+      <Campo id="servicio-servicio" etiqueta="Servicio" error={error}>
         <select
+          id="servicio-servicio"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          disabled={!categoria}
+          disabled={servicioBloqueado}
+          aria-invalid={!!error}
           className="w-full field disabled:opacity-50"
         >
-          <option value="">{categoria ? "Selecciona un servicio..." : "Primero elige una categoria"}</option>
-          {serviciosDeLaCategoria.map((s) => <option key={s.id} value={s.id}>{s.servicio}</option>)}
+          <option value="">{placeholderServicio}</option>
+          {serviciosVisibles.map((s) => <option key={s.id} value={s.id}>{s.servicio}</option>)}
         </select>
-        {error && <p className="text-xs text-danger mt-1">{error}</p>}
-      </div>
-    </>
+      </Campo>
+    </div>
   );
 }

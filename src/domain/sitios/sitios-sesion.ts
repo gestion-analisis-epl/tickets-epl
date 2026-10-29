@@ -9,7 +9,7 @@ export interface AlmacenSesion {
 }
 
 interface Opciones {
-  cargar: () => Promise<ResultadoSitios>;
+  cargar: (opciones: { forzar: boolean }) => Promise<ResultadoSitios>;
   almacen: AlmacenSesion | null;
   ttlMs: number;
   ahora?: () => number;
@@ -53,9 +53,9 @@ export function crearCacheSesionSitios({ cargar, almacen, ttlMs, ahora = Date.no
     }
   }
 
-  async function recargar(previa: Copia | null): Promise<ResultadoSitios> {
+  async function recargar(previa: Copia | null, forzar: boolean): Promise<ResultadoSitios> {
     try {
-      const resultado = await cargar();
+      const resultado = await cargar({ forzar });
       // Una copia que el servidor ya marco como vieja no se conserva: el siguiente intento reintenta.
       if (!resultado.desactualizado) guardar({ sitios: resultado.sitios, cargadoEn: ahora() });
       return resultado;
@@ -72,7 +72,7 @@ export function crearCacheSesionSitios({ cargar, almacen, ttlMs, ahora = Date.no
       return { sitios: copia.sitios, desactualizado: false };
     }
     // Las lecturas simultaneas comparten la misma carga.
-    enCurso ??= recargar(copia).finally(() => {
+    enCurso ??= recargar(copia, forzar).finally(() => {
       enCurso = null;
     });
     return enCurso;

@@ -2,10 +2,12 @@
 // ademas anun_ID y anun_Vista, que no se usan). Un sitio es el par (clave, alias): las filas que
 // solo difieren en la vista se juntan en uno.
 
+import { geolocalizacionValida } from "./geolocalizacion";
+
 export interface Sitio {
   clave: string;
   alias: string;
-  // Columna opcional anun_Geolocalizacion (enlace o "lat,lng"); ausente si la hoja no la trae.
+  // Columna opcional anun_Geolocalizacion, normalizada a "lat,lng"; ausente si la hoja no la trae o no es una coordenada real.
   geolocalizacion?: string;
 }
 
@@ -68,7 +70,8 @@ export function parseFilasSitios(filas: unknown[][]): Sitio[] {
   const candidatos: Sitio[] = [];
   for (const fila of filas.slice(1)) {
     const sitio: Sitio = { clave: texto(fila[indice.clave]), alias: texto(fila[indice.alias]) };
-    const geo = indiceGeo === -1 ? "" : texto(fila[indiceGeo]);
+    // Solo una coordenada real: "N/A", "0" o texto cuentan como sin geolocalizacion.
+    const geo = indiceGeo === -1 ? null : geolocalizacionValida(texto(fila[indiceGeo]));
     if (geo) sitio.geolocalizacion = geo;
     if (sitio.clave && sitio.alias) candidatos.push(sitio);
   }
@@ -154,4 +157,15 @@ export function campoBloqueado(seleccion: SeleccionSitio, ancla: AnclaSitio, cam
   if (!seleccion[campo]) return false;
   const anclaEfectiva = ancla && seleccion[ancla] ? ancla : null;
   return anclaEfectiva ? campo !== anclaEfectiva : estaCompleta(seleccion);
+}
+
+// Coordenada para el mapa de la ficha de un ticket: la del catalogo vigente; si el sitio ya no esta
+// o no la trae, la que guardo el ticket al capturar los datos de alta.
+export function geolocalizacionDelTicket(
+  sitios: Sitio[],
+  sitio: { clave: string; alias: string } | undefined,
+  guardada: string | null | undefined
+): string | null {
+  const vigente = sitio ? sitioDeSeleccion(sitios, sitio)?.geolocalizacion : undefined;
+  return geolocalizacionValida(vigente) ?? geolocalizacionValida(guardada);
 }

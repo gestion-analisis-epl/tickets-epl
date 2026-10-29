@@ -1,6 +1,7 @@
 import { isAdminRole, type Role } from "@/types/user";
 import type { Beneficiario, RevisionLegal, Ticket } from "@/types/ticket";
 import { solicitudEditable } from "./etapa-permisos-rules";
+import { esAltaRetroactiva } from "./alta-arrendador-rules";
 import { SERVICIO_ALTA_ARRENDADOR_ID } from "@/lib/data/arrendamientos-temporal";
 
 const TOTAL = 10000;
@@ -116,13 +117,31 @@ export function revisionLegalPendiente(t: Pick<Ticket, "altaArrendador" | "revis
   return t.altaArrendador && t.servicioId === SERVICIO_ALTA_ARRENDADOR_ID ? faltantesRevisionLegal(t.revisionLegal ?? {}) : [];
 }
 
-// Admin/Gerente Juridico y el abogado asignado a ESTE ticket (misma condicion que firestore.rules).
-// Mesa de Control no. Bloqueada en Pre-Cierre y Cierre.
-export function puedeEditarRevisionLegal(
-  sesion: { role: Role | null | undefined; abogadoId: string | null | undefined },
-  ticket: Pick<Ticket, "abogadoAsignadoId" | "estatus" | "altaArrendador">
-): boolean {
-  if (!ticket.altaArrendador || !solicitudEditable(ticket.estatus)) return false;
+type Sesion = { role: Role | null | undefined; abogadoId: string | null | undefined };
+
+// Admin/Gerente Juridico y el abogado asignado a ESTE ticket (misma condicion que firestore.rules). Mesa de Control no.
+function esAdminOAbogadoAsignado(sesion: Sesion, ticket: Pick<Ticket, "abogadoAsignadoId">): boolean {
   if (isAdminRole(sesion.role)) return true;
   return sesion.role === "abogado" && !!sesion.abogadoId && sesion.abogadoId === ticket.abogadoAsignadoId;
+}
+
+// Un ticket anterior (retroactivo) se edita en cualquier etapa menos Pre-Cierre, incluido Cierre;
+// uno con los datos del solicitante, solo mientras la solicitud es editable (no en Pre-Cierre ni Cierre).
+export function etapaPermiteEditar(ticket: Pick<Ticket, "servicioId" | "altaArrendador" | "estatus">): boolean {
+  return esAltaRetroactiva(ticket) ? ticket.estatus !== "Pre-Cierre" : solicitudEditable(ticket.estatus);
+}
+
+export function puedeEditarRevisionLegal(
+  sesion: Sesion,
+  ticket: Pick<Ticket, "servicioId" | "abogadoAsignadoId" | "estatus" | "altaArrendador">
+): boolean {
+  return ticket.servicioId === SERVICIO_ALTA_ARRENDADOR_ID && etapaPermiteEditar(ticket) && esAdminOAbogadoAsignado(sesion, ticket);
+}
+
+// Completar los datos de alta que el solicitante no capturo (tickets anteriores) o corregirlos despues.
+export function puedeEditarAltaRetroactiva(
+  sesion: Sesion,
+  ticket: Pick<Ticket, "servicioId" | "abogadoAsignadoId" | "estatus" | "altaArrendador">
+): boolean {
+  return esAltaRetroactiva(ticket) && ticket.estatus !== "Pre-Cierre" && esAdminOAbogadoAsignado(sesion, ticket);
 }

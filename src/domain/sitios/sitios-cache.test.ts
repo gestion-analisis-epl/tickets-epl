@@ -34,6 +34,28 @@ describe("crearLectorSitios", () => {
     expect(cargar).toHaveBeenCalledTimes(2);
   });
 
+  it("forzar se salta el TTL y vuelve a cargar", async () => {
+    const cargar = vi.fn().mockResolvedValue(SITIOS);
+    const { lector, avanzar } = setup(cargar);
+
+    await lector();
+    avanzar(60 * 1000);
+    await lector({ forzar: true });
+
+    expect(cargar).toHaveBeenCalledTimes(2);
+  });
+
+  it("forzar repetido en pocos segundos reutiliza la copia para no saturar la hoja", async () => {
+    const cargar = vi.fn().mockResolvedValue(SITIOS);
+    const { lector, avanzar } = setup(cargar);
+
+    await lector();
+    avanzar(5 * 1000);
+    await lector({ forzar: true });
+
+    expect(cargar).toHaveBeenCalledTimes(1);
+  });
+
   it("si la recarga falla sirve la ultima copia buena marcada como desactualizada", async () => {
     const cargar = vi.fn().mockResolvedValueOnce(SITIOS).mockRejectedValueOnce(new Error("Sheets caido"));
     const { lector, avanzar } = setup(cargar);

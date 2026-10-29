@@ -16,12 +16,20 @@ import {
 } from "@/lib/data/arrendamientos-temporal";
 import { parseMontoInput } from "@/lib/text-format";
 import { validarFormatoArrendamiento } from "@/lib/validar-formato";
-import { validarSolicitud, type ContratoCapturado } from "@/domain/tickets/nuevo-ticket-validacion";
+import { validarSolicitud, type ContratoCapturado, type SolicitudCapturada } from "@/domain/tickets/nuevo-ticket-validacion";
+import { faltantesPorSeccion, textoFaltan, totalFaltantes } from "@/domain/tickets/avance-formulario";
+import { Campo } from "@/components/forms/campo";
+import { SeccionFormulario } from "@/components/forms/seccion-formulario";
+import { ResumenErrores } from "@/components/forms/resumen-errores";
+import { RielAvance } from "@/components/forms/riel-avance";
+import { BarraAcciones } from "@/components/forms/barra-acciones";
+import { ConfirmarEnvio } from "@/components/forms/confirmar-envio";
+import { DocumentoSlot } from "@/components/forms/documento-slot";
 import { ServicioSelector } from "./servicio-selector";
 import { SitioSelector } from "./sitio-selector";
 import { DatosContratoFields } from "./datos-contrato-fields";
 import { AltaArrendadorFields } from "./alta-arrendador-fields";
-import { DOMICILIO_VACIO, ETIQUETAS_DOMICILIO, documentosAltaRequeridos, domicilioTexto, type AltaCapturada } from "@/domain/tickets/alta-arrendador-rules";
+import { documentosAltaRequeridos, type AltaCapturada } from "@/domain/tickets/alta-arrendador-rules";
 import { useSitios } from "@/hooks/use-sitios";
 import { SELECCION_VACIA, sitioDeSeleccion, type SeleccionSitio } from "@/domain/sitios/sitios-rules";
 import { uploadTicketFile, deleteTicketDocument } from "@/lib/storage";
@@ -48,9 +56,12 @@ const EMPTY_CONTRATO: ContratoCapturado = {
   periodoInicio: "", periodoFin: "", condicionesCodigo: "", condicionesTipo: "", montoPago: "", motivo: "",
 };
 
-const EMPTY_ALTA: AltaCapturada = { tipoAlta: "", motivoCambio: "", domicilio: DOMICILIO_VACIO };
+const EMPTY_ALTA: AltaCapturada = { tipoAlta: "", motivoCambio: "" };
 
-const CLAVES_ERROR_ALTA = ["tipoAlta", "motivoCambio", ...Object.keys(ETIQUETAS_DOMICILIO)];
+// Que errores de validacion le tocan a cada seccion; los documentos reciben el resto.
+const CLAVES_SOLICITUD = ["areaEmpresa", "servicioId", "sitio", "descripcion"];
+const CLAVES_ALTA = ["tipoAlta", "motivoCambio"];
+const CLAVES_CONTRATO = ["domicilio", "altaArrendador", "solicitante", "periodoInicio", "periodoFin", "condicionesPago", "montoPago", "motivo"];
 
 export function NuevoTicketForm() {
   const router = useRouter();
@@ -58,7 +69,9 @@ export function NuevoTicketForm() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [contrato, setContratoState] = useState<ContratoCapturado>(EMPTY_CONTRATO);
   const [sitio, setSitio] = useState<SeleccionSitio>(SELECCION_VACIA);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  // Los errores se calculan siempre (para el avance), pero solo se muestran despues de intentar enviar.
+  const [intentado, setIntentado] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
   const [folioCreado, setFolioCreado] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -84,6 +97,7 @@ export function NuevoTicketForm() {
   const documentosUploading =
     Object.values(documentosFiles).some((fs) => fs.some((f) => f.status === "uploading")) ||
     Object.values(altaDocsFiles).some((fs) => fs?.some((f) => f.status === "uploading"));
+  const ocupado = filesUploading || formatoUploading || documentosUploading || creating;
 
   const requiereFormato = SERVICIOS_CON_FORMATO_OBLIGATORIO_IDS.includes(form.servicioId);
   const requiereDocumentosIndividuales = SERVICIOS_CON_DOCUMENTOS_INDIVIDUALES_IDS.includes(form.servicioId) && !esAlta;
@@ -98,7 +112,6 @@ export function NuevoTicketForm() {
       status: "uploading",
     }));
     setFiles((prev) => [...prev, ...entries]);
-    setErrors((prev) => ({ ...prev, documentacion: "" }));
 
     selected.forEach((file, i) => {
       const id = entries[i].id;
@@ -131,7 +144,6 @@ export function NuevoTicketForm() {
     const anterior = formatoFiles[0];
     const entry: UploadingFile = { id: crypto.randomUUID(), name: file.name, size: file.size, progress: 0, status: "uploading" };
     setFormatoFiles([entry]);
-    setErrors((prev) => ({ ...prev, formato: "" }));
 
     uploadTicketFile(
       `tickets-drafts/${draftId}`,
@@ -176,7 +188,6 @@ export function NuevoTicketForm() {
     const anterior = documentosFiles[key][0];
     const entry: UploadingFile = { id: crypto.randomUUID(), name: file.name, size: file.size, progress: 0, status: "uploading" };
     setDocumentosFiles((prev) => ({ ...prev, [key]: [entry] }));
-    setErrors((prev) => ({ ...prev, [key]: "" }));
 
     uploadTicketFile(
       `tickets-drafts/${draftId}`,
@@ -209,7 +220,6 @@ export function NuevoTicketForm() {
     const anterior = altaDocsFiles[key]?.[0];
     const entry: UploadingFile = { id: crypto.randomUUID(), name: file.name, size: file.size, progress: 0, status: "uploading" };
     setAltaDocsFiles((prev) => ({ ...prev, [key]: [entry] }));
-    setErrors((prev) => ({ ...prev, [key]: "" }));
 
     uploadTicketFile(
       `tickets-drafts/${draftId}`,
@@ -238,16 +248,14 @@ export function NuevoTicketForm() {
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
-    setErrors((prev) => ({ ...prev, [key]: "" }));
   }
 
   function setContrato<K extends keyof ContratoCapturado>(key: K, value: ContratoCapturado[K]) {
     setContratoState((prev) => ({ ...prev, [key]: value }));
-    setErrors((prev) => ({ ...prev, [key]: "" }));
   }
 
-  function validar(): boolean {
-    const next = validarSolicitud({
+  function construirSolicitud(): SolicitudCapturada {
+    return {
       areaEmpresa: form.areaEmpresa,
       servicioId: form.servicioId,
       descripcion: form.descripcion,
@@ -262,23 +270,48 @@ export function NuevoTicketForm() {
           : [],
       documentacionListos: files.filter((f) => f.status === "done").length,
       requiereDatosContrato,
-      contrato: esAlta ? { ...contrato, domicilio: domicilioTexto(alta.domicilio) } : contrato,
+      contrato,
       ...(esAlta ? { alta } : {}),
-    });
-    setErrors(next);
-    return Object.keys(next).length === 0;
+    };
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!validar() || filesUploading || formatoUploading || documentosUploading || !uid || !nombre) return;
+  const erroresReales = validarSolicitud(construirSolicitud());
+  const errors = intentado ? erroresReales : {};
 
+  const secciones = [
+    { id: "seccion-solicitud", titulo: "¿Qué necesitas?", claves: CLAVES_SOLICITUD },
+    ...(requiereDatosContrato && esAlta ? [{ id: "seccion-alta", titulo: "Tipo de alta", claves: CLAVES_ALTA }] : []),
+    ...(requiereDatosContrato ? [{ id: "seccion-contrato", titulo: "Datos del contrato", claves: CLAVES_CONTRATO }] : []),
+    { id: "seccion-documentos", titulo: "Documentos" },
+  ];
+  const avance = faltantesPorSeccion(erroresReales, secciones);
+  const faltan = totalFaltantes(avance);
+
+  // Primero revisa: si falta algo lleva al aviso; si todo esta bien pide confirmar antes de enviar.
+  function handleRevisar(e: React.FormEvent) {
+    e.preventDefault();
+    setIntentado(true);
+    if (faltan > 0) {
+      requestAnimationFrame(() => {
+        const aviso = document.getElementById("resumen-errores");
+        aviso?.scrollIntoView({ behavior: "smooth", block: "start" });
+        aviso?.focus({ preventScroll: true });
+      });
+      return;
+    }
+    if (ocupado) return;
+    setSubmitError(null);
+    setConfirmando(true);
+  }
+
+  async function enviar() {
+    if (!uid || !nombre) return;
     setSubmitError(null);
     setCreating(true);
     try {
       const contratoArrendamiento: ContratoArrendamientoInput | undefined = requiereDatosContrato
         ? {
-            domicilio: esAlta ? domicilioTexto(alta.domicilio) : contrato.domicilio,
+            domicilio: contrato.domicilio,
             altaArrendador: contrato.altaArrendador,
             solicitante: contrato.solicitante,
             periodoInicio: contrato.periodoInicio,
@@ -299,7 +332,6 @@ export function NuevoTicketForm() {
         ? {
             tipoAlta: alta.tipoAlta as "nuevo" | "cambio",
             ...(alta.tipoAlta === "cambio" ? { motivoCambio: alta.motivoCambio.trim() } : {}),
-            domicilio: alta.domicilio,
             ...(geolocalizacion ? { geolocalizacion } : {}),
             documentos: Object.fromEntries(
               docsAlta.map((d) => [d.key, altaDocsFiles[d.key]?.[0]?.url ?? ""]).filter(([, url]) => url)
@@ -342,7 +374,9 @@ export function NuevoTicketForm() {
     setDocumentosFiles(DOCUMENTOS_FILES_VACIO);
     setAlta(EMPTY_ALTA);
     setAltaDocsFiles({});
-    setErrors({});
+    setIntentado(false);
+    setConfirmando(false);
+    setSubmitError(null);
   }
 
   if (folioCreado) {
@@ -370,194 +404,181 @@ export function NuevoTicketForm() {
     );
   }
 
-  const ocupado = filesUploading || formatoUploading || documentosUploading || creating;
+  const numero = (id: string) => secciones.findIndex((s) => s.id === id) + 1;
+  const archivosSubidos =
+    [...files, ...formatoFiles, ...Object.values(documentosFiles).flat(), ...Object.values(altaDocsFiles).flat()]
+      .filter((f) => f?.status === "done").length;
 
   return (
-    <form onSubmit={handleSubmit} className="w-full">
-      <section className="rounded-lg border border-border bg-surface p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+    <form onSubmit={handleRevisar} noValidate className="w-full">
+      <section className="rounded-lg border border-border bg-surface p-4 mb-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
         <div><span className="text-muted">Fecha de solicitud: </span><span className="font-medium">{hoy}</span></div>
         <div><span className="text-muted">Solicitante: </span><span className="font-medium">{nombre}</span></div>
       </section>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-6 items-start">
-        <div className="space-y-6 min-w-0">
-          <section className="section-card p-5 sm:p-6 space-y-5">
-            <h2 className="section-title"><span className="text-accent mr-2 tabular-nums">1</span>Solicitud</h2>
+      <p className="text-sm text-muted mb-5">
+        Los campos con <span className="font-bold text-danger" aria-hidden="true">*</span> son obligatorios.
+        Los marcados como &quot;Opcional&quot; puedes dejarlos vacíos.
+      </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="field-label">
-                  Empresa / Área solicitante <span className="text-danger">*</span>
-                </label>
-                <select
-                  value={form.areaEmpresa}
-                  onChange={(e) => set("areaEmpresa", e.target.value)}
-                  className="w-full field"
-                >
-                  <option value="">Selecciona un area o empresa...</option>
-                  {AREAS_EMPRESA.map((a) => <option key={a} value={a}>{a}</option>)}
-                </select>
-                {errors.areaEmpresa && <p className="text-xs text-danger mt-1">{errors.areaEmpresa}</p>}
-              </div>
+      <RielAvance secciones={avance} resaltarFaltantes={intentado} />
 
-              <div>
+      <div>
+        <div className="space-y-5 min-w-0">
+          <ResumenErrores secciones={avance} visible={intentado} />
+
+          <SeccionFormulario id="seccion-solicitud" numero={numero("seccion-solicitud")} titulo="¿Qué necesitas?" descripcion="Cuéntanos qué trámite pides y para qué sitio.">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 gap-x-6 gap-y-6 md:grid-cols-3">
+                <Campo id="solicitud-area" etiqueta="Empresa y área que solicita" error={errors.areaEmpresa}>
+                  <select
+                    id="solicitud-area"
+                    value={form.areaEmpresa}
+                    onChange={(e) => set("areaEmpresa", e.target.value)}
+                    aria-invalid={!!errors.areaEmpresa}
+                    className="w-full field"
+                  >
+                    <option value="">Selecciona la empresa y el área...</option>
+                    {AREAS_EMPRESA.map((a) => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </Campo>
+
                 <ServicioSelector
+                  className="contents"
                   value={form.servicioId}
                   onChange={(v) => set("servicioId", v)}
                   error={errors.servicioId}
                   soloIds={SERVICIOS_ARRENDAMIENTO_IDS}
                 />
               </div>
-            </div>
 
-            {servicioSeleccionado && (
-              <div className="flex flex-wrap items-center gap-3 rounded-md bg-surface px-3 py-2 text-sm">
-                <CategoriaBadge categoria={servicioSeleccionado.categoria} />
-                <span className="text-muted">Puesto responsable: <span className="font-medium opacity-100">{servicioSeleccionado.puestoResponsable}</span></span>
-                <span className="text-muted">SLA interno: <span className="font-medium opacity-100">{servicioSeleccionado.slaInterno} días hábiles</span></span>
-              </div>
-            )}
+              {servicioSeleccionado && (
+                <div className="flex flex-wrap items-center gap-3 rounded-md bg-surface px-3 py-2 text-sm">
+                  <CategoriaBadge categoria={servicioSeleccionado.categoria} />
+                  <span className="text-muted">Puesto responsable: <span className="font-medium opacity-100">{servicioSeleccionado.puestoResponsable}</span></span>
+                  <span className="text-muted">SLA interno: <span className="font-medium opacity-100">{servicioSeleccionado.slaInterno} días hábiles</span></span>
+                </div>
+              )}
 
-            {servicioSeleccionado && (
-              <div>
-                <p className="eyebrow mb-3">Sitio</p>
-                <SitioSelector
-                  value={sitio}
-                  onChange={(v) => {
-                    setSitio(v);
-                    setErrors((prev) => ({ ...prev, sitio: "" }));
-                  }}
-                  error={errors.sitio}
+              {servicioSeleccionado && (
+                <div>
+                  <p className="eyebrow mb-3">Sitio</p>
+                  <SitioSelector value={sitio} onChange={setSitio} error={errors.sitio} />
+                </div>
+              )}
+
+              <Campo id="solicitud-descripcion" etiqueta="Descripción de la solicitud" error={errors.descripcion}>
+                <textarea
+                  id="solicitud-descripcion"
+                  value={form.descripcion}
+                  onChange={(e) => set("descripcion", e.target.value)}
+                  rows={4}
+                  placeholder="Describe con el mayor detalle posible lo que necesitas..."
+                  aria-invalid={!!errors.descripcion}
+                  className="field w-full resize-y"
                 />
-              </div>
-            )}
-
-            <div>
-              <label className="field-label">
-                Descripción de la solicitud <span className="text-danger">*</span>
-              </label>
-              <textarea
-                value={form.descripcion}
-                onChange={(e) => set("descripcion", e.target.value)}
-                rows={4}
-                placeholder="Describe con el mayor detalle posible lo que necesitas..."
-                className="field w-full resize-y"
-              />
-              {errors.descripcion && <p className="text-xs text-danger mt-1">{errors.descripcion}</p>}
+              </Campo>
             </div>
-          </section>
+          </SeccionFormulario>
+
+          {requiereDatosContrato && esAlta && (
+            <SeccionFormulario id="seccion-alta" numero={numero("seccion-alta")} titulo="Tipo de alta" descripcion="Dinos si es un arrendador nuevo o si cambia el que ya teníamos.">
+              <AltaArrendadorFields alta={alta} errors={errors} geolocalizacion={geolocalizacion} onChange={setAlta} />
+            </SeccionFormulario>
+          )}
 
           {requiereDatosContrato && (
-            <section className="section-card p-5 sm:p-6 space-y-5">
-              <h2 className="section-title"><span className="text-accent mr-2 tabular-nums">2</span>Datos del contrato / convenio</h2>
-              {esAlta && (
-                <AltaArrendadorFields
-                  alta={alta}
-                  errors={errors}
-                  geolocalizacion={geolocalizacion}
-                  onChange={(a) => { setAlta(a); setErrors((prev) => { const sig = { ...prev }; for (const k of CLAVES_ERROR_ALTA) delete sig[k]; return sig; }); }}
-                />
+            <SeccionFormulario id="seccion-contrato" numero={numero("seccion-contrato")} titulo="Datos del contrato" descripcion="Estos datos son los mismos en todos los trámites de arrendamiento.">
+              <DatosContratoFields contrato={contrato} errors={errors} onChange={setContrato} />
+            </SeccionFormulario>
+          )}
+
+          <SeccionFormulario id="seccion-documentos" numero={numero("seccion-documentos")} titulo="Documentos" descripcion="Sube cada documento en su lugar. Puedes usar PDF o fotos claras.">
+            <div className="space-y-4">
+              {requiereFormato && (
+                <DocumentoSlot
+                  titulo="Formato de Solicitud de Arrendamiento"
+                  ayuda="Descarga el formato oficial, llénalo y súbelo aquí. No se acepta otra plantilla."
+                  archivos={formatoFiles}
+                  error={errors.formato}
+                >
+                  <a
+                    href={URL_FORMATO_SOLICITUD_ARRENDAMIENTO}
+                    download
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline mb-3"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Descargar formato oficial
+                  </a>
+                  <FileDropzone
+                    files={formatoFiles}
+                    onFilesSelected={handleFormatoSeleccionado}
+                    onRemove={handleRemoveFormato}
+                    multiple={false}
+                  />
+                </DocumentoSlot>
               )}
-              <DatosContratoFields contrato={contrato} errors={errors} onChange={setContrato} ocultarDomicilio={esAlta} />
-            </section>
-          )}
-        </div>
 
-        <aside className="section-card p-5 sm:p-6 space-y-6 min-w-0">
-          <h2 className="section-title">
-            <span className="text-accent mr-2 tabular-nums">{requiereDatosContrato ? 3 : 2}</span>Documentos
-          </h2>
-
-          {requiereFormato && (
-            <div>
-              <label className="field-label">
-                Formato de Solicitud de Arrendamiento <span className="text-danger">*</span>
-              </label>
-              <a
-                href={URL_FORMATO_SOLICITUD_ARRENDAMIENTO}
-                download
-                className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline mb-2"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Descargar formato oficial
-              </a>
-              <FileDropzone
-                files={formatoFiles}
-                onFilesSelected={handleFormatoSeleccionado}
-                onRemove={handleRemoveFormato}
-                multiple={false}
-              />
-              <p className="text-xs text-muted mt-1.5">
-                Descarga el formato oficial, llenalo, y sube aqui el mismo archivo — no se acepta otra plantilla.
-              </p>
-              {errors.formato && <p className="text-xs text-danger mt-1">{errors.formato}</p>}
-            </div>
-          )}
-
-          {requiereDocumentosIndividuales && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO.map((doc) => (
-                <div key={doc.key}>
-                  <label className="field-label">
-                    {doc.label} <span className="text-danger">*</span>
-                  </label>
+              {requiereDocumentosIndividuales && DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO.map((doc) => (
+                <DocumentoSlot key={doc.key} titulo={doc.label} archivos={documentosFiles[doc.key]} error={errors[doc.key]}>
                   <FileDropzone
                     files={documentosFiles[doc.key]}
                     onFilesSelected={(selected) => handleDocumentoSeleccionado(doc.key, selected)}
                     onRemove={(id) => handleRemoveDocumento(doc.key, id)}
                     multiple={false}
                   />
-                  {errors[doc.key] && <p className="text-xs text-danger mt-1">{errors[doc.key]}</p>}
-                </div>
+                </DocumentoSlot>
               ))}
-            </div>
-          )}
 
-          {esAlta && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {docsAlta.map((doc) => (
-                <div key={doc.key}>
-                  <label className="field-label">
-                    {doc.label} <span className="text-danger">*</span>
-                  </label>
+              {esAlta && docsAlta.map((doc) => (
+                <DocumentoSlot key={doc.key} titulo={doc.label} ayuda={doc.ayuda} archivos={altaDocsFiles[doc.key] ?? []} error={errors[doc.key]}>
                   <FileDropzone
                     files={altaDocsFiles[doc.key] ?? []}
                     onFilesSelected={(selected) => handleAltaDocSeleccionado(doc.key, selected)}
                     onRemove={(id) => handleRemoveAltaDoc(doc.key, id)}
                     multiple={false}
                   />
-                  {errors[doc.key] && <p className="text-xs text-danger mt-1">{errors[doc.key]}</p>}
-                </div>
+                </DocumentoSlot>
               ))}
+
+              <DocumentoSlot
+                titulo="Documentación adjunta"
+                obligatorio={requiereFormato && !requiereDocumentosIndividuales && !esAlta}
+                ayuda={requiereFormato && !requiereDocumentosIndividuales && !esAlta
+                  ? `Adjunta aquí, en uno o varios archivos: ${DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO.map((d) => d.label.toLowerCase()).join(", ")}.`
+                  : "Cualquier otro archivo que ayude a entender tu solicitud."}
+                archivos={files}
+                error={errors.documentacion}
+              >
+                <FileDropzone files={files} onFilesSelected={handleFilesSelected} onRemove={handleRemoveFile} />
+              </DocumentoSlot>
             </div>
-          )}
-
-          <div>
-            <label className="field-label">
-              Documentación adjunta {requiereFormato && !requiereDocumentosIndividuales && !esAlta && <span className="text-danger">*</span>}
-            </label>
-            {requiereFormato && !requiereDocumentosIndividuales && !esAlta && (
-              <p className="text-xs text-muted mb-2">
-                Adjunta aqui, en uno o varios archivos: {DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO.map((d) => d.label.toLowerCase()).join(", ")}.
-              </p>
-            )}
-            <FileDropzone files={files} onFilesSelected={handleFilesSelected} onRemove={handleRemoveFile} />
-            {errors.documentacion && <p className="text-xs text-danger mt-1">{errors.documentacion}</p>}
-          </div>
-        </aside>
-      </div>
-
-      <div className="mt-6 border-t border-border pt-4">
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Button type="submit" variant="success" disabled={ocupado}>
-            {filesUploading || formatoUploading || documentosUploading ? "Esperando archivos..." : creating ? "Guardando..." : "Crear ticket"}
-          </Button>
-          <Button type="button" variant="danger" onClick={() => router.push("/tickets")}>
-            Cancelar
-          </Button>
-          {submitError && <span className="text-sm text-danger">{submitError}</span>}
+          </SeccionFormulario>
         </div>
       </div>
+
+      <BarraAcciones estado={faltan === 0 ? "Todo listo para enviar" : `${textoFaltan(faltan)} para poder enviar`}>
+        <Button type="button" variant="outline" onClick={() => router.push("/tickets")}>
+          Cancelar
+        </Button>
+        <Button type="submit" variant="success" disabled={ocupado}>
+          {filesUploading || formatoUploading || documentosUploading ? "Esperando archivos..." : "Revisar y enviar"}
+        </Button>
+      </BarraAcciones>
+
+      <ConfirmarEnvio
+        abierto={confirmando}
+        enviando={creating}
+        error={submitError}
+        resumen={[
+          ["Servicio", servicioSeleccionado?.servicio ?? ""],
+          ["Empresa y área", form.areaEmpresa],
+          ["Sitio", sitio.clave ? `${sitio.clave} · ${sitio.alias}` : ""],
+          ["Archivos subidos", String(archivosSubidos)],
+        ]}
+        onVolver={() => setConfirmando(false)}
+        onConfirmar={enviar}
+      />
     </form>
   );
 }

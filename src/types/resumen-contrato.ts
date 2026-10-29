@@ -75,6 +75,8 @@ export interface ResumenContrato {
   condicionesPago: string | null;
   // Metodo capturado en la ficha, p. ej. "63 - Cheques". Ausente en resumenes previos.
   metodoPago?: string | null;
+  // Coordenada "lat,lng" del sitio (Alta de arrendador); ausente si no hay una valida.
+  geolocalizacion?: string;
   montoPagoAnual: number | null;
   formaPago: FormaPago | null;
   discrepancias: Discrepancia[];

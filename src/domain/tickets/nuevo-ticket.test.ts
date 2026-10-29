@@ -37,7 +37,7 @@ describe("buildNuevoTicket — sitio de arrendamiento", () => {
 
 describe("buildNuevoTicket — alta de arrendador", () => {
   it("incluye altaArrendador solo si viene en la entrada", () => {
-    const alta = { tipoAlta: "nuevo" as const, domicilio: { calle: "a", numero: "1", interior: "", colonia: "c", municipio: "m", estado: "e", cp: "1", entreCalles: "x" }, documentos: {} };
+    const alta = { tipoAlta: "nuevo" as const, documentos: {} };
     expect(build({ ...INPUT, altaArrendador: alta }).altaArrendador).toEqual(alta);
     expect("altaArrendador" in build(INPUT)).toBe(false);
   });

@@ -55,17 +55,6 @@ export interface DocumentosArrendamientoInput {
 
 export type TipoAlta = "nuevo" | "cambio";
 
-export interface DomicilioDesglosado {
-  calle: string;
-  numero: string;
-  interior: string; // opcional: "" si no aplica
-  colonia: string;
-  municipio: string;
-  estado: string;
-  cp: string;
-  entreCalles: string;
-}
-
 export type DocumentoAltaKey =
   | "identificaciones" | "personalidadLegal" | "acreditacionPropiedad"
   | "predial" | "comprobanteDomicilio" | "contratoAnterior";
@@ -74,9 +63,10 @@ export type DocumentoAltaKey =
 export interface AltaArrendadorInput {
   tipoAlta: TipoAlta;
   motivoCambio?: string; // solo si tipoAlta === "cambio"
-  domicilio: DomicilioDesglosado;
   geolocalizacion?: string; // copiada de la hoja de sitios; ausente si la hoja no la trae
   documentos: Partial<Record<DocumentoAltaKey, string>>; // URLs de Storage
+  // Lo capturo el abogado asignado en un ticket anterior al formulario nuevo; sigue editable en Cierre.
+  retroactiva?: boolean;
 }
 
 export type TipoPropietario = "fisica" | "moral";

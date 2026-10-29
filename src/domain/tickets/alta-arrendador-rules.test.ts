@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { DOMICILIO_VACIO, documentosAltaRequeridos, domicilioTexto, validarAlta } from "./alta-arrendador-rules";
-
-const DOM = { calle: "Reforma", numero: "10", interior: "", colonia: "Centro", municipio: "Queretaro", estado: "Qro", cp: "76000", entreCalles: "A y B" };
+import {
+  calcularPatchAltaRetroactiva, documentosAltaIniciales, documentosAltaRequeridos,
+  esAltaRetroactiva, validarAlta, validarAltaRetroactiva,
+} from "./alta-arrendador-rules";
 
 describe("documentosAltaRequeridos", () => {
   it("el contrato anterior solo se pide en cambio", () => {
@@ -10,29 +11,74 @@ describe("documentosAltaRequeridos", () => {
   });
 });
 
-describe("domicilioTexto", () => {
-  it("arma el texto sin el interior vacio", () => {
-    expect(domicilioTexto(DOM)).toBe("Reforma 10, Col. Centro, Queretaro, Qro, CP 76000, entre A y B");
+describe("validarAlta", () => {
+  it("una alta nueva completa no tiene errores", () => {
+    expect(validarAlta({ tipoAlta: "nuevo", motivoCambio: "" })).toEqual({});
   });
-  it("incluye el interior cuando existe", () => {
-    expect(domicilioTexto({ ...DOM, interior: "3" })).toContain("Int. 3");
+  it("exige el tipo de alta", () => {
+    expect(validarAlta({ tipoAlta: "", motivoCambio: "" }).tipoAlta).toBeTruthy();
+  });
+  it("exige el motivo solo si es cambio", () => {
+    expect(validarAlta({ tipoAlta: "cambio", motivoCambio: " " }).motivoCambio).toBeTruthy();
+    expect(validarAlta({ tipoAlta: "nuevo", motivoCambio: "" }).motivoCambio).toBeUndefined();
   });
 });
 
-describe("validarAlta", () => {
-  it("una alta nueva completa no tiene errores", () => {
-    expect(validarAlta({ tipoAlta: "nuevo", motivoCambio: "", domicilio: DOM })).toEqual({});
+describe("esAltaRetroactiva", () => {
+  it("un ticket de Alta sin datos de alta o con la marca retroactiva", () => {
+    expect(esAltaRetroactiva({ servicioId: "JUR-C071", altaArrendador: undefined })).toBe(true);
+    expect(esAltaRetroactiva({ servicioId: "JUR-C071", altaArrendador: { retroactiva: true } as never })).toBe(true);
   });
-  it("exige el tipo de alta", () => {
-    expect(validarAlta({ tipoAlta: "", motivoCambio: "", domicilio: DOM }).tipoAlta).toBeTruthy();
+  it("no si los datos los capturo el solicitante ni en otro servicio", () => {
+    expect(esAltaRetroactiva({ servicioId: "JUR-C071", altaArrendador: {} as never })).toBe(false);
+    expect(esAltaRetroactiva({ servicioId: "JUR-C072", altaArrendador: undefined })).toBe(false);
   });
-  it("exige el motivo solo si es cambio", () => {
-    expect(validarAlta({ tipoAlta: "cambio", motivoCambio: " ", domicilio: DOM }).motivoCambio).toBeTruthy();
-    expect(validarAlta({ tipoAlta: "nuevo", motivoCambio: "", domicilio: DOM }).motivoCambio).toBeUndefined();
+});
+
+describe("validarAltaRetroactiva", () => {
+  it("exige el tipo de alta, y el motivo solo si es cambio; los documentos son opcionales", () => {
+    expect(validarAltaRetroactiva({ tipoAlta: "", motivoCambio: "" }).tipoAlta).toBeTruthy();
+    expect(validarAltaRetroactiva({ tipoAlta: "cambio", motivoCambio: " " }).motivoCambio).toBeTruthy();
+    expect(validarAltaRetroactiva({ tipoAlta: "nuevo", motivoCambio: "" })).toEqual({});
   });
-  it("exige cada campo del domicilio salvo el interior", () => {
-    const e = validarAlta({ tipoAlta: "nuevo", motivoCambio: "", domicilio: DOMICILIO_VACIO });
-    expect(Object.keys(e)).toEqual(expect.arrayContaining(["calle", "numero", "colonia", "municipio", "estado", "cp", "entreCalles"]));
-    expect(e.interior).toBeUndefined();
+});
+
+describe("documentosAltaIniciales", () => {
+  it("usa los documentos de alta si ya existen", () => {
+    expect(documentosAltaIniciales({ altaArrendador: { documentos: { predial: "u" } } as never, documentosArrendamiento: undefined })).toEqual({ predial: "u" });
+  });
+  it("en un ticket anterior pasa los 4 documentos viejos a su nombre nuevo y omite los vacios", () => {
+    expect(documentosAltaIniciales({
+      altaArrendador: undefined,
+      documentosArrendamiento: { escrituras: "e", identificacionArrendador: "i", predial: "p", comprobanteDomicilio: "" },
+    })).toEqual({ acreditacionPropiedad: "e", identificaciones: "i", predial: "p" });
+  });
+  it("sin documentos viejos queda vacio", () => {
+    expect(documentosAltaIniciales({ altaArrendador: undefined, documentosArrendamiento: undefined })).toEqual({});
+  });
+});
+
+describe("calcularPatchAltaRetroactiva", () => {
+  const base = { tipoAlta: "nuevo" as const, motivoCambio: "", geolocalizacion: null, documentos: { predial: "p", identificaciones: "" } };
+
+  it("guarda el bloque con la marca retroactiva, sin llaves vacias ni undefined", () => {
+    const patch = calcularPatchAltaRetroactiva(base);
+    expect(patch.altaArrendador).toEqual({ tipoAlta: "nuevo", documentos: { predial: "p" }, retroactiva: true });
+    expect(Object.values(patch.altaArrendador!).includes(undefined)).toBe(false);
+  });
+  it("en cambio guarda el motivo; en nuevo lo descarta y descarta el contrato anterior", () => {
+    const cambio = calcularPatchAltaRetroactiva({ ...base, tipoAlta: "cambio", motivoCambio: " vendio ", documentos: { contratoAnterior: "c" } });
+    expect(cambio.altaArrendador?.motivoCambio).toBe("vendio");
+    expect(cambio.altaArrendador?.documentos).toEqual({ contratoAnterior: "c" });
+    const nuevo = calcularPatchAltaRetroactiva({ ...base, motivoCambio: "sobra", documentos: { contratoAnterior: "c" } });
+    expect(nuevo.altaArrendador?.motivoCambio).toBeUndefined();
+    expect(nuevo.altaArrendador?.documentos).toEqual({});
+  });
+  it("incluye la geolocalizacion solo si hay", () => {
+    expect(calcularPatchAltaRetroactiva({ ...base, geolocalizacion: "20,-100" }).altaArrendador?.geolocalizacion).toBe("20,-100");
+    expect("geolocalizacion" in calcularPatchAltaRetroactiva(base).altaArrendador!).toBe(false);
+  });
+  it("no toca los datos del contrato: el domicilio se edita ahi", () => {
+    expect("contratoArrendamiento" in calcularPatchAltaRetroactiva(base)).toBe(false);
   });
 });

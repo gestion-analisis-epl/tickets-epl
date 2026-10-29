@@ -49,7 +49,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex-1 min-w-0 flex flex-col">
           <VerComoBanner />
           <Topbar onOpenMobileNav={() => setMobileNavOpen(true)} />
-          <main className="flex-1 min-w-0 overflow-x-hidden">{children}</main>
+          <main className="flex-1 min-w-0 overflow-x-clip">{children}</main>
         </div>
       </div>
     </CatalogoProvider>

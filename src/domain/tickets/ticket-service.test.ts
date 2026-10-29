@@ -313,7 +313,7 @@ describe("bloqueo de la solicitud en Pre-Cierre", () => {
 });
 
 describe("revision legal", () => {
-  const alta = { tipoAlta: "nuevo" as const, domicilio: { calle: "a", numero: "1", interior: "", colonia: "c", municipio: "m", estado: "e", cp: "1", entreCalles: "x" }, documentos: {} };
+  const alta = { tipoAlta: "nuevo" as const, documentos: {} };
   const COMPLETA = {
     tipoPropietario: "fisica" as const, nombrePropietario: "Juan", acreditaPropiedad: true, documentoPropiedad: "u",
     hayLimitacion: false, escenarioBeneficiario: "propietario" as const, hayCondicionPago: false,
@@ -356,5 +356,60 @@ describe("revision legal", () => {
       const { service } = montar(buildTicket({ id: "t2", servicioId: "JUR-C071", altaArrendador: alta, estatus }));
       await expect(service.updateTicketRevisionLegal("t2", COMPLETA)).rejects.toThrow(/Pre-Cierre o Cierre/);
     }
+  });
+});
+
+describe("edicion retroactiva de un ticket de Alta anterior", () => {
+  const captura = { tipoAlta: "nuevo" as const, motivoCambio: "", geolocalizacion: null, documentos: { predial: "https://x/p.pdf" } };
+  const contrato = { domicilio: "viejo", altaArrendador: "x", solicitante: "s", periodoInicio: "2026-01-01", periodoFin: "2027-01-01", condicionesPago: "63 - T", montoPago: 1, motivo: "m" };
+  const COMPLETA = {
+    tipoPropietario: "fisica" as const, nombrePropietario: "Juan", acreditaPropiedad: true, documentoPropiedad: "u",
+    hayLimitacion: false, escenarioBeneficiario: "propietario" as const, hayCondicionPago: false,
+  };
+  const anterior = (extra: Partial<Ticket> = {}) =>
+    buildTicket({ id: "t1", servicioId: "JUR-C071", estatus: "Cierre", contratoArrendamiento: contrato, ...extra });
+
+  it("guarda los datos de alta con la marca retroactiva aunque el ticket este en Cierre", async () => {
+    const t = anterior();
+    const { service } = montar(t);
+    await service.updateTicketAltaRetroactiva("t1", captura);
+    expect(t.altaArrendador?.retroactiva).toBe(true);
+    expect(t.altaArrendador?.documentos).toEqual({ predial: "https://x/p.pdf" });
+    expect(t.contratoArrendamiento?.domicilio).toBe("viejo");
+  });
+
+  it("refresca el resumen cuando el ticket esta en Cierre", async () => {
+    const { service, resumenes } = montar(anterior());
+    await service.updateTicketAltaRetroactiva("t1", captura);
+    expect(resumenes.has("t1")).toBe(true);
+  });
+
+  it("no guarda en Pre-Cierre, en otro servicio, ni sobre datos que capturo el solicitante", async () => {
+    await expect(montar(anterior({ estatus: "Pre-Cierre" })).service.updateTicketAltaRetroactiva("t1", captura)).rejects.toThrow();
+    await expect(montar(anterior({ servicioId: "JUR-C072" })).service.updateTicketAltaRetroactiva("t1", captura)).rejects.toThrow();
+    const delSolicitante = anterior({ altaArrendador: { tipoAlta: "nuevo", documentos: {} } });
+    await expect(montar(delSolicitante).service.updateTicketAltaRetroactiva("t1", captura)).rejects.toThrow();
+  });
+
+  it("exige el tipo de alta", async () => {
+    await expect(montar(anterior()).service.updateTicketAltaRetroactiva("t1", { ...captura, tipoAlta: "" })).rejects.toThrow(/tipo de alta/i);
+  });
+
+  it("la revision legal se guarda en un ticket anterior en Cierre, incluso sin datos de alta", async () => {
+    const t = anterior();
+    const { service } = montar(t);
+    await service.updateTicketRevisionLegal("t1", COMPLETA);
+    expect(t.revisionLegal?.nombrePropietario).toBe("Juan");
+  });
+
+  it("la revision legal de un ticket con datos del solicitante sigue bloqueada en Cierre, y en otros servicios", async () => {
+    const delSolicitante = anterior({ altaArrendador: { tipoAlta: "nuevo", documentos: {} } });
+    await expect(montar(delSolicitante).service.updateTicketRevisionLegal("t1", COMPLETA)).rejects.toThrow();
+    await expect(montar(anterior({ servicioId: "JUR-C073" })).service.updateTicketRevisionLegal("t1", COMPLETA)).rejects.toThrow();
+  });
+
+  it("un ticket anterior en Cierre sin datos de alta no se bloquea al reabrirse ni al volver a Cierre", async () => {
+    const { service } = montar(anterior());
+    await expect(service.updateTicketAsignacion("t1", actor, input("Cierre"))).resolves.toBeUndefined();
   });
 });

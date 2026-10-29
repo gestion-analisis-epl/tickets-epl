@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  aplicarSeleccion, campoBloqueado, filtrarOpciones, opcionesCampo, parseFilasSitios, SELECCION_VACIA,
+  aplicarSeleccion, campoBloqueado, filtrarOpciones, opcionesCampo, geolocalizacionDelTicket, parseFilasSitios, SELECCION_VACIA,
   siguienteAncla, sitioDeSeleccion, type Sitio,
 } from "./sitios-rules";
 
@@ -285,5 +285,44 @@ describe("parseFilasSitios: geolocalizacion", () => {
   });
   it("al juntar filas del mismo sitio conserva la primera geolocalizacion no vacia", () => {
     expect(parseFilasSitios([ENC, ["C1", "Alias", ""], ["C1", "Alias", "1,2"]])).toEqual([{ clave: "C1", alias: "Alias", geolocalizacion: "1,2" }]);
+  });
+});
+
+describe("parseFilasSitios: geolocalizacion invalida", () => {
+  const ENC = ["anun_Clave", "anun_Alias", "anun_Geolocalizacion"];
+  it("N/A, 0 y texto no se guardan: el sitio queda sin geolocalizacion", () => {
+    for (const malo of ["N/A", "0", "sin dato", "0,0"]) {
+      expect(parseFilasSitios([ENC, ["C1", "Alias", malo]])).toEqual([{ clave: "C1", alias: "Alias" }]);
+    }
+  });
+  it("normaliza el espacio despues de la coma", () => {
+    expect(parseFilasSitios([ENC, ["C1", "Alias", "21.043621, -101.562534"]])).toEqual([{ clave: "C1", alias: "Alias", geolocalizacion: "21.043621,-101.562534" }]);
+  });
+  it("una fila invalida no tapa a una valida del mismo sitio", () => {
+    expect(parseFilasSitios([ENC, ["C1", "Alias", "N/A"], ["C1", "Alias", "1,2"]])).toEqual([{ clave: "C1", alias: "Alias", geolocalizacion: "1,2" }]);
+  });
+});
+
+describe("geolocalizacionDelTicket", () => {
+  const catalogo = [
+    { clave: "C1", alias: "Con mapa", geolocalizacion: "21.04,-101.56" },
+    { clave: "C2", alias: "Sin mapa" },
+  ];
+
+  it("usa la coordenada vigente del catalogo", () => {
+    expect(geolocalizacionDelTicket(catalogo, { clave: "C1", alias: "Con mapa" }, "1,2")).toBe("21.04,-101.56");
+  });
+  it("si el catalogo no la trae, usa la que guardo el ticket", () => {
+    expect(geolocalizacionDelTicket(catalogo, { clave: "C2", alias: "Sin mapa" }, "1,2")).toBe("1,2");
+  });
+  it("si el sitio ya no esta en el catalogo, usa la guardada", () => {
+    expect(geolocalizacionDelTicket(catalogo, { clave: "X", alias: "Otro" }, "1,2")).toBe("1,2");
+  });
+  it("sin sitio ni coordenada guardada no hay coordenada; una guardada invalida se ignora", () => {
+    expect(geolocalizacionDelTicket(catalogo, undefined, undefined)).toBeNull();
+    expect(geolocalizacionDelTicket(catalogo, { clave: "C2", alias: "Sin mapa" }, "N/A")).toBeNull();
+  });
+  it("con el catalogo vacio (aun cargando) cae a la guardada", () => {
+    expect(geolocalizacionDelTicket([], { clave: "C1", alias: "Con mapa" }, "1,2")).toBe("1,2");
   });
 });

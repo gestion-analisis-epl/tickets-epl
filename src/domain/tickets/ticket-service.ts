@@ -1,6 +1,8 @@
 import { deleteTicketDocuments } from "@/lib/storage";
 import type { Estatus, RevisionLegal, SitioArrendamiento, Ticket } from "@/types/ticket";
-import { normalizarRevisionLegal, revisionLegalPendiente, RevisionLegalIncompletaError } from "./revision-legal-rules";
+import { etapaPermiteEditar, normalizarRevisionLegal, revisionLegalPendiente, RevisionLegalIncompletaError } from "./revision-legal-rules";
+import { calcularPatchAltaRetroactiva, esAltaRetroactiva, validarAltaRetroactiva, type AltaRetroactivaCapturada } from "./alta-arrendador-rules";
+import { SERVICIO_ALTA_ARRENDADOR_ID } from "@/lib/data/arrendamientos-temporal";
 import type { ResumenContratoRepository } from "@/domain/contratos/resumen-contrato-repository";
 import { accionResumen, construirResumenContrato, ETAPAS_VISIBLES_JEFE_ZONA, resumenSinCambios } from "@/domain/contratos/contrato-rules";
 import type { CatalogoLookup } from "@/domain/catalogo/catalogo-lookup";
@@ -192,9 +194,28 @@ export function createTicketService(
   async function updateTicketRevisionLegal(id: string, revision: RevisionLegal): Promise<void> {
     const current = await repo.getById(id);
     if (!current) throw new Error("Ticket no encontrado.");
-    if (!current.altaArrendador) throw new Error("El ticket no es una alta de arrendador.");
-    if (!solicitudEditable(current.estatus)) throw new Error("La revisión legal ya no se puede editar porque el ticket está en Pre-Cierre o Cierre.");
+    if (current.servicioId !== SERVICIO_ALTA_ARRENDADOR_ID) throw new Error("El ticket no es una alta de arrendador.");
+    if (!etapaPermiteEditar(current)) {
+      throw new Error("La revisión legal ya no se puede editar porque el ticket está en Pre-Cierre o Cierre.");
+    }
     await repo.update(id, { revisionLegal: normalizarRevisionLegal(revision) });
+  }
+
+  // Tickets de Alta anteriores al formulario nuevo: el abogado completa lo que el solicitante no capturo,
+  // en cualquier etapa menos Pre-Cierre (incluido Cierre).
+  async function updateTicketAltaRetroactiva(id: string, entrada: AltaRetroactivaCapturada): Promise<void> {
+    const errores = validarAltaRetroactiva(entrada);
+    const primero = Object.values(errores)[0];
+    if (primero) throw new Error(primero);
+
+    const current = await repo.getById(id);
+    if (!current) throw new Error("Ticket no encontrado.");
+    if (!esAltaRetroactiva(current)) throw new Error("Este ticket ya tiene los datos de alta capturados por el solicitante.");
+    if (bloqueadoPorPreCierre(current.estatus)) throw new Error(MENSAJE_BLOQUEO_PRE_CIERRE);
+
+    const patch = calcularPatchAltaRetroactiva(entrada);
+    await repo.update(id, patch);
+    await refrescarResumenSiVisible({ ...current, ...patch } as Ticket);
   }
 
   async function updateTicketExclusion(id: string, actor: ActorHistorial, excluido: boolean): Promise<void> {
@@ -290,6 +311,7 @@ export function createTicketService(
     updateTicketSitio,
     updateTicketContrato,
     updateTicketRevisionLegal,
+    updateTicketAltaRetroactiva,
     updateTicketExclusion,
     deleteTicket,
     submitSatisfaccion,

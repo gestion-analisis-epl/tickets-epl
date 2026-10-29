@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   repartoEquitativo, normalizarRevisionLegal, faltantesRevisionLegal, revisionLegalPendiente, puedeEditarRevisionLegal,
+  puedeEditarAltaRetroactiva,
 } from "./revision-legal-rules";
 import type { RevisionLegal } from "@/types/ticket";
 
@@ -105,15 +106,57 @@ describe("revisionLegalPendiente", () => {
 });
 
 describe("puedeEditarRevisionLegal", () => {
-  const ticket = { abogadoAsignadoId: "a1", estatus: "Proceso en tramite" as const, altaArrendador: {} as never };
+  const ticket = { servicioId: "JUR-C071", abogadoAsignadoId: "a1", estatus: "Proceso en tramite" as const, altaArrendador: {} as never };
   it("admin y abogado asignado si; Mesa de Control y otro abogado no", () => {
     expect(puedeEditarRevisionLegal({ role: "admin", abogadoId: null }, ticket)).toBe(true);
     expect(puedeEditarRevisionLegal({ role: "abogado", abogadoId: "a1" }, ticket)).toBe(true);
     expect(puedeEditarRevisionLegal({ role: "abogado", abogadoId: "a2" }, ticket)).toBe(false);
     expect(puedeEditarRevisionLegal({ role: "mesa_control", abogadoId: null }, ticket)).toBe(false);
   });
-  it("no en Pre-Cierre ni sin altaArrendador", () => {
+  it("un ticket de Alta con datos nuevos no se edita en Pre-Cierre ni en Cierre", () => {
     expect(puedeEditarRevisionLegal({ role: "admin", abogadoId: null }, { ...ticket, estatus: "Pre-Cierre" })).toBe(false);
-    expect(puedeEditarRevisionLegal({ role: "admin", abogadoId: null }, { ...ticket, altaArrendador: undefined })).toBe(false);
+    expect(puedeEditarRevisionLegal({ role: "admin", abogadoId: null }, { ...ticket, estatus: "Cierre" })).toBe(false);
+  });
+  it("no en otros servicios", () => {
+    expect(puedeEditarRevisionLegal({ role: "admin", abogadoId: null }, { ...ticket, servicioId: "JUR-C073" })).toBe(false);
+  });
+
+  describe("tickets anteriores (retroactivos)", () => {
+    const abogado = { role: "abogado" as const, abogadoId: "a1" };
+    const anterior = { ...ticket, altaArrendador: undefined };
+    const completado = { ...ticket, altaArrendador: { retroactiva: true } as never };
+
+    it("sin datos de alta: el abogado asignado edita en cualquier etapa menos Pre-Cierre, incluido Cierre", () => {
+      expect(puedeEditarRevisionLegal(abogado, { ...anterior, estatus: "Cierre" })).toBe(true);
+      expect(puedeEditarRevisionLegal(abogado, { ...anterior, estatus: "Pre-Cierre" })).toBe(false);
+      expect(puedeEditarRevisionLegal({ role: "abogado", abogadoId: "a2" }, { ...anterior, estatus: "Cierre" })).toBe(false);
+      expect(puedeEditarRevisionLegal({ role: "mesa_control", abogadoId: null }, { ...anterior, estatus: "Cierre" })).toBe(false);
+    });
+    it("ya completado retroactivamente: sigue editable en Cierre y no en Pre-Cierre", () => {
+      expect(puedeEditarRevisionLegal(abogado, { ...completado, estatus: "Cierre" })).toBe(true);
+      expect(puedeEditarRevisionLegal(abogado, { ...completado, estatus: "Pre-Cierre" })).toBe(false);
+    });
+  });
+});
+
+describe("puedeEditarAltaRetroactiva", () => {
+  const abogado = { role: "abogado" as const, abogadoId: "a1" };
+  const anterior = { servicioId: "JUR-C071", abogadoAsignadoId: "a1", estatus: "Cierre" as const, altaArrendador: undefined };
+
+  it("un ticket de Alta anterior lo completa el abogado asignado o admin, tambien en Cierre", () => {
+    expect(puedeEditarAltaRetroactiva(abogado, anterior)).toBe(true);
+    expect(puedeEditarAltaRetroactiva({ role: "admin", abogadoId: null }, anterior)).toBe(true);
+  });
+  it("no en Pre-Cierre, ni Mesa de Control, ni otro abogado, ni otro servicio", () => {
+    expect(puedeEditarAltaRetroactiva(abogado, { ...anterior, estatus: "Pre-Cierre" })).toBe(false);
+    expect(puedeEditarAltaRetroactiva({ role: "mesa_control", abogadoId: null }, anterior)).toBe(false);
+    expect(puedeEditarAltaRetroactiva({ role: "abogado", abogadoId: "a2" }, anterior)).toBe(false);
+    expect(puedeEditarAltaRetroactiva(abogado, { ...anterior, servicioId: "JUR-C072" })).toBe(false);
+  });
+  it("un ticket con datos de alta del solicitante (no retroactivos) no se puede reescribir", () => {
+    expect(puedeEditarAltaRetroactiva(abogado, { ...anterior, altaArrendador: { retroactiva: undefined } as never })).toBe(false);
+  });
+  it("uno ya completado retroactivamente se puede corregir", () => {
+    expect(puedeEditarAltaRetroactiva(abogado, { ...anterior, altaArrendador: { retroactiva: true } as never })).toBe(true);
   });
 });

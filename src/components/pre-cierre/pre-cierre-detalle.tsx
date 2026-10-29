@@ -9,6 +9,7 @@ import { useAuthStore } from "@/stores/auth";
 import { esJefeZona, puedeDarVistoBueno } from "@/types/user";
 import { actorDesdeSesion } from "@/domain/tickets/historial-rules";
 import { ConversacionPanel } from "@/components/tickets/conversacion-panel";
+import { MapaSitio } from "@/components/tickets/mapa-sitio";
 import { solicitarCambios } from "@/lib/conversacion";
 import { solicitarResumenContrato } from "@/lib/contratos";
 import { MAX_TEXTO_COMENTARIO, validarTextoComentario } from "@/domain/tickets/conversacion-rules";
@@ -195,6 +196,8 @@ export function PreCierreDetalle({ id }: { id: string }) {
               <Campo key={d.label} label={d.label}>{d.valor}</Campo>
             ))}
           </dl>
+
+          <MapaSitio geolocalizacion={resumen.geolocalizacion} />
 
           {resumen.descripcion && (
             <div>

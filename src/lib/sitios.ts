@@ -4,11 +4,11 @@ import { crearCacheSesionSitios } from "@/domain/sitios/sitios-sesion";
 
 const TTL_SESION_MS = 30 * 60 * 1000;
 
-async function pedirSitios(): Promise<ResultadoSitios> {
+async function pedirSitios({ forzar }: { forzar: boolean }): Promise<ResultadoSitios> {
   const idToken = await auth.currentUser?.getIdToken();
   if (!idToken) throw new Error("Sesion no valida. Vuelve a iniciar sesion.");
 
-  const res = await fetch("/api/sitios", { headers: { Authorization: `Bearer ${idToken}` } });
+  const res = await fetch(forzar ? "/api/sitios?forzar=1" : "/api/sitios", { headers: { Authorization: `Bearer ${idToken}` } });
   if (!res.ok) {
     const cuerpo = await res.json().catch(() => null);
     throw new Error(cuerpo?.error ?? "No se pudo cargar el catalogo de sitios.");

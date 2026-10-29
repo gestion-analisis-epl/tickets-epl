@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     await verifyCallerToken(request);
-    return NextResponse.json(await leerSitios());
+    const forzar = new URL(request.url).searchParams.get("forzar") === "1";
+    return NextResponse.json(await leerSitios({ forzar }));
   } catch (err) {
     if (err instanceof ApiAuthError) {
       return NextResponse.json({ error: err.message }, { status: err.status });

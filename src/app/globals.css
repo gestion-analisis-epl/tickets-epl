@@ -187,6 +187,7 @@ html {
            placeholder:text-muted focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/30;
   }
   textarea.field { @apply h-auto py-2; }
+  .field[aria-invalid="true"] { @apply border-danger bg-danger/5; }
   .field-label { @apply block text-[13px] font-semibold tracking-wide mb-1.5; }
   .section-card { @apply rounded-md border border-border border-t-2 border-t-accent bg-card shadow-[0_1px_0_hsl(var(--border))]; }
   .section-title { @apply font-display text-lg font-semibold tracking-tight; }

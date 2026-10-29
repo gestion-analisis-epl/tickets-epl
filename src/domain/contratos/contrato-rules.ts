@@ -1,3 +1,4 @@
+import { geolocalizacionValida } from "@/domain/sitios/geolocalizacion";
 import type { Estatus, Ticket } from "@/types/ticket";
 import { esArchivoContrato } from "./tipo-archivo";
 import type { DocumentoResumen, GrupoDocumento, ResumenContrato, ResumenContratoTicket } from "@/types/resumen-contrato";
@@ -74,6 +75,7 @@ export function construirResumenContrato(ticket: Ticket, ahora: Date, previo?: R
   const urlGemini = gemini?.contratoUrl && ticket.documentacion.includes(gemini.contratoUrl) ? gemini.contratoUrl : null;
   const contratoUrl = urlGemini ?? encontrarContrato(ticket.documentacion);
   const extraccion = gemini?.estado === "listo" ? gemini.extraccion : null;
+  const geolocalizacion = geolocalizacionValida(ticket.altaArrendador?.geolocalizacion);
 
   return {
     ticketId: ticket.id,
@@ -96,6 +98,7 @@ export function construirResumenContrato(ticket: Ticket, ahora: Date, previo?: R
     periodoFin: contrato?.periodoFin || extraccion?.periodoFin || null,
     condicionesPago: extraccion?.condicionesPago ?? contrato?.condicionesPago ?? null,
     metodoPago: contrato?.condicionesPago ?? null,
+    ...(geolocalizacion ? { geolocalizacion } : {}),
     montoPagoAnual: extraccion?.montoPagoAnual ?? contrato?.montoPago ?? null,
     formaPago: extraccion?.formaPago ?? null,
     discrepancias: gemini?.discrepancias ?? [],

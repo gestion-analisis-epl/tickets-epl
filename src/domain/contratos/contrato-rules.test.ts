@@ -259,7 +259,6 @@ describe("documentosDelResumen: alta de arrendador", () => {
     const t = buildTicket({
       altaArrendador: {
         tipoAlta: "cambio",
-        domicilio: { calle: "a", numero: "1", interior: "", colonia: "c", municipio: "m", estado: "e", cp: "1", entreCalles: "x" },
         documentos: { predial: "https://x/predial.pdf", contratoAnterior: "https://x/ant.pdf" },
       },
     });
@@ -268,5 +267,25 @@ describe("documentosDelResumen: alta de arrendador", () => {
       { etiqueta: "Predial", url: "https://x/predial.pdf", grupo: "arrendamiento" },
       { etiqueta: "Contrato anterior", url: "https://x/ant.pdf", grupo: "arrendamiento" },
     ]));
+  });
+});
+
+describe("construirResumenContrato: geolocalizacion", () => {
+  const conAlta = (geolocalizacion?: string) =>
+    buildTicket({
+      altaArrendador: {
+        tipoAlta: "nuevo",
+        documentos: {},
+        ...(geolocalizacion ? { geolocalizacion } : {}),
+      },
+    });
+
+  it("lleva la coordenada del ticket cuando es valida", () => {
+    expect(construirResumenContrato(conAlta("21.04,-101.56"), new Date(), null).geolocalizacion).toBe("21.04,-101.56");
+  });
+  it("omite la llave si no hay coordenada valida (Firestore no acepta undefined)", () => {
+    expect("geolocalizacion" in construirResumenContrato(conAlta(), new Date(), null)).toBe(false);
+    expect("geolocalizacion" in construirResumenContrato(conAlta("N/A"), new Date(), null)).toBe(false);
+    expect("geolocalizacion" in construirResumenContrato(buildTicket(), new Date(), null)).toBe(false);
   });
 });

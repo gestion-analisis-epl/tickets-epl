@@ -8,19 +8,21 @@ import { useAuthStore } from "@/stores/auth";
 import { usePermiso } from "@/hooks/use-permiso";
 import { auth } from "@/lib/firebase";
 import { useTicket } from "@/hooks/use-ticket";
-import { updateTicketAsignacion, updateTicketSolicitud, updateTicketSitio, updateTicketContrato, updateTicketRevisionLegal, submitSatisfaccion, deleteTicket } from "@/lib/tickets";
+import { updateTicketAsignacion, updateTicketSolicitud, updateTicketSitio, updateTicketContrato, updateTicketRevisionLegal, updateTicketAltaRetroactiva, submitSatisfaccion, deleteTicket } from "@/lib/tickets";
 import { findServicio } from "@/lib/catalogo";
 import { ResumenContratoCard } from "./resumen-contrato-card";
 import { HistorialPanel } from "./historial-panel";
 import { DatosContratoFields } from "./datos-contrato-fields";
 import { RevisionLegalPanel } from "./revision-legal-panel";
-import { puedeEditarRevisionLegal, RevisionLegalIncompletaError } from "@/domain/tickets/revision-legal-rules";
-import { DOCUMENTOS_ALTA, ETIQUETAS_DOMICILIO } from "@/domain/tickets/alta-arrendador-rules";
-import type { DomicilioDesglosado } from "@/types/ticket";
+import { puedeEditarAltaRetroactiva, puedeEditarRevisionLegal, RevisionLegalIncompletaError } from "@/domain/tickets/revision-legal-rules";
+import { AltaRetroactivaForm } from "./alta-retroactiva-form";
+import { MapaDelTicket } from "./mapa-ticket";
+import { DOCUMENTOS_ALTA } from "@/domain/tickets/alta-arrendador-rules";
 import { ConversacionPanel } from "./conversacion-panel";
 import { esParticipante, hiloEscribible, hiloVisible } from "@/domain/tickets/conversacion-rules";
 import { DosColumnas } from "@/components/layout/dos-columnas";
 import { ServicioSelector } from "./servicio-selector";
+import { Campo } from "@/components/forms/campo";
 import { SitioSelector, seleccionDeSitio } from "./sitio-selector";
 import { SELECCION_VACIA, type SeleccionSitio } from "@/domain/sitios/sitios-rules";
 import { puedeActualizarSitio } from "@/domain/tickets/sitio-rules";
@@ -102,6 +104,8 @@ export function TicketDetail({ id }: { id: string }) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveOk, setSaveOk] = useState(false);
+  // Asignacion y estatus se ve como resumen; los campos solo aparecen al pulsar "Editar".
+  const [editandoAsignacion, setEditandoAsignacion] = useState(false);
 
   const [satisfaccionSel, setSatisfaccionSel] = useState<number | null>(null);
   const [comentarioSatisfaccion, setComentarioSatisfaccion] = useState("");
@@ -173,12 +177,13 @@ export function TicketDetail({ id }: { id: string }) {
   // y gerente_juridico (ya cubierto por isAdminRole) pueden subir/borrar archivos.
   const esAbogadoAsignado = role === "abogado" && !!abogadoId && abogadoId === ticket.abogadoAsignadoId;
   const puedeEditarDocumentos = (puedeEditarSolicitud || esAbogadoAsignado) && solicitudEditable(ticket.estatus);
-  const todaLaDocumentacion = [
+  // Sin repetidos: en un ticket anterior los documentos viejos pueden reaparecer con su nombre nuevo.
+  const todaLaDocumentacion = Array.from(new Set([
     ...ticket.documentacion,
     ...(ticket.formatoArrendamientoUrl ? [ticket.formatoArrendamientoUrl] : []),
     ...(ticket.documentosArrendamiento ? Object.values(ticket.documentosArrendamiento).filter((u): u is string => !!u) : []),
     ...(ticket.altaArrendador ? Object.values(ticket.altaArrendador.documentos).filter((u): u is string => !!u) : []),
-  ];
+  ]));
 
   const esArrendamiento = SERVICIOS_ARRENDAMIENTO_IDS.includes(ticket.servicioId);
   const sitioCompleto = !!(sitioForm.clave && sitioForm.alias);
@@ -192,7 +197,9 @@ export function TicketDetail({ id }: { id: string }) {
   const puedeEditarDatosContrato = puedeEditarContrato({ role, abogadoId }, ticket);
   const puedeEditarRevision = puedeEditarRevisionLegal({ role, abogadoId }, ticket);
   // Informacion legal interna: solo la ve quien puede editar (Legal/admin), no el solicitante.
-  const verRevisionLegal = !!ticket.altaArrendador && ticket.servicioId === SERVICIO_ALTA_ARRENDADOR_ID && puedeEditar;
+  // Tambien en las Altas anteriores al formulario nuevo (sin datos de alta): el abogado las completa retroactivamente.
+  const verRevisionLegal = ticket.servicioId === SERVICIO_ALTA_ARRENDADOR_ID && puedeEditar;
+  const puedeEditarAlta = puedeEditarAltaRetroactiva({ role, abogadoId }, ticket);
   // Tickets anteriores al formulario de contrato: se muestran los campos vacios y se pueden completar.
   const faltanDatosContrato = !ticket.contratoArrendamiento && requiereDatosContrato(ticket.servicioId);
   const pideFormato = SERVICIOS_CON_FORMATO_OBLIGATORIO_IDS.includes(ticket.servicioId);
@@ -271,6 +278,20 @@ export function TicketDetail({ id }: { id: string }) {
     }
   }
 
+  function handleEditarAsignacion() {
+    setSaveOk(false);
+    setSaveError(null);
+    setEditandoAsignacion(true);
+  }
+
+  function handleCancelarAsignacion() {
+    setEstatusForm(ticket!.estatus);
+    setAbogadoForm(ticket!.abogadoAsignadoId ?? "");
+    setNotasForm(ticket!.notasCierre ?? "");
+    setSaveError(null);
+    setEditandoAsignacion(false);
+  }
+
   async function handleGuardar() {
     if (!actor) return;
     setSaving(true);
@@ -283,6 +304,7 @@ export function TicketDetail({ id }: { id: string }) {
         notasCierre: notasForm || null,
       });
       setSaveOk(true);
+      setEditandoAsignacion(false);
     } catch (err) {
       setSaveError(err instanceof RevisionLegalIncompletaError ? err.message : "No se pudo guardar. Intenta de nuevo.");
     } finally {
@@ -455,20 +477,18 @@ export function TicketDetail({ id }: { id: string }) {
           <div className="space-y-4">
             {puedeEditarSolicitud ? (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="field-label">Empresa / Área</label>
+                <div className="grid grid-cols-1 gap-x-6 gap-y-6 md:grid-cols-3">
+                  <Campo id="solicitud-area-detalle" etiqueta="Empresa y área que solicita">
                     <select
+                      id="solicitud-area-detalle"
                       value={areaEmpresaForm}
                       onChange={(e) => setAreaEmpresaForm(e.target.value)}
                       className="w-full field"
                     >
                       {AREAS_EMPRESA.map((a) => <option key={a} value={a}>{a}</option>)}
                     </select>
-                  </div>
-                  <div>
-                    <ServicioSelector value={servicioIdForm} onChange={setServicioIdForm} />
-                  </div>
+                  </Campo>
+                  <ServicioSelector className="contents" value={servicioIdForm} onChange={setServicioIdForm} />
                 </div>
 
                 <div>
@@ -605,10 +625,13 @@ export function TicketDetail({ id }: { id: string }) {
                     </div>
                   </div>
                 ) : ticket.sitioArrendamiento ? (
-                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                    <div><dt className="text-muted">Clave</dt><dd className="font-medium">{ticket.sitioArrendamiento.clave}</dd></div>
-                    <div><dt className="text-muted">Alias</dt><dd className="font-medium">{ticket.sitioArrendamiento.alias}</dd></div>
-                  </dl>
+                  <>
+                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                      <div><dt className="text-muted">Clave</dt><dd className="font-medium">{ticket.sitioArrendamiento.clave}</dd></div>
+                      <div><dt className="text-muted">Alias</dt><dd className="font-medium">{ticket.sitioArrendamiento.alias}</dd></div>
+                    </dl>
+                    <MapaDelTicket sitio={ticket.sitioArrendamiento} guardada={ticket.altaArrendador?.geolocalizacion} />
+                  </>
                 ) : ticket.contratoArrendamiento?.sitio ? (
                   <p className="text-sm">
                     <span className="font-medium">{ticket.contratoArrendamiento.sitio}</span>
@@ -656,10 +679,6 @@ export function TicketDetail({ id }: { id: string }) {
                     {ticket.altaArrendador.tipoAlta === "cambio" && (
                       <div><dt className="text-muted">Motivo del cambio</dt><dd className="font-medium">{datoContrato(ticket.altaArrendador.motivoCambio)}</dd></div>
                     )}
-                    {(Object.keys(ETIQUETAS_DOMICILIO) as (keyof DomicilioDesglosado)[]).map((campo) => (
-                      <div key={campo}><dt className="text-muted">{ETIQUETAS_DOMICILIO[campo]}</dt><dd className="font-medium">{datoContrato(ticket.altaArrendador?.domicilio[campo])}</dd></div>
-                    ))}
-                    <div><dt className="text-muted">Geolocalización</dt><dd className="font-medium">{datoContrato(ticket.altaArrendador.geolocalizacion)}</dd></div>
                   </dl>
                 </div>
                 <div>
@@ -693,7 +712,7 @@ export function TicketDetail({ id }: { id: string }) {
                 </div>
                 {editandoContrato && contratoForm ? (
                   <div className="space-y-4">
-                    <DatosContratoFields contrato={contratoForm} errors={contratoErrors} onChange={handleCambioContrato} ocultarDomicilio={!!ticket.altaArrendador} />
+                    <DatosContratoFields contrato={contratoForm} errors={contratoErrors} onChange={handleCambioContrato} />
                     <p className="text-xs text-muted">Los cambios quedan registrados en el historial del ticket.</p>
                     {contratoError && <p className="text-sm text-danger">{contratoError}</p>}
                     <div className="flex gap-3">
@@ -732,6 +751,13 @@ export function TicketDetail({ id }: { id: string }) {
         )}
       </section>
 
+      {puedeEditarAlta && (
+        <section className="section-card p-6 space-y-4">
+          <h2 className="eyebrow">Datos de alta de arrendador</h2>
+          <AltaRetroactivaForm ticketId={id} ticket={ticket} onGuardar={(entrada) => updateTicketAltaRetroactiva(id, entrada)} />
+        </section>
+      )}
+
       {verRevisionLegal && (
         <section className="section-card p-6 space-y-4">
           <h2 className="eyebrow">Revisión legal</h2>
@@ -746,9 +772,17 @@ export function TicketDetail({ id }: { id: string }) {
 
       {/* Asignacion / estatus (ambar, editable solo por Legal/admin) */}
       <section className="section-card p-6 space-y-4">
-        <h2 className="eyebrow">Asignación y estatus</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="eyebrow">Asignación y estatus</h2>
+          {puedeEditar && !editandoAsignacion && (
+            <Button variant="outline" size="sm" onClick={handleEditarAsignacion}>
+              <Pencil className="h-3.5 w-3.5" />
+              Editar
+            </Button>
+          )}
+        </div>
 
-        {puedeEditar ? (
+        {puedeEditar && editandoAsignacion ? (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -797,23 +831,40 @@ export function TicketDetail({ id }: { id: string }) {
             )}
 
             {saveError && <p className="text-sm text-danger">{saveError}</p>}
-            {saveOk && <p className="text-sm text-success">Cambios guardados.</p>}
 
-            <Button variant="success" onClick={handleGuardar} disabled={saving}>
-              {saving ? "Guardando..." : "Guardar cambios"}
-            </Button>
+            <div className="flex gap-3">
+              <Button variant="success" onClick={handleGuardar} disabled={saving}>
+                {saving ? "Guardando..." : "Guardar cambios"}
+              </Button>
+              <Button variant="outline" onClick={handleCancelarAsignacion} disabled={saving}>
+                Cancelar
+              </Button>
+            </div>
           </>
         ) : (
-          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-            <div><dt className="text-muted">Abogado asignado</dt><dd className="font-medium">{ticket.abogadoAsignadoId ?? "Sin asignar"}</dd></div>
-            <div><dt className="text-muted">Fecha de asignación</dt><dd className="font-medium">{formatFecha(ticket.fechaAsignacion, { conHora: true })}</dd></div>
-            {ticket.fechaCierre && (
-              <>
+          <>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <div><dt className="text-muted">Estatus</dt><dd className="font-medium">{ticket.estatus}</dd></div>
+              <div>
+                <dt className="text-muted">Abogado asignado</dt>
+                <dd className="font-medium">
+                  {ABOGADOS.find((a) => a.id === ticket.abogadoAsignadoId)?.nombre ?? ticket.abogadoAsignadoId ?? "Sin asignar"}
+                </dd>
+              </div>
+              {ticket.fechaAsignacion && (
+                <div><dt className="text-muted">Fecha de asignación</dt><dd className="font-medium">{formatFecha(ticket.fechaAsignacion, { conHora: true })}</dd></div>
+              )}
+              {ticket.fechaCierre && (
                 <div><dt className="text-muted">Fecha de cierre</dt><dd className="font-medium">{formatFecha(ticket.fechaCierre, { conHora: true })}</dd></div>
-                {ticket.notasCierre && <div className="sm:col-span-2"><dt className="text-muted">Notas de cierre</dt><dd>{ticket.notasCierre}</dd></div>}
-              </>
-            )}
-          </dl>
+              )}
+              {ticket.notasCierre ? (
+                <div className="sm:col-span-2"><dt className="text-muted">Notas de cierre / lecciones aprendidas</dt><dd className="whitespace-pre-wrap">{ticket.notasCierre}</dd></div>
+              ) : puedeEditar && (
+                <div className="sm:col-span-2"><dt className="text-muted">Notas de cierre / lecciones aprendidas</dt><dd className="text-muted">Sin notas todavía. Pulsa &quot;Editar&quot; para agregarlas.</dd></div>
+              )}
+            </dl>
+            {saveOk && <p className="text-sm text-success">Cambios guardados.</p>}
+          </>
         )}
       </section>
 

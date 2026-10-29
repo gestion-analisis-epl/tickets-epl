@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2, Lock, RefreshCw } from "lucide-react";
 import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import { useSitios } from "@/hooks/use-sitios";
@@ -31,7 +31,10 @@ export function SitioSelector({ value, onChange, error }: SitioSelectorProps) {
   // Sin ancla (p. ej. ticket que ya traia sitio) Clave y Alias quedan bloqueados hasta limpiar.
   const [ancla, setAncla] = useState<AnclaSitio>(null);
 
-  if (loading) {
+  // Al actualizar con el catalogo ya cargado se mantienen los campos a la vista.
+  const actualizando = loading && sitios.length > 0;
+
+  if (loading && !actualizando) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted">
         <Loader2 className="h-4 w-4 animate-spin" /> Cargando catalogo de sitios...
@@ -87,11 +90,20 @@ export function SitioSelector({ value, onChange, error }: SitioSelectorProps) {
           );
         })}
       </div>
-      {hayAlgo && (
-        <Button type="button" variant="ghost" size="sm" className="mt-2" onClick={limpiar}>
-          Limpiar sitio
+      <div className="flex flex-wrap items-center gap-x-2 mt-2">
+        {hayAlgo && (
+          <Button type="button" variant="ghost" size="sm" onClick={limpiar}>
+            Limpiar sitio
+          </Button>
+        )}
+        <Button type="button" variant="ghost" size="sm" onClick={reintentar} disabled={actualizando}>
+          <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${actualizando ? "animate-spin" : ""}`} />
+          {actualizando ? "Actualizando..." : "Actualizar catalogo"}
         </Button>
-      )}
+      </div>
+      <p className="text-xs text-muted">
+        Si agregaste un sitio nuevo a la hoja y no lo ves, pulsa &quot;Actualizar catalogo&quot;.
+      </p>
       {error && <p className="text-xs text-danger mt-1">{error}</p>}
       {desactualizado && (
         <p className="text-xs text-muted mt-1">

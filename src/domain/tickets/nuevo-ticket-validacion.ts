@@ -47,7 +47,7 @@ export function validarContrato(contrato: ContratoCapturado): Record<string, str
 
 export function validarSolicitud(s: SolicitudCapturada): Record<string, string> {
   const errores: Record<string, string> = {};
-  if (!s.areaEmpresa) errores.areaEmpresa = "Selecciona el area o empresa solicitante.";
+  if (!s.areaEmpresa) errores.areaEmpresa = "Selecciona la empresa y el área que solicita.";
   if (!s.servicioId) errores.servicioId = "Selecciona el servicio que necesitas.";
   if (!s.descripcion.trim()) errores.descripcion = "Describe brevemente la solicitud.";
   if (s.servicioId && !s.sitioListo) errores.sitio = "Selecciona el sitio (clave y alias).";
@@ -61,10 +61,6 @@ export function validarSolicitud(s: SolicitudCapturada): Record<string, string> 
   for (const doc of s.documentosFaltantes) errores[doc.key] = `Adjunta: ${doc.label}.`;
 
   if (s.requiereDatosContrato) Object.assign(errores, validarContrato(s.contrato));
-  if (s.alta) {
-    // El domicilio de texto se arma con los campos desglosados: el error visible es el de cada campo.
-    delete errores.domicilio;
-    Object.assign(errores, validarAlta(s.alta));
-  }
+  if (s.alta) Object.assign(errores, validarAlta(s.alta));
   return errores;
 }
