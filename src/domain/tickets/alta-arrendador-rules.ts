@@ -2,8 +2,8 @@ import type { AltaArrendadorInput, DocumentoAltaKey, TipoAlta, Ticket } from "@/
 import { SERVICIO_ALTA_ARRENDADOR_ID } from "@/lib/data/arrendamientos-temporal";
 
 export const DOCUMENTOS_ALTA: { key: DocumentoAltaKey; label: string; ayuda: string; soloCambio?: boolean }[] = [
-  { key: "identificaciones", label: "Identificaciones", ayuda: "Identificación oficial del arrendador." },
-  { key: "personalidadLegal", label: "Personalidad legal", ayuda: "Documento que muestra quién puede firmar por el arrendador." },
+  { key: "identificaciones", label: "Identificación", ayuda: "Identificación oficial del arrendador." },
+  { key: "personalidadLegal", label: "Personalidad legal", ayuda: "Documento que muestra quién puede firmar por el arrendador.", soloCambio: true },
   { key: "acreditacionPropiedad", label: "Acreditación de propiedad", ayuda: "Escrituras u otro documento que muestre que es el dueño del inmueble." },
   { key: "predial", label: "Predial", ayuda: "Recibo del impuesto predial." },
   { key: "comprobanteDomicilio", label: "Comprobante de domicilio", ayuda: "Recibo que muestre el domicilio del arrendador." },
@@ -65,7 +65,7 @@ export interface AltaRetroactivaCapturada extends AltaCapturada {
 export function calcularPatchAltaRetroactiva(entrada: AltaRetroactivaCapturada): Partial<Ticket> {
   const tipo = entrada.tipoAlta as TipoAlta;
   const documentos = Object.fromEntries(
-    DOCUMENTOS_ALTA.filter((d) => (d.key !== "contratoAnterior" || tipo === "cambio") && entrada.documentos[d.key])
+    DOCUMENTOS_ALTA.filter((d) => (!d.soloCambio || tipo === "cambio") && entrada.documentos[d.key])
       .map((d) => [d.key, entrada.documentos[d.key]])
   ) as AltaArrendadorInput["documentos"];
 

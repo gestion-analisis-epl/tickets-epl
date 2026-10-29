@@ -5,9 +5,17 @@ import {
 } from "./alta-arrendador-rules";
 
 describe("documentosAltaRequeridos", () => {
-  it("el contrato anterior solo se pide en cambio", () => {
-    expect(documentosAltaRequeridos("nuevo").map((d) => d.key)).not.toContain("contratoAnterior");
-    expect(documentosAltaRequeridos("cambio").map((d) => d.key)).toContain("contratoAnterior");
+  it("el contrato anterior y la personalidad legal solo se piden en cambio", () => {
+    const nuevo = documentosAltaRequeridos("nuevo").map((d) => d.key);
+    const cambio = documentosAltaRequeridos("cambio").map((d) => d.key);
+    expect(nuevo).not.toContain("contratoAnterior");
+    expect(nuevo).not.toContain("personalidadLegal");
+    expect(cambio).toEqual(expect.arrayContaining(["contratoAnterior", "personalidadLegal"]));
+  });
+  it("en alta nueva se piden identificaciones, acreditacion de propiedad, predial y comprobante de domicilio", () => {
+    expect(documentosAltaRequeridos("nuevo").map((d) => d.key)).toEqual(
+      ["identificaciones", "acreditacionPropiedad", "predial", "comprobanteDomicilio"]
+    );
   });
 });
 
@@ -70,7 +78,7 @@ describe("calcularPatchAltaRetroactiva", () => {
     const cambio = calcularPatchAltaRetroactiva({ ...base, tipoAlta: "cambio", motivoCambio: " vendio ", documentos: { contratoAnterior: "c" } });
     expect(cambio.altaArrendador?.motivoCambio).toBe("vendio");
     expect(cambio.altaArrendador?.documentos).toEqual({ contratoAnterior: "c" });
-    const nuevo = calcularPatchAltaRetroactiva({ ...base, motivoCambio: "sobra", documentos: { contratoAnterior: "c" } });
+    const nuevo = calcularPatchAltaRetroactiva({ ...base, motivoCambio: "sobra", documentos: { contratoAnterior: "c", personalidadLegal: "p" } });
     expect(nuevo.altaArrendador?.motivoCambio).toBeUndefined();
     expect(nuevo.altaArrendador?.documentos).toEqual({});
   });

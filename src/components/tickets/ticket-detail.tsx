@@ -684,7 +684,7 @@ export function TicketDetail({ id }: { id: string }) {
                 <div>
                   <p className="text-muted text-sm mb-1.5">Documentos de alta de arrendador</p>
                   <ul className="space-y-1">
-                    {DOCUMENTOS_ALTA.filter((d) => !(d.key === "contratoAnterior" && ticket.altaArrendador?.tipoAlta === "nuevo")).map((doc) => {
+                    {DOCUMENTOS_ALTA.filter((d) => !d.soloCambio || ticket.altaArrendador?.tipoAlta === "cambio" || !!ticket.altaArrendador?.documentos[d.key]).map((doc) => {
                       const url = ticket.altaArrendador?.documentos[doc.key];
                       return (
                         <li key={doc.key}>
