@@ -5,6 +5,8 @@ import { calcularPatchAltaRetroactiva, esAltaRetroactiva, validarAltaRetroactiva
 import { SERVICIO_ALTA_ARRENDADOR_ID } from "@/lib/data/arrendamientos-temporal";
 import type { ResumenContratoRepository } from "@/domain/contratos/resumen-contrato-repository";
 import { accionResumen, construirResumenContrato, ETAPAS_VISIBLES_JEFE_ZONA, resumenSinCambios } from "@/domain/contratos/contrato-rules";
+import type { ExtraccionContrato, ResumenContratoTicket } from "@/types/resumen-contrato";
+import { calcularDiscrepancias } from "@/domain/contratos/discrepancias-rules";
 import type { CatalogoLookup } from "@/domain/catalogo/catalogo-lookup";
 import type { TicketRepository } from "./ticket-repository";
 import type { TicketNotifier } from "./ticket-notifier";
@@ -191,6 +193,23 @@ export function createTicketService(
     await refrescarResumenSiVisible({ ...current, ...patch } as Ticket);
   }
 
+  // Legal corrige a mano lo que la IA leyo mal. Los campos de resumenContrato si se pueden tocar en Pre-Cierre.
+  async function updateTicketResumenManual(id: string, extraccion: ExtraccionContrato): Promise<void> {
+    const current = await repo.getById(id);
+    if (!current) throw new Error("Ticket no encontrado.");
+    const previo = current.resumenContrato;
+    const resumen: ResumenContratoTicket = {
+      estado: "listo",
+      extraccion,
+      discrepancias: calcularDiscrepancias(current, extraccion),
+      contratoNombre: previo?.contratoNombre ?? null,
+      contratoUrl: previo?.contratoUrl ?? null,
+      generadoEn: previo?.generadoEn ?? new Date().toISOString(),
+    };
+    await repo.update(id, { resumenContrato: resumen });
+    await refrescarResumenSiVisible({ ...current, resumenContrato: resumen } as Ticket);
+  }
+
   async function updateTicketRevisionLegal(id: string, revision: RevisionLegal): Promise<void> {
     const current = await repo.getById(id);
     if (!current) throw new Error("Ticket no encontrado.");
@@ -310,6 +329,7 @@ export function createTicketService(
     updateTicketSolicitud,
     updateTicketSitio,
     updateTicketContrato,
+    updateTicketResumenManual,
     updateTicketRevisionLegal,
     updateTicketAltaRetroactiva,
     updateTicketExclusion,

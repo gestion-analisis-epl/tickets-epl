@@ -38,7 +38,7 @@ export function HistorialPanel({ ticket, soloVisibleSolicitante = false }: { tic
   const rolesPresentes = Array.from(new Set(entradas.map((e) => e.actorRol)));
 
   return (
-    <section className="section-card p-6 space-y-4 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:space-y-0 lg:gap-4">
+    <section className="section-card p-4 space-y-3 lg:flex lg:min-h-0 lg:flex-col lg:space-y-0 lg:gap-4">
       <div className="shrink-0 space-y-2">
         <h2 className="eyebrow">Historial de cambios</h2>
         {soloVisibleSolicitante && (
