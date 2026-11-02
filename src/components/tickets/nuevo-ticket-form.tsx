@@ -355,8 +355,8 @@ export function NuevoTicketForm() {
         sitioArrendamiento: { clave: sitio.clave, alias: sitio.alias },
       });
       setFolioCreado(folio);
-      // Best-effort: si falla, el ticket ya existe y Legal puede regenerar el resumen.
-      if (encontrarContrato(documentacion)) void solicitarResumenContrato(id).catch(() => {});
+      // Best-effort (con contrato o documentos de Alta): si falla, el ticket ya existe y Legal puede regenerar el resumen.
+      if (encontrarContrato(documentacion) || altaArrendador) void solicitarResumenContrato(id).catch(() => {});
     } catch {
       setSubmitError("No se pudo guardar el ticket. Intenta de nuevo en unos segundos.");
     } finally {

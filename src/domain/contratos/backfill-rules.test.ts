@@ -45,12 +45,14 @@ describe("archivoPorDefecto", () => {
 });
 
 describe("ticketsPendientesDeResumen", () => {
-  it("lista solo tickets sin resumen y con contrato", () => {
+  it("lista solo tickets sin resumen y con algun documento legible (contrato, adjunto o de Alta)", () => {
     const a = buildTicket({ id: "a", documentacion: [contrato] });
     const b = buildTicket({ id: "b", documentacion: [contrato], resumenContrato: resumen });
-    const c = buildTicket({ id: "c", documentacion: [pdf] });
+    const c = buildTicket({ id: "c", documentacion: [url("4_foto.png")] });
     const d = buildTicket({ id: "d", documentacion: [url("6_CONTRATO_ARRENDAMIENTO.pdf")] });
-    expect(ticketsPendientesDeResumen([a, b, c, d]).map((t) => t.id)).toEqual(["a", "d"]);
+    const e = buildTicket({ id: "e", documentacion: [pdf] });
+    const alta = buildTicket({ id: "alta", documentacion: [], altaArrendador: { tipoAlta: "nuevo", documentos: { predial: pdf } } });
+    expect(ticketsPendientesDeResumen([a, b, c, d, e, alta]).map((t) => t.id)).toEqual(["a", "d", "e", "alta"]);
   });
   it("incluye resumenes con error y pendientes atascados, no los recientes", () => {
     const ahora = new Date("2026-10-08T12:00:00.000Z");

@@ -6,7 +6,6 @@ import { useTickets } from "@/hooks/use-tickets";
 import { solicitarResumenContrato } from "@/lib/contratos";
 import { crearResumenesFaltantes, type ResumenesFaltantesResultado } from "@/lib/tickets";
 import { ticketsPendientesDeResumen } from "@/domain/contratos/backfill-rules";
-import { encontrarContrato } from "@/domain/contratos/contrato-rules";
 import { Button } from "@/components/ui/button";
 
 interface ResultadoBackfill {
@@ -61,7 +60,7 @@ export function ResumenesContratoSection() {
       const t = lista[i];
       if (montadoRef.current) setProgreso(i + 1);
       try {
-        const estado = await solicitarResumenContrato(t.id, encontrarContrato(t.documentacion) ?? undefined);
+        const estado = await solicitarResumenContrato(t.id);
         if (estado === "error") fallos.push({ folio: t.folio, mensaje: "Gemini no pudo extraer los datos." });
         else exitos.push(t.folio);
       } catch (err) {
@@ -114,7 +113,7 @@ export function ResumenesContratoSection() {
       </div>
       <p className="text-sm text-muted">Paso 2. Generar con IA los datos del contrato:</p>
       <p className="text-sm text-muted">
-        Genera con IA el resumen de los tickets que tienen un contrato de arrendamiento (.docx o .pdf) adjunto y aun no tienen
+        Genera con IA el resumen de los tickets que tienen documentos (.docx o .pdf) adjuntos, sean contrato, documentos de Alta de arrendador u otros, y aun no tienen
         resumen, o cuyo resumen fallo o quedo atascado en pendiente. Se procesan de uno en uno.{" "}
         {!loading && <>Pendientes ahora: <span className="font-medium">{pendientes.length}</span>.</>}
       </p>
@@ -129,7 +128,7 @@ export function ResumenesContratoSection() {
       {!corriendo && confirmando && (
         <div className="space-y-3">
           <p className="text-sm">
-            Se enviaran los contratos de <span className="font-medium">{pendientes.length} ticket(s)</span> a Google
+            Se enviaran los documentos de <span className="font-medium">{pendientes.length} ticket(s)</span> a Google
             AI Studio, uno por uno. Puedes detenerlo en cualquier momento.
           </p>
           <div className="flex flex-wrap gap-3">

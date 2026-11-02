@@ -1,20 +1,21 @@
 import { isAdminRole, LEGAL_STAFF_ROLES, esRolSoloResumen, type Role } from "@/types/user";
 import type { Ticket } from "@/types/ticket";
 import type { ResumenContratoTicket } from "@/types/resumen-contrato";
-import { encontrarContrato, nombreDeUrl, resumenReintentable } from "./contrato-rules";
+import { documentosDelResumen, documentosParaResumen, nombreDeUrl, resumenReintentable, type DocumentoLeible } from "./contrato-rules";
 import { tipoContrato, type TipoContrato } from "./tipo-archivo";
 import { construirContenido, parsearExtraccion } from "./extraccion-rules";
 import { calcularDiscrepancias } from "./discrepancias-rules";
 import { ticketLlegoAPreCierreOCierre } from "./backfill-rules";
 
 export type ContenidoGemini = { tipo: "texto"; texto: string } | { tipo: "pdf"; base64: string };
+export interface DocumentoGemini { etiqueta: string; contenido: ContenidoGemini }
 
 export interface DepsResumen {
   cargarTicket(id: string): Promise<Ticket | null>;
   descargar(url: string): Promise<Buffer>;
   // docx: texto extraido; pdf: el PDF en base64 (Gemini lo lee directamente).
   prepararContenido(buffer: Buffer, tipo: TipoContrato): Promise<ContenidoGemini>;
-  llamarGemini(contenido: ContenidoGemini): Promise<string>;
+  llamarGemini(documentos: DocumentoGemini[]): Promise<string>;
   guardar(ticketId: string, resumen: ResumenContratoTicket): Promise<void>;
   ahora(): Date;
 }
@@ -41,12 +42,15 @@ export async function generarResumenContrato(deps: DepsResumen, ticketId: string
   if (!ticket) throw new Error("Ticket no encontrado.");
 
   if (archivoUrl) {
-    if (!ticket.documentacion.includes(archivoUrl)) throw new ValidacionResumenError("El archivo no pertenece al ticket.");
+    if (!documentosDelResumen(ticket, null).some((d) => d.url === archivoUrl)) throw new ValidacionResumenError("El archivo no pertenece al ticket.");
     if (!tipoContrato(nombreDeUrl(archivoUrl))) throw new ValidacionResumenError("Solo se admiten archivos docx o pdf.");
   }
-  const url = archivoUrl ?? encontrarContrato(ticket.documentacion);
+  // Archivo elegido a mano: solo ese. Si no, todo lo legible del ticket (contrato primero).
+  const candidatos: DocumentoLeible[] = archivoUrl
+    ? [{ url: archivoUrl, etiqueta: nombreDeUrl(archivoUrl) }]
+    : documentosParaResumen(ticket);
 
-  if (!url) {
+  if (candidatos.length === 0) {
     const sinContrato: ResumenContratoTicket = {
       estado: "sin_contrato", extraccion: null, discrepancias: [], contratoNombre: null, contratoUrl: null, generadoEn: deps.ahora().toISOString(),
     };
@@ -54,30 +58,44 @@ export async function generarResumenContrato(deps: DepsResumen, ticketId: string
     return sinContrato;
   }
 
-  const contratoNombre = nombreDeUrl(url);
+  const principal = candidatos[0];
+  const principalNombre = nombreDeUrl(principal.url);
   await deps.guardar(ticketId, {
-    estado: "pendiente", extraccion: null, discrepancias: [], contratoNombre, contratoUrl: url, generadoEn: null, solicitadoEn: deps.ahora().toISOString(),
+    estado: "pendiente", extraccion: null, discrepancias: [], contratoNombre: principalNombre, contratoUrl: principal.url, generadoEn: null, solicitadoEn: deps.ahora().toISOString(),
   });
 
+  const usados: DocumentoLeible[] = [];
   try {
-    const tipo = tipoContrato(contratoNombre);
-    if (!tipo) throw new Error("Tipo de archivo no admitido.");
-    const preparado = await deps.prepararContenido(await deps.descargar(url), tipo);
-    let contenido: ContenidoGemini = preparado;
-    if (preparado.tipo === "texto") {
-      if (preparado.texto.trim().length < MIN_CARACTERES_UTILES) throw new Error("El docx no contiene texto util.");
-      contenido = { tipo: "texto", texto: construirContenido(preparado.texto) };
+    // Un documento ilegible (descarga fallida, docx vacio) se salta; solo falla todo si ninguno sirve.
+    const documentos: DocumentoGemini[] = [];
+    for (const c of candidatos) {
+      try {
+        const tipo = tipoContrato(nombreDeUrl(c.url));
+        if (!tipo) continue;
+        const preparado = await deps.prepararContenido(await deps.descargar(c.url), tipo);
+        if (preparado.tipo === "texto") {
+          if (preparado.texto.trim().length < MIN_CARACTERES_UTILES) continue;
+          documentos.push({ etiqueta: c.etiqueta, contenido: { tipo: "texto", texto: construirContenido(preparado.texto) } });
+        } else {
+          documentos.push({ etiqueta: c.etiqueta, contenido: preparado });
+        }
+        usados.push(c);
+      } catch {
+        console.error(`Documento omitido del resumen (ticket ${ticketId}).`);
+      }
     }
+    if (documentos.length === 0) throw new Error("Ningun documento se pudo leer.");
 
-    const parseada = parsearExtraccion(await deps.llamarGemini(contenido));
+    const parseada = parsearExtraccion(await deps.llamarGemini(documentos));
     if (!parseada.ok) throw new Error(parseada.error);
 
     const listo: ResumenContratoTicket = {
       estado: "listo",
       extraccion: parseada.extraccion,
       discrepancias: calcularDiscrepancias(ticket, parseada.extraccion),
-      contratoNombre,
-      contratoUrl: url,
+      contratoNombre: nombreDeUrl(usados[0].url),
+      contratoUrl: usados[0].url,
+      documentosLeidos: usados.map((u) => u.etiqueta),
       generadoEn: deps.ahora().toISOString(),
     };
     await deps.guardar(ticketId, listo);
@@ -85,7 +103,7 @@ export async function generarResumenContrato(deps: DepsResumen, ticketId: string
   } catch (err) {
     console.error(`Resumen de contrato fallo (ticket ${ticketId}):`, err instanceof Error ? err.message : "error desconocido");
     const fallo: ResumenContratoTicket = {
-      estado: "error", extraccion: null, discrepancias: [], contratoNombre, contratoUrl: url, generadoEn: deps.ahora().toISOString(), error: MENSAJE_ERROR,
+      estado: "error", extraccion: null, discrepancias: [], contratoNombre: principalNombre, contratoUrl: principal.url, generadoEn: deps.ahora().toISOString(), error: MENSAJE_ERROR,
     };
     await deps.guardar(ticketId, fallo);
     return fallo;

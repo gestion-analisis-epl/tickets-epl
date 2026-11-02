@@ -31,6 +31,32 @@ export function encontrarContrato(documentacion: string[]): string | null {
   );
 }
 
+export const MAX_DOCUMENTOS_RESUMEN = 8;
+
+export interface DocumentoLeible {
+  url: string;
+  etiqueta: string;
+}
+
+// Todo lo que la IA puede leer del ticket (solo docx/pdf): el contrato primero, luego los adjuntos y los
+// documentos de Alta/arrendamiento. Sin repetidos y con tope, para no exceder el limite de Gemini.
+export function documentosParaResumen(ticket: Ticket): DocumentoLeible[] {
+  const lista: DocumentoLeible[] = [];
+  const vistos = new Set<string>();
+  const agregar = (url: string | undefined, etiqueta: string) => {
+    if (!url || vistos.has(url) || !esArchivoContrato(nombreDeUrl(url))) return;
+    vistos.add(url);
+    lista.push({ url, etiqueta });
+  };
+  const contrato = encontrarContrato(ticket.documentacion ?? []);
+  agregar(contrato ?? undefined, "Contrato de arrendamiento");
+  for (const url of ticket.documentacion ?? []) agregar(url, nombreDeUrl(url) || "Documento adjunto");
+  for (const d of DOCUMENTOS_ALTA) agregar(ticket.altaArrendador?.documentos[d.key], d.label);
+  for (const d of DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO) agregar(ticket.documentosArrendamiento?.[d.key], d.label);
+  agregar(ticket.formatoArrendamientoUrl, "Formato de solicitud de arrendamiento");
+  return lista.slice(0, MAX_DOCUMENTOS_RESUMEN);
+}
+
 export const MINUTOS_PENDIENTE_OBSOLETO = 5;
 
 // Un "pendiente" sin marca de tiempo o con mas de 5 minutos se considera atascado.

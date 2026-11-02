@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accionResumen, construirResumenContrato, documentosDelResumen, encontrarContrato, esPendienteObsoleto, nombreDeUrl, resumenReintentable, resumenSinCambios } from "./contrato-rules";
+import { accionResumen, construirResumenContrato, documentosDelResumen, documentosParaResumen, encontrarContrato, esPendienteObsoleto, nombreDeUrl, resumenReintentable, resumenSinCambios } from "./contrato-rules";
 import { buildTicket } from "@/test/ticket-fixture";
 import type { ResumenContratoTicket } from "@/types/resumen-contrato";
 
@@ -287,5 +287,25 @@ describe("construirResumenContrato: geolocalizacion", () => {
     expect("geolocalizacion" in construirResumenContrato(conAlta(), new Date(), null)).toBe(false);
     expect("geolocalizacion" in construirResumenContrato(conAlta("N/A"), new Date(), null)).toBe(false);
     expect("geolocalizacion" in construirResumenContrato(buildTicket(), new Date(), null)).toBe(false);
+  });
+});
+
+describe("documentosParaResumen", () => {
+  const u = (n: string) => `https://firebasestorage.googleapis.com/v0/b/b/o/tickets%2Ft1%2F${encodeURIComponent(n)}?alt=media&token=t`;
+
+  it("pone el contrato primero y suma adjuntos y documentos de Alta, sin repetir ni incluir imagenes", () => {
+    const contrato = u("1_CONTRATO_ARRENDAMIENTO.docx");
+    const ine = u("2_ine.pdf");
+    const ticket = buildTicket({
+      documentacion: [u("3_foto.jpg"), u("4_otro.pdf"), contrato],
+      altaArrendador: { tipoAlta: "nuevo", documentos: { identificaciones: ine, predial: ine } },
+    });
+    expect(documentosParaResumen(ticket).map((d) => d.etiqueta)).toEqual(["Contrato de arrendamiento", "otro.pdf", "Identificación"]);
+  });
+
+  it("sin archivos legibles devuelve vacio y respeta el tope", () => {
+    expect(documentosParaResumen(buildTicket({ documentacion: [u("1_foto.png")] }))).toEqual([]);
+    const muchos = Array.from({ length: 12 }, (_, i) => u(`${i}_d${i}.pdf`));
+    expect(documentosParaResumen(buildTicket({ documentacion: muchos }))).toHaveLength(8);
   });
 });

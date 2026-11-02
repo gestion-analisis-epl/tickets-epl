@@ -1,5 +1,5 @@
 import type { Ticket } from "@/types/ticket";
-import { encontrarContrato, ETAPAS_VISIBLES_JEFE_ZONA, nombreDeUrl, resumenReintentable } from "./contrato-rules";
+import { documentosParaResumen, encontrarContrato, ETAPAS_VISIBLES_JEFE_ZONA, nombreDeUrl, resumenReintentable } from "./contrato-rules";
 import { esArchivoContrato } from "./tipo-archivo";
 
 type TicketConDocs = Pick<Ticket, "documentacion" | "resumenContrato">;
@@ -31,7 +31,8 @@ export function ticketLlegoAPreCierreOCierre(ticket: Pick<Ticket, "estatus" | "h
   );
 }
 
-// Sin resumen, con error o con un "pendiente" atascado.
-export function ticketsPendientesDeResumen<T extends TicketConDocs>(tickets: T[], ahora: Date = new Date()): T[] {
-  return tickets.filter((t) => resumenReintentable(t.resumenContrato, ahora) && encontrarContrato(t.documentacion) !== null);
+// Sin resumen, con error o con un "pendiente" atascado, y con al menos un documento que la IA pueda leer
+// (contrato, adjuntos o documentos de Alta).
+export function ticketsPendientesDeResumen<T extends Ticket>(tickets: T[], ahora: Date = new Date()): T[] {
+  return tickets.filter((t) => resumenReintentable(t.resumenContrato, ahora) && documentosParaResumen(t).length > 0);
 }

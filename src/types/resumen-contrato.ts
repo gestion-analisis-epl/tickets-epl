@@ -30,6 +30,8 @@ export interface ResumenContratoTicket {
   discrepancias: Discrepancia[];
   contratoNombre: string | null;
   contratoUrl?: string | null; // URL realmente usada (puede ser un docx elegido a mano)
+  // Nombres de los documentos que la IA leyo (contrato, identificacion, predial...). Ausente en resumenes previos.
+  documentosLeidos?: string[];
   generadoEn: string | null; // ISO
   solicitadoEn?: string | null; // ISO; solo en "pendiente", para detectar solicitudes atascadas
   error?: string;

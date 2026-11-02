@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { INSTRUCCIONES_EXTRACCION } from "@/domain/contratos/extraccion-rules";
 import { aContents } from "./contenido-gemini";
-import type { ContenidoGemini } from "@/domain/contratos/resumir-contrato-service";
+import type { DocumentoGemini } from "@/domain/contratos/resumir-contrato-service";
 
 // Los modelos se retiran (gemini-2.5-flash ya responde 404 a cuentas nuevas): si falla con
 // HTTP 404, elegir uno vigente de AI Studio y fijarlo con GEMINI_MODEL sin tocar el codigo.
@@ -37,7 +37,7 @@ function estatusDe(err: unknown): number | null {
   return null;
 }
 
-export async function llamarGemini(contenido: ContenidoGemini): Promise<string> {
+export async function llamarGemini(documentos: DocumentoGemini[]): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("Falta GEMINI_API_KEY en el entorno del servidor.");
 
@@ -46,7 +46,7 @@ export async function llamarGemini(contenido: ContenidoGemini): Promise<string> 
     const ai = new GoogleGenAI({ apiKey });
     const respuesta = await ai.models.generateContent({
       model: process.env.GEMINI_MODEL || MODELO_PREDETERMINADO,
-      contents: aContents(contenido),
+      contents: aContents(documentos),
       config: {
         systemInstruction: INSTRUCCIONES_EXTRACCION,
         responseMimeType: "application/json",

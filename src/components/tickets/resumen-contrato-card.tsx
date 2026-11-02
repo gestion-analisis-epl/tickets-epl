@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import { solicitarResumenContrato } from "@/lib/contratos";
-import { construirResumenContrato } from "@/domain/contratos/contrato-rules";
-import { archivoPorDefecto, archivosContratoDeDocumentacion } from "@/domain/contratos/backfill-rules";
-import { nombreDeUrl } from "@/domain/contratos/contrato-rules";
+import { construirResumenContrato, documentosParaResumen } from "@/domain/contratos/contrato-rules";
 import { formaPagoLabel, formatMonto, sitioYCodigoResumen, textoDiscrepancia, textoODisponible } from "@/domain/contratos/resumen-presentacion";
 import { partesSitio } from "@/lib/ticket-derived";
 import { formatFecha, formatFechaSolo } from "@/lib/format-fecha";
@@ -45,10 +43,10 @@ function fechaContrato(valor: string | null): string {
 // Solo para Legal/admin: el texto del contrato se muestra siempre como texto plano.
 export function ResumenContratoCard({ ticket }: { ticket: Ticket }) {
   const resumen = ticket.resumenContrato;
-  const archivos = archivosContratoDeDocumentacion(ticket.documentacion);
-  const [elegidoManual, setElegido] = useState(() => archivoPorDefecto(ticket));
-  // Si el archivo elegido ya no esta en la documentacion, se vuelve al predeterminado.
-  const elegido = archivos.includes(elegidoManual) ? elegidoManual : archivoPorDefecto(ticket);
+  const leibles = documentosParaResumen(ticket);
+  // "" = todos los documentos. Si el archivo elegido ya no esta en el ticket, se vuelve a "todos".
+  const [elegidoManual, setElegido] = useState("");
+  const elegido = leibles.some((d) => d.url === elegidoManual) ? elegidoManual : "";
   const [generando, setGenerando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +54,7 @@ export function ResumenContratoCard({ ticket }: { ticket: Ticket }) {
     setGenerando(true);
     setError(null);
     try {
-      await solicitarResumenContrato(ticket.id, elegido);
+      await solicitarResumenContrato(ticket.id, elegido || undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo generar el resumen.");
     } finally {
@@ -155,7 +153,7 @@ export function ResumenContratoCard({ ticket }: { ticket: Ticket }) {
 
       {resumen?.estado === "error" && resumen.error && <p className="text-sm text-danger">{resumen.error}</p>}
       {resumen?.estado === "sin_contrato" && (
-        <p className="text-sm text-muted">No se encontro un contrato (.docx o .pdf) entre la documentacion adjunta.</p>
+        <p className="text-sm text-muted">No hay documentos .docx o .pdf que leer; el resumen usa los datos del ticket.</p>
       )}
 
       {editando && (
@@ -230,9 +228,13 @@ export function ResumenContratoCard({ ticket }: { ticket: Ticket }) {
         )}
       </div>
 
-      {archivos.length > 0 ? (
+      {resumen?.documentosLeidos && resumen.documentosLeidos.length > 0 && (
+        <p className="text-xs text-muted">Documentos leídos: {resumen.documentosLeidos.join(", ")}.</p>
+      )}
+
+      {leibles.length > 0 ? (
         <div className="space-y-1.5">
-          <label className="field-label">Archivo del contrato</label>
+          <label className="field-label">Documentos a leer</label>
           <div className="flex flex-wrap items-center gap-3">
             <select
               value={elegido}
@@ -240,11 +242,12 @@ export function ResumenContratoCard({ ticket }: { ticket: Ticket }) {
               disabled={generando}
               className="field min-w-0 max-w-full"
             >
-              {archivos.map((url) => (
-                <option key={url} value={url}>{nombreDeUrl(url) || url}</option>
+              <option value="">Todos los documentos del ticket</option>
+              {leibles.map((d) => (
+                <option key={d.url} value={d.url}>{d.etiqueta}</option>
               ))}
             </select>
-            <Button variant="outline" size="sm" onClick={handleRegenerar} disabled={generando || !elegido}>
+            <Button variant="outline" size="sm" onClick={handleRegenerar} disabled={generando}>
               {generando ? "Generando…" : "Regenerar"}
             </Button>
           </div>
