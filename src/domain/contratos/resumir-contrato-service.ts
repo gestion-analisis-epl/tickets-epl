@@ -22,6 +22,8 @@ export interface DepsResumen {
 
 const MENSAJE_ERROR = "No se pudo generar el resumen.";
 const MIN_CARACTERES_UTILES = 50;
+// Gemini admite ~20 MB por peticion y el base64 agrega ~33%: los PDF de una misma peticion no deben sumar mas de ~12 MB.
+export const MAX_BYTES_PDF_TOTAL = 12 * 1024 * 1024;
 
 export class ValidacionResumenError extends Error {}
 
@@ -65,6 +67,7 @@ export async function generarResumenContrato(deps: DepsResumen, ticketId: string
   });
 
   const usados: DocumentoLeible[] = [];
+  let bytesPdf = 0;
   try {
     // Un documento ilegible (descarga fallida, docx vacio) se salta; solo falla todo si ninguno sirve.
     const documentos: DocumentoGemini[] = [];
@@ -72,7 +75,13 @@ export async function generarResumenContrato(deps: DepsResumen, ticketId: string
       try {
         const tipo = tipoContrato(nombreDeUrl(c.url));
         if (!tipo) continue;
-        const preparado = await deps.prepararContenido(await deps.descargar(c.url), tipo);
+        const buffer = await deps.descargar(c.url);
+        if (tipo === "pdf") {
+          // Presupuesto de la peticion: lo que ya no cabe se omite (el contrato va primero y tiene prioridad).
+          if (bytesPdf + buffer.length > MAX_BYTES_PDF_TOTAL) continue;
+          bytesPdf += buffer.length;
+        }
+        const preparado = await deps.prepararContenido(buffer, tipo);
         if (preparado.tipo === "texto") {
           if (preparado.texto.trim().length < MIN_CARACTERES_UTILES) continue;
           documentos.push({ etiqueta: c.etiqueta, contenido: { tipo: "texto", texto: construirContenido(preparado.texto) } });
@@ -86,7 +95,17 @@ export async function generarResumenContrato(deps: DepsResumen, ticketId: string
     }
     if (documentos.length === 0) throw new Error("Ningun documento se pudo leer.");
 
-    const parseada = parsearExtraccion(await deps.llamarGemini(documentos));
+    let respuesta: string;
+    try {
+      respuesta = await deps.llamarGemini(documentos);
+    } catch (err) {
+      if (documentos.length === 1) throw err;
+      // Con varios documentos la peticion puede ser demasiado grande o lenta: se reintenta solo con el principal.
+      console.error(`Gemini fallo con ${documentos.length} documentos (ticket ${ticketId}); se reintenta con uno.`);
+      respuesta = await deps.llamarGemini([documentos[0]]);
+      usados.splice(1);
+    }
+    const parseada = parsearExtraccion(respuesta);
     if (!parseada.ok) throw new Error(parseada.error);
 
     const listo: ResumenContratoTicket = {

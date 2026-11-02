@@ -186,6 +186,31 @@ ${TEXTO}
     expect(recibidos[0].map((d) => d.etiqueta)).toEqual(["otro.pdf"]);
   });
 
+  it("si la peticion con varios documentos falla, reintenta solo con el principal", async () => {
+    const ident = url("8_ine.pdf");
+    const llamadas: number[] = [];
+    const { deps } = montar({
+      llamarGemini: async (d) => { llamadas.push(d.length); if (d.length > 1) throw new Error("grande"); return respuestaOk; },
+    }, buildTicket({ id: "t1", documentacion: [CONTRATO], altaArrendador: { tipoAlta: "nuevo", documentos: { identificaciones: ident } } }));
+    const r = await generarResumenContrato(deps, "t1");
+    expect(llamadas).toEqual([2, 1]);
+    expect(r.estado).toBe("listo");
+    expect(r.documentosLeidos).toEqual(["Contrato de arrendamiento"]);
+  });
+
+  it("omite los PDF que ya no caben en el presupuesto de la peticion", async () => {
+    const a = url("1_a.pdf"), b = url("2_b.pdf");
+    const recibidos: { etiqueta: string }[][] = [];
+    const { deps } = montar({
+      descargar: async () => Buffer.alloc(8 * 1024 * 1024),
+      prepararContenido: async () => ({ tipo: "pdf", base64: "x" }),
+      llamarGemini: async (d) => { recibidos.push(d); return respuestaOk; },
+    }, buildTicket({ id: "t1", documentacion: [a, b] }));
+    const r = await generarResumenContrato(deps, "t1");
+    expect(recibidos[0].map((d) => d.etiqueta)).toEqual(["a.pdf"]);
+    expect(r.estado).toBe("listo");
+  });
+
   it("un ticket inexistente lanza", async () => {
     const { deps } = montar({}, null);
     await expect(generarResumenContrato(deps, "t1")).rejects.toThrow("no encontrado");
