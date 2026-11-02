@@ -13,7 +13,7 @@ interface DosColumnasProps {
 export function DosColumnas({ encabezado, izquierda, derecha, mostrarDerecha = true, igualarAltura = true }: DosColumnasProps) {
   if (!mostrarDerecha) {
     return (
-      <div className="max-w-3xl space-y-6">
+      <div className="space-y-6">
         {encabezado}
         {izquierda}
       </div>

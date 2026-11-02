@@ -314,7 +314,7 @@ export function PreCierreDetalle({ id }: { id: string }) {
   );
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="space-y-6">
       {encabezado}
       {informacion}
       {accionesVistoBueno}
