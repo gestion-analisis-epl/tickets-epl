@@ -4,6 +4,8 @@ import { esArchivoContrato } from "./tipo-archivo";
 import type { DocumentoResumen, GrupoDocumento, ResumenContrato, ResumenContratoTicket } from "@/types/resumen-contrato";
 import { DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO } from "@/lib/data/arrendamientos-temporal";
 import { DOCUMENTOS_ALTA } from "@/domain/tickets/alta-arrendador-rules";
+import { nombreDeUrl } from "@/domain/documentos/nombre-url";
+import { etiquetaDeAdjunto } from "@/domain/documentos/etiquetas-rules";
 
 // Etapas en que se crea o refresca el resumen (accionResumen). La LECTURA del jefe de zona no se limita
 // a estas etapas: conserva los tickets que regresan a correccion (ver firestore.rules).
@@ -11,16 +13,7 @@ export const ETAPAS_VISIBLES_JEFE_ZONA: readonly Estatus[] = ["Pre-Cierre", "Cie
 
 const esEtapaVisible = (e: Estatus) => ETAPAS_VISIBLES_JEFE_ZONA.includes(e);
 
-// Storage guarda `{timestamp}_{nombre}` (ver lib/storage.ts); se quita el prefijo.
-export function nombreDeUrl(url: string): string {
-  try {
-    const ruta = decodeURIComponent(new URL(url).pathname);
-    const archivo = ruta.slice(ruta.lastIndexOf("/") + 1);
-    return archivo.replace(/^\d+_/, "");
-  } catch {
-    return "";
-  }
-}
+export { nombreDeUrl };
 
 export function encontrarContrato(documentacion: string[]): string | null {
   return (
@@ -91,7 +84,7 @@ export function documentosDelResumen(ticket: Ticket, contratoUrl: string | null)
   agregar("formato", "Formato de solicitud de arrendamiento", ticket.formatoArrendamientoUrl);
   for (const d of DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO) agregar("arrendamiento", d.label, ticket.documentosArrendamiento?.[d.key]);
   for (const d of DOCUMENTOS_ALTA) agregar("arrendamiento", d.label, ticket.altaArrendador?.documentos[d.key]);
-  for (const url of ticket.documentacion ?? []) agregar("adjunto", nombreDeUrl(url) || "Documento adjunto", url);
+  for (const url of ticket.documentacion ?? []) agregar("adjunto", etiquetaDeAdjunto(ticket, url), url);
   return docs;
 }
 

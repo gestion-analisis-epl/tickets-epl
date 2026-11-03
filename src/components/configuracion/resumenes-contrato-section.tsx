@@ -87,7 +87,7 @@ export function ResumenesContratoSection() {
   }
 
   return (
-    <section className="section-card p-6 space-y-3 max-w-2xl">
+    <section className="section-card p-6 space-y-3">
       <h2 className="eyebrow">Resumenes de contrato pendientes</h2>
 
       <div className="space-y-2 border-b border-border pb-3">

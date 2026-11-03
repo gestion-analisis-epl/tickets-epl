@@ -23,7 +23,7 @@ export function HistorialVisibilidadSection() {
   }
 
   return (
-    <section className="section-card p-6 space-y-3 max-w-2xl">
+    <section className="section-card p-6 space-y-3">
       <h2 className="eyebrow">Visibilidad del historial</h2>
       <p className="text-sm text-muted">
         El solicitante y los abogados ven los cambios de etapa, responsable, cierre y visto bueno, sin importar quien los haga.

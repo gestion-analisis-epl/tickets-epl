@@ -8,6 +8,7 @@ import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { ExcluirTicketsSection } from "./excluir-tickets-section";
 import { ResumenesContratoSection } from "./resumenes-contrato-section";
+import { EtiquetasDocumentosSection } from "./etiquetas-documentos-section";
 import { HistorialVisibilidadSection } from "./historial-visibilidad-section";
 import { usePermiso } from "@/hooks/use-permiso";
 
@@ -196,12 +197,13 @@ export function MantenimientoPanel() {
   }
 
   return (
-    <div className="space-y-4 max-w-5xl">
+    <div className="space-y-4">
       <ExcluirTicketsSection />
       <ResumenesContratoSection />
+      <EtiquetasDocumentosSection />
       <HistorialVisibilidadSection />
 
-      <section className="section-card p-6 space-y-3 max-w-2xl">
+      <section className="section-card p-6 space-y-3">
         <h2 className="eyebrow">Recalcular SLA historico</h2>
         <p className="text-sm text-muted">
           Recalcula <span className="font-medium">nivel de servicio</span> y{" "}
@@ -254,7 +256,7 @@ export function MantenimientoPanel() {
         )}
       </section>
 
-      <section className="section-card p-6 space-y-3 max-w-2xl">
+      <section className="section-card p-6 space-y-3">
         <h2 className="eyebrow">Reenviar aviso de reasignacion</h2>
         <p className="text-sm text-muted">
           Reenvia el correo y la notificacion de <span className="font-medium">reasignacion</span> (al abogado
@@ -286,7 +288,7 @@ export function MantenimientoPanel() {
         {reasignacionError && <p className="text-sm text-danger">{reasignacionError}</p>}
       </section>
 
-      <section className="section-card p-6 space-y-3 max-w-2xl">
+      <section className="section-card p-6 space-y-3">
         <h2 className="eyebrow">Enviar un ticket a una persona</h2>
         <p className="text-sm text-muted">
           Manda el aviso de <span className="font-medium">un solo ticket</span> a{" "}
@@ -331,7 +333,7 @@ export function MantenimientoPanel() {
         {personaError && <p className="text-sm text-danger">{personaError}</p>}
       </section>
 
-      <section className="section-card p-6 space-y-3 max-w-2xl">
+      <section className="section-card p-6 space-y-3">
         <h2 className="eyebrow">Correo de prueba</h2>
         <p className="text-sm text-muted">
           Dispara el mismo flujo de notificacion por correo que usan los tickets reales, sin necesidad de crear uno.
@@ -349,7 +351,7 @@ export function MantenimientoPanel() {
         )}
       </section>
 
-      <section className="section-card p-6 space-y-3 max-w-2xl">
+      <section className="section-card p-6 space-y-3">
         <h2 className="eyebrow">Reenvio retroactivo de correos</h2>
         <p className="text-sm text-muted">
           Recalcula y reenvia los avisos de correo (nuevo ticket, creacion, asignacion, cambio de estatus/cierre)

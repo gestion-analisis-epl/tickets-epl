@@ -34,11 +34,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Alguna URL de documento no es de Firebase Storage." }, { status: 400 });
     }
 
+    // Nombres opcionales (misma posicion que urls): null o ausente = el nombre del archivo en Storage.
+    const nombresPedidos: unknown[] = Array.isArray(body.nombres) ? body.nombres : [];
+    const nombreElegido = (i: number): string | null => {
+      const n = nombresPedidos[i];
+      if (typeof n !== "string") return null;
+      const limpio = n.replace(/[\\/:*?"<>|\r\n\t]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 100);
+      return limpio || null;
+    };
+
     const bucket = getAdminBucket();
     const zip = new JSZip();
     const usados = new Set<string>();
 
-    for (const url of urls as string[]) {
+    for (const [indice, url] of (urls as string[]).entries()) {
       const match = decodeURIComponent(new URL(url).pathname).match(/\/o\/(.+)$/);
       const filePath = match?.[1];
       if (!filePath) {
@@ -47,9 +56,10 @@ export async function POST(request: Request) {
 
       const [buffer] = await bucket.file(filePath).download();
 
-      let nombre = nombreArchivo(url);
+      const base = nombreElegido(indice) ?? nombreArchivo(url);
+      let nombre = base;
       let i = 1;
-      while (usados.has(nombre)) nombre = `${i++}_${nombreArchivo(url)}`;
+      while (usados.has(nombre)) nombre = `${i++}_${base}`;
       usados.add(nombre);
 
       zip.file(nombre, buffer);

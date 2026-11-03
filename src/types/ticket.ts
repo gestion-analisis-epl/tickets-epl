@@ -102,6 +102,14 @@ export interface RevisionLegal {
   condicionPago?: string; // si hayCondicionPago === true
 }
 
+// Nombre legible de un adjunto con nombre generico (IMG_5212.jpeg). El archivo en Storage no cambia.
+export interface EtiquetaDocumento {
+  url: string;
+  etiqueta: string;
+  origen: "ia" | "manual";
+  sinIdentificar?: boolean; // la IA no supo que era; se muestra como "Documento sin identificar"
+}
+
 export interface Ticket {
   id: string; // ID de documento de Firestore (autogenerado, estable) — usar para rutas/lookups
   folio: string; // JUR-0001... — SOLO exhibicion, nunca usar para identificar el ticket
@@ -114,6 +122,7 @@ export interface Ticket {
   servicioId: string; // referencia a CatalogoServicio.id
   descripcion: string;
   documentacion: string[]; // URLs de Storage
+  etiquetasDocumentos?: EtiquetaDocumento[]; // la escribe el servidor (IA o edicion manual de Legal)
   satisfaccion?: number; // 1-10, la llena el solicitante al cierre
   comentarioSatisfaccion?: string; // opcional, junto con satisfaccion
   formatoArrendamientoUrl?: string;

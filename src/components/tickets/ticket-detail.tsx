@@ -50,6 +50,10 @@ import { bloqueadoPorPreCierre, solicitudEditable } from "@/domain/tickets/etapa
 import { actorDesdeSesion, puedeVerHistorial, puedeVerHistorialFiltrado } from "@/domain/tickets/historial-rules";
 import { puedeEditarContrato, requiereDatosContrato } from "@/domain/tickets/contrato-edicion-rules";
 import { validarContrato, type ContratoCapturado } from "@/domain/tickets/nuevo-ticket-validacion";
+import { etiquetaDeAdjunto, nombreParaZip } from "@/domain/documentos/etiquetas-rules";
+import { nombreDeUrl } from "@/domain/documentos/nombre-url";
+import { puedeEditarEtiquetas } from "@/domain/documentos/etiquetas-permisos";
+import { EditarEtiquetaAdjunto } from "./editar-etiqueta-adjunto";
 
 function nombreArchivo(url: string): string {
   try {
@@ -411,7 +415,14 @@ export function TicketDetail({ id }: { id: string }) {
       const res = await fetch("/api/tickets/descargar-zip", {
         method: "POST",
         headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ urls: todaLaDocumentacion }),
+        // Con etiqueta, el archivo del ZIP se llama como el documento (Predial 2026.jpeg) y no IMG_5212.jpeg.
+        body: JSON.stringify({
+          urls: todaLaDocumentacion,
+          nombres: todaLaDocumentacion.map((u) => {
+            const e = (ticket!.etiquetasDocumentos ?? []).find((x) => x.url === u && !x.sinIdentificar);
+            return e ? nombreParaZip(e.etiqueta, nombreDeUrl(u)) : null;
+          }),
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -590,11 +601,19 @@ export function TicketDetail({ id }: { id: string }) {
               <div>
                 <p className="text-muted text-sm mb-1.5">Documentación adjunta</p>
                 <ul className="space-y-1">
-                  {ticket.documentacion.map((url) => (
-                    <li key={url}>
-                      <EnlaceDocumento url={url} etiqueta={nombreArchivo(url)} />
-                    </li>
-                  ))}
+                  {ticket.documentacion.map((url) => {
+                    const etiqueta = etiquetaDeAdjunto(ticket, url);
+                    const original = nombreDeUrl(url);
+                    return (
+                      <li key={url} className="flex flex-wrap items-center gap-2">
+                        <EnlaceDocumento url={url} etiqueta={etiqueta} />
+                        {etiqueta !== original && original && <span className="text-xs text-muted">({original})</span>}
+                        {puedeEditarEtiquetas(role) && (
+                          <EditarEtiquetaAdjunto ticketId={ticket.id} url={url} etiquetaActual={etiqueta} nombreOriginal={original} />
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}

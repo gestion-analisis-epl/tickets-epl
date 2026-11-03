@@ -21,7 +21,7 @@ export default function EstilosPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-8">
       <p className="text-sm text-muted">
         Referencia viva de tipografia, contraste y componentes base — util cuando se agreguen
         o ajusten pantallas nuevas, para no perder de vista lo ya definido.
