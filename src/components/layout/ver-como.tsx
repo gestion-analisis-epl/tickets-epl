@@ -1,7 +1,7 @@
 "use client";
 
 import { Eye, X } from "lucide-react";
-import { useAuthStore, type Role } from "@/stores/auth";
+import { useAuthStore, puedeVerComo, type Role } from "@/stores/auth";
 
 const ROLES_SIMULABLES: { rol: Role; etiqueta: string }[] = [
   { rol: "solicitante", etiqueta: "Solicitante" },
@@ -23,7 +23,7 @@ export function VerComoSelector() {
   const verComo = useAuthStore((s) => s.verComo);
   const setVerComo = useAuthStore((s) => s.setVerComo);
 
-  if (roleReal !== "admin") return null;
+  if (!puedeVerComo(roleReal)) return null;
 
   return (
     <label className="flex items-center gap-2 text-xs text-muted">
@@ -34,8 +34,8 @@ export function VerComoSelector() {
         onChange={(e) => setVerComo((e.target.value || null) as Role | null)}
         className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground"
       >
-        <option value="">Administrador</option>
-        {ROLES_SIMULABLES.map((r) => (
+        <option value="">{roleReal === "admin" ? "Administrador" : "Mi vista (Gerente juridico)"}</option>
+        {ROLES_SIMULABLES.filter((r) => r.rol !== roleReal).map((r) => (
           <option key={r.rol} value={r.rol}>{r.etiqueta}</option>
         ))}
       </select>
