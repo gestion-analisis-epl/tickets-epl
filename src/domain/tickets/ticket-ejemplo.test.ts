@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/storage", () => ({ deleteTicketDocuments: async () => {} }));
-import { crearServicioEjemplo, ETAPAS_EJEMPLO, ticketEjemplo } from "./ticket-ejemplo";
+import { ABOGADO_EJEMPLO_ID, crearServicioEjemplo, ETAPAS_EJEMPLO, ticketEjemplo } from "./ticket-ejemplo";
 import { RevisionLegalIncompletaError, puedeEditarRevisionLegal } from "./revision-legal-rules";
 import type { Ticket } from "@/types/ticket";
 
@@ -15,6 +15,7 @@ describe("ticket de ejemplo", () => {
 
   it("sin abogado antes de la asignacion y con revision legal vacia hasta Validacion y presentacion", () => {
     expect(ticketEjemplo("Recepcion de solicitud").abogadoAsignadoId).toBeNull();
+    expect(ABOGADO_EJEMPLO_ID).toBeTruthy();
     const t = ticketEjemplo("Proceso en tramite");
     expect(t.abogadoAsignadoId).not.toBeNull();
     expect(t.revisionLegal).toBeUndefined();

@@ -9,7 +9,7 @@ import { usePermiso } from "@/hooks/use-permiso";
 import { auth } from "@/lib/firebase";
 import { useTicket } from "@/hooks/use-ticket";
 import * as ticketsApi from "@/lib/tickets";
-import { crearServicioEjemplo, subirArchivoEjemplo } from "@/domain/tickets/ticket-ejemplo";
+import { ABOGADO_EJEMPLO_ID, crearServicioEjemplo, subirArchivoEjemplo } from "@/domain/tickets/ticket-ejemplo";
 import { findServicio } from "@/lib/catalogo";
 import { ResumenContratoCard } from "./resumen-contrato-card";
 import { HistorialPanel } from "./historial-panel";
@@ -102,7 +102,7 @@ export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) 
   const vivo = useTicket(modoEjemplo ? null : id);
   const { ticket, loading, forbidden } = modoEjemplo ? { ticket: ticketEjemplo, loading: false, forbidden: false } : vivo;
   // En el ejemplo, quien simula ser el abogado es el asignado al ticket (si ya hay uno).
-  const abogadoId = modoEjemplo ? ticket?.abogadoAsignadoId ?? null : abogadoIdSesion;
+  const abogadoId = modoEjemplo ? ABOGADO_EJEMPLO_ID : abogadoIdSesion;
   const api = useMemo(
     () => (ejemplo ? crearServicioEjemplo(ejemplo, { findServicio }, setTicketEjemplo) : ticketsApi),
     [ejemplo]
@@ -188,13 +188,15 @@ export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) 
   }
 
   const servicio = findServicio(ticket.servicioId);
+  // En el ejemplo el abogado simulado puede llenar todo, aun en un ticket nuevo que todavia no tiene abogado asignado.
+  const tp = modoEjemplo ? { ...ticket, abogadoAsignadoId: ABOGADO_EJEMPLO_ID } : ticket;
   const esDueno = ticket.solicitanteId === uid;
   const puedeCalificar = esDueno && ticket.estatus === "Cierre" && ticket.satisfaccion == null;
   // Area/servicio/descripcion: solo el dueno o admin, antes de Pre-Cierre (ver etapa-permisos-rules.ts).
   const puedeEditarSolicitud = (esDueno || isAdminRole(role)) && solicitudEditable(ticket.estatus);
   // Documentacion: ademas del dueno/admin, el abogado asignado a ESTE ticket
   // y gerente_juridico (ya cubierto por isAdminRole) pueden subir/borrar archivos.
-  const esAbogadoAsignado = role === "abogado" && !!abogadoId && abogadoId === ticket.abogadoAsignadoId;
+  const esAbogadoAsignado = role === "abogado" && !!abogadoId && abogadoId === tp.abogadoAsignadoId;
   const puedeEditarDocumentos = (puedeEditarSolicitud || esAbogadoAsignado) && solicitudEditable(ticket.estatus);
   // Sin repetidos: en un ticket anterior los documentos viejos pueden reaparecer con su nombre nuevo.
   const todaLaDocumentacion = Array.from(new Set([
@@ -207,18 +209,18 @@ export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) 
   const esArrendamiento = SERVICIOS_ARRENDAMIENTO_IDS.includes(ticket.servicioId);
   const sitioCompleto = !!(sitioForm.clave && sitioForm.alias);
   // Asignar el sitio a un ticket existente: Mesa de Control, admins y el abogado asignado.
-  const puedeCambiarSitio = puedeActualizarSitio(role, ticket, abogadoId) && !bloqueadoPorPreCierre(ticket.estatus);
+  const puedeCambiarSitio = puedeActualizarSitio(role, tp, abogadoId) && !bloqueadoPorPreCierre(ticket.estatus);
   // Admin/Gerente Juridico y el abogado asignado (misma condicion que firestore.rules).
   const verHistorialCompleto = puedeVerHistorial({ role, abogadoId, permisos }, ticket);
   // El solicitante dueno solo ve lo que hicieron el abogado asignado y el mismo.
   const verHistorialFiltrado = puedeVerHistorialFiltrado({ uid, role, abogadoId, permisos }, ticket);
   const verHistorial = !modoEjemplo && (verHistorialCompleto || verHistorialFiltrado);
-  const puedeEditarDatosContrato = puedeEditarContrato({ role, abogadoId }, ticket);
-  const puedeEditarRevision = puedeEditarRevisionLegal({ role, abogadoId }, ticket);
+  const puedeEditarDatosContrato = puedeEditarContrato({ role, abogadoId }, tp);
+  const puedeEditarRevision = puedeEditarRevisionLegal({ role, abogadoId }, tp);
   // Informacion legal interna: solo la ve quien puede editar (Legal/admin), no el solicitante.
   // Tambien en las Altas anteriores al formulario nuevo (sin datos de alta): el abogado las completa retroactivamente.
   const verRevisionLegal = usaFormularioAlta(ticket.servicioId) && puedeEditar;
-  const puedeEditarAlta = puedeEditarAltaRetroactiva({ role, abogadoId }, ticket);
+  const puedeEditarAlta = puedeEditarAltaRetroactiva({ role, abogadoId }, tp);
   // Tickets anteriores al formulario de contrato: se muestran los campos vacios y se pueden completar.
   const faltanDatosContrato = !ticket.contratoArrendamiento && requiereDatosContrato(ticket.servicioId);
   const pideFormato = SERVICIOS_CON_FORMATO_OBLIGATORIO_IDS.includes(ticket.servicioId);

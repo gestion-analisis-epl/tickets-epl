@@ -13,6 +13,9 @@ import { ABOGADOS } from "@/lib/data/abogados";
 
 export const ID_TICKET_EJEMPLO = "ejemplo";
 
+// Abogado que simula quien usa la guia; en el ejemplo puede llenar todo aunque el ticket aun no tenga asignado.
+export const ABOGADO_EJEMPLO_ID = ABOGADOS[1]?.id ?? ABOGADOS[0]?.id ?? "abogado-ejemplo";
+
 // Alta y Cambio de arrendador comparten el mismo formulario; solo cambia el servicio del ticket.
 export const SERVICIOS_EJEMPLO: { servicioId: string; etiqueta: string }[] = [
   { servicioId: SERVICIO_ALTA_ARRENDADOR_ID, etiqueta: "Alta de arrendador" },
@@ -97,7 +100,7 @@ export function ticketEjemplo(etapa: Estatus, servicioId: string = SERVICIO_ALTA
     // Antes de Pre-Cierre queda vacia: es lo que el abogado debe llenar. Despues se ve ya completa.
     ...(preCierreOMas ? { revisionLegal: REVISION_COMPLETA } : {}),
     estatus: etapa,
-    abogadoAsignadoId: asignado ? (ABOGADOS[1]?.id ?? ABOGADOS[0]?.id ?? null) : null,
+    abogadoAsignadoId: asignado ? ABOGADO_EJEMPLO_ID : null,
     fechaAsignacion: asignado ? iso(8) : null,
     fechaCierre: cerrado ? iso(1) : null,
     notasCierre: cerrado ? "Alta concluida (ejemplo)." : null,
