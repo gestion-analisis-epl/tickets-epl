@@ -217,7 +217,9 @@ export function createTicketService(
     if (!etapaPermiteEditar(current)) {
       throw new Error("La revisión legal ya no se puede editar porque el ticket está en Pre-Cierre o Cierre.");
     }
-    await repo.update(id, { revisionLegal: normalizarRevisionLegal(revision) });
+    const normalizada = normalizarRevisionLegal(revision);
+    await repo.update(id, { revisionLegal: normalizada });
+    await refrescarResumenSiVisible({ ...current, revisionLegal: normalizada } as Ticket);
   }
 
   // Tickets de Alta anteriores al formulario nuevo: el abogado completa lo que el solicitante no capturo,

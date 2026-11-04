@@ -150,7 +150,7 @@ export function RevisionLegalPanel({ ticketId, revision, editable, onGuardar }: 
       {/* 1. Propietario */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="field-label">Tipo de propietario</label>
+          <label className="field-label">Tipo de propietario <span className="text-danger">*</span></label>
           <select
             value={r.tipoPropietario ?? ""}
             onChange={(e) => e.target.value && set("tipoPropietario", e.target.value as TipoPropietario)}
@@ -164,13 +164,13 @@ export function RevisionLegalPanel({ ticketId, revision, editable, onGuardar }: 
         </div>
         {r.tipoPropietario && (
           <div>
-            <label className="field-label">{r.tipoPropietario === "moral" ? "Razón social" : "Nombre completo del propietario"}</label>
+            <label className="field-label">{r.tipoPropietario === "moral" ? "Razón social" : "Nombre completo del propietario"} <span className="text-danger">*</span></label>
             <input value={r.nombrePropietario ?? ""} onChange={(e) => set("nombrePropietario", e.target.value)} disabled={dis} className="w-full field" />
           </div>
         )}
         {r.tipoPropietario === "moral" && (
           <div className="sm:col-span-2">
-            <label className="field-label">Nombre del representante legal</label>
+            <label className="field-label">Nombre del representante legal <span className="text-danger">*</span></label>
             <input value={r.representanteLegal ?? ""} onChange={(e) => set("representanteLegal", e.target.value)} disabled={dis} className="w-full field" />
           </div>
         )}
@@ -180,7 +180,7 @@ export function RevisionLegalPanel({ ticketId, revision, editable, onGuardar }: 
       {/* 2. Propiedad */}
       {r.tipoPropietario && (
         <div className="space-y-3">
-          <label className="field-label">¿Se acredita la propiedad?</label>
+          <label className="field-label">¿Se acredita la propiedad? <span className="text-danger">*</span></label>
           <SiNo valor={r.acreditaPropiedad} onChange={(v) => set("acreditaPropiedad", v)} disabled={dis} />
           {r.acreditaPropiedad === true && documento("documentoPropiedad", "Documento que acredita la propiedad")}
           {r.acreditaPropiedad === false && documento("cartaAutorizacion", "Carta de autorización")}
@@ -190,11 +190,11 @@ export function RevisionLegalPanel({ ticketId, revision, editable, onGuardar }: 
       {/* 3. Limitacion */}
       {r.acreditaPropiedad !== undefined && (
         <div className="space-y-3">
-          <label className="field-label">¿Existe alguna limitación sobre el inmueble?</label>
+          <label className="field-label">¿Existe alguna limitación sobre el inmueble? <span className="text-danger">*</span></label>
           <SiNo valor={r.hayLimitacion} onChange={(v) => set("hayLimitacion", v)} disabled={dis} />
           {r.hayLimitacion === true && TIPO_LIMITACION_LIBRE && (
             <div>
-              <label className="field-label">Tipo de limitación</label>
+              <label className="field-label">Tipo de limitación <span className="text-danger">*</span></label>
               <input value={r.tipoLimitacion ?? ""} onChange={(e) => set("tipoLimitacion", e.target.value)} disabled={dis} className="w-full field" />
             </div>
           )}
@@ -205,7 +205,7 @@ export function RevisionLegalPanel({ ticketId, revision, editable, onGuardar }: 
       {r.hayLimitacion !== undefined && (
         <div className="space-y-3">
           <div>
-            <label className="field-label">¿Quién recibe el pago de las rentas?</label>
+            <label className="field-label">¿Quién recibe el pago de las rentas? <span className="text-danger">*</span></label>
             <select
               value={r.escenarioBeneficiario ?? ""}
               onChange={(e) => elegirEscenario(e.target.value as EscenarioBeneficiario | "")}
@@ -222,7 +222,7 @@ export function RevisionLegalPanel({ ticketId, revision, editable, onGuardar }: 
           {r.escenarioBeneficiario === "tercero" && (
             <div className="space-y-3">
               <div>
-                <label className="field-label">Nombre del beneficiario</label>
+                <label className="field-label">Nombre del beneficiario <span className="text-danger">*</span></label>
                 <input value={r.beneficiarioNombre ?? ""} onChange={(e) => set("beneficiarioNombre", e.target.value)} disabled={dis} className="w-full field" />
               </div>
               {documento("documentoBeneficiario", "Acreditación del beneficiario")}
@@ -236,7 +236,7 @@ export function RevisionLegalPanel({ ticketId, revision, editable, onGuardar }: 
           {r.escenarioBeneficiario === "varios" && (
             <div className="space-y-3">
               <div className="space-y-2">
-                <label className="field-label">Beneficiarios</label>
+                <label className="field-label">Beneficiarios <span className="text-danger">*</span></label>
                 {lista.map((b, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <input
@@ -264,7 +264,7 @@ export function RevisionLegalPanel({ ticketId, revision, editable, onGuardar }: 
               </div>
 
               <div>
-                <label className="field-label">¿Cómo se reparte el pago?</label>
+                <label className="field-label">¿Cómo se reparte el pago? <span className="text-danger">*</span></label>
                 <select
                   value={r.modalidadVarios ?? ""}
                   onChange={(e) => e.target.value && set("modalidadVarios", e.target.value as ModalidadVarios)}
@@ -280,7 +280,7 @@ export function RevisionLegalPanel({ ticketId, revision, editable, onGuardar }: 
               {r.modalidadVarios === "representante" && (
                 <div className="space-y-3">
                   <div>
-                    <label className="field-label">Representante común</label>
+                    <label className="field-label">Representante común <span className="text-danger">*</span></label>
                     <select
                       value={r.representanteComun === undefined ? "" : String(r.representanteComun)}
                       onChange={(e) => set("representanteComun", e.target.value === "" ? undefined : Number(e.target.value))}
@@ -305,18 +305,18 @@ export function RevisionLegalPanel({ ticketId, revision, editable, onGuardar }: 
       {/* 5. Condicion de pago */}
       {r.escenarioBeneficiario && (
         <div className="space-y-3">
-          <label className="field-label">¿Existe condición para el pago del arrendamiento?</label>
+          <label className="field-label">¿Existe condición para el pago del arrendamiento? <span className="text-danger">*</span></label>
           <SiNo valor={r.hayCondicionPago} onChange={(v) => set("hayCondicionPago", v)} disabled={dis} />
           {r.hayCondicionPago === true && (
             <div>
-              <label className="field-label">¿Cuál?</label>
+              <label className="field-label">¿Cuál? <span className="text-danger">*</span></label>
               <input value={r.condicionPago ?? ""} onChange={(e) => set("condicionPago", e.target.value)} disabled={dis} className="w-full field" />
             </div>
           )}
         </div>
       )}
 
-      {faltantes.length > 0 && (
+      {editable && faltantes.length > 0 && (
         <div>
           <p className="text-sm font-medium">Falta por completar:</p>
           <ul className="list-disc pl-5 text-sm text-muted space-y-0.5">

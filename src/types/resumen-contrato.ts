@@ -1,4 +1,4 @@
-import type { Estatus } from "./ticket";
+import type { Estatus, RevisionLegal } from "./ticket";
 
 export type FormaPago = "mensual" | "bimestral" | "trimestral" | "semestral" | "anual" | "bianual" | "otra";
 export type EstadoResumen = "pendiente" | "listo" | "error" | "sin_contrato";
@@ -67,6 +67,8 @@ export interface ResumenContrato {
   fechaSolicitud?: string; // ISO
   motivo?: string | null;
   documentos?: DocumentoResumen[];
+  // Espejo de Ticket.revisionLegal (incluye los documentos que anexo el abogado) para jefe de zona y Sitios.
+  revisionLegal?: RevisionLegal;
   sitioClave: string | null;
   sitioAlias: string | null;
   domicilio: string | null;

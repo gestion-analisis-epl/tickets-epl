@@ -107,6 +107,7 @@ export function construirResumenContrato(ticket: Ticket, ahora: Date, previo?: R
     fechaSolicitud: ticket.fechaSolicitud,
     motivo: contrato?.motivo ?? null,
     documentos: documentosDelResumen(ticket, contratoUrl),
+    ...(ticket.revisionLegal ? { revisionLegal: ticket.revisionLegal } : {}),
     sitioClave: ticket.sitioArrendamiento?.clave ?? null,
     sitioAlias: ticket.sitioArrendamiento?.alias ?? contrato?.sitio ?? null,
     // Lo capturado en la ficha manda; si el ticket es anterior al formulario, se usa lo que la IA leyo del contrato.

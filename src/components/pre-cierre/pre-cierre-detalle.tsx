@@ -19,6 +19,7 @@ import { formatFecha, formatFechaSolo } from "@/lib/format-fecha";
 import { esUrlStorageSegura } from "@/lib/storage-ruta";
 import { findServicio } from "@/lib/catalogo";
 import { SERVICIO_ALTA_ARRENDADOR_ID, SERVICIO_CAMBIO_ARRENDADOR_ID } from "@/lib/data/arrendamientos-temporal";
+import { RevisionLegalPanel } from "@/components/tickets/revision-legal-panel";
 import { agruparDocumentos, datosDelTicket, textoDiscrepancia } from "@/domain/contratos/resumen-presentacion";
 import type { EstadoResumen } from "@/types/resumen-contrato";
 
@@ -242,6 +243,13 @@ export function PreCierreDetalle({ id }: { id: string }) {
 
           {resumen.estadoResumen === "listo" && <p className="text-xs text-muted">Resumen generado automáticamente; no sustituye la revisión legal del contrato.</p>}
         </section>
+
+        {resumen.revisionLegal && (
+          <section className="section-card p-6 space-y-4">
+            <h2 className="eyebrow">Revisión legal</h2>
+            <RevisionLegalPanel ticketId={resumen.ticketId} revision={resumen.revisionLegal} editable={false} onGuardar={async () => {}} />
+          </section>
+        )}
     </div>
   );
 
