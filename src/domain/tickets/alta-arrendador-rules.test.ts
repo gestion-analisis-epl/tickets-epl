@@ -39,7 +39,8 @@ describe("esAltaRetroactiva", () => {
   });
   it("no si los datos los capturo el solicitante ni en otro servicio", () => {
     expect(esAltaRetroactiva({ servicioId: "JUR-C071", altaArrendador: {} as never })).toBe(false);
-    expect(esAltaRetroactiva({ servicioId: "JUR-C072", altaArrendador: undefined })).toBe(false);
+    expect(esAltaRetroactiva({ servicioId: "JUR-C073", altaArrendador: undefined })).toBe(false);
+    expect(esAltaRetroactiva({ servicioId: "JUR-C072", altaArrendador: undefined })).toBe(true);
   });
 });
 

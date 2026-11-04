@@ -1,5 +1,5 @@
 import type { AltaArrendadorInput, DocumentoAltaKey, TipoAlta, Ticket } from "@/types/ticket";
-import { SERVICIO_ALTA_ARRENDADOR_ID } from "@/lib/data/arrendamientos-temporal";
+import { usaFormularioAlta } from "@/lib/data/arrendamientos-temporal";
 
 export const DOCUMENTOS_ALTA: { key: DocumentoAltaKey; label: string; ayuda: string; soloCambio?: boolean }[] = [
   { key: "identificaciones", label: "Identificación", ayuda: "Identificación oficial del arrendador." },
@@ -30,7 +30,7 @@ export function validarAlta(a: AltaCapturada): Record<string, string> {
 // Ticket de Alta anterior al formulario nuevo (sin datos de alta) o que el abogado ya completo
 // retroactivamente: el abogado asignado lo sigue editando aunque este en Cierre.
 export function esAltaRetroactiva(t: Pick<Ticket, "servicioId" | "altaArrendador">): boolean {
-  return t.servicioId === SERVICIO_ALTA_ARRENDADOR_ID && (!t.altaArrendador || t.altaArrendador.retroactiva === true);
+  return usaFormularioAlta(t.servicioId) && (!t.altaArrendador || t.altaArrendador.retroactiva === true);
 }
 
 // En un ticket anterior solo el tipo de alta es obligatorio: los documentos se capturan si existen.

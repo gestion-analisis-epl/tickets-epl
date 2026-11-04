@@ -386,7 +386,7 @@ describe("edicion retroactiva de un ticket de Alta anterior", () => {
 
   it("no guarda en Pre-Cierre, en otro servicio, ni sobre datos que capturo el solicitante", async () => {
     await expect(montar(anterior({ estatus: "Pre-Cierre" })).service.updateTicketAltaRetroactiva("t1", captura)).rejects.toThrow();
-    await expect(montar(anterior({ servicioId: "JUR-C072" })).service.updateTicketAltaRetroactiva("t1", captura)).rejects.toThrow();
+    await expect(montar(anterior({ servicioId: "JUR-C073" })).service.updateTicketAltaRetroactiva("t1", captura)).rejects.toThrow();
     const delSolicitante = anterior({ altaArrendador: { tipoAlta: "nuevo", documentos: {} } });
     await expect(montar(delSolicitante).service.updateTicketAltaRetroactiva("t1", captura)).rejects.toThrow();
   });

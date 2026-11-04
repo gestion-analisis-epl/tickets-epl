@@ -12,7 +12,7 @@ import { AREAS_EMPRESA } from "@/lib/data/listas";
 import { findServicio } from "@/lib/catalogo";
 import {
   SERVICIOS_ARRENDAMIENTO_IDS, SERVICIOS_CON_FORMATO_OBLIGATORIO_IDS, SERVICIOS_CON_DATOS_CONTRATO_IDS, SERVICIOS_CON_DOCUMENTOS_INDIVIDUALES_IDS,
-  URL_FORMATO_SOLICITUD_ARRENDAMIENTO, DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO, SERVICIO_ALTA_ARRENDADOR_ID, type DocumentoRequeridoArrendamientoKey,
+  URL_FORMATO_SOLICITUD_ARRENDAMIENTO, DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO, usaFormularioAlta, type DocumentoRequeridoArrendamientoKey,
 } from "@/lib/data/arrendamientos-temporal";
 import { parseMontoInput } from "@/lib/text-format";
 import { validarFormatoArrendamiento } from "@/lib/validar-formato";
@@ -91,7 +91,7 @@ export function NuevoTicketForm() {
   const servicioSeleccionado = form.servicioId ? findServicio(form.servicioId) : undefined;
   const filesUploading = files.some((f) => f.status === "uploading");
   const formatoUploading = formatoFiles.some((f) => f.status === "uploading" || f.status === "validando");
-  const esAlta = form.servicioId === SERVICIO_ALTA_ARRENDADOR_ID;
+  const esAlta = usaFormularioAlta(form.servicioId);
   const docsAlta = documentosAltaRequeridos(alta.tipoAlta);
   const geolocalizacion = sitioDeSeleccion(sitios, sitio)?.geolocalizacion ?? null;
   const documentosUploading =

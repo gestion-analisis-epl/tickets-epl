@@ -2,7 +2,7 @@ import { isAdminRole, type Role } from "@/types/user";
 import type { Beneficiario, RevisionLegal, Ticket } from "@/types/ticket";
 import { solicitudEditable } from "./etapa-permisos-rules";
 import { esAltaRetroactiva } from "./alta-arrendador-rules";
-import { SERVICIO_ALTA_ARRENDADOR_ID } from "@/lib/data/arrendamientos-temporal";
+import { usaFormularioAlta } from "@/lib/data/arrendamientos-temporal";
 
 const TOTAL = 10000;
 
@@ -114,7 +114,7 @@ export function faltantesRevisionLegal(r: RevisionLegal): string[] {
 
 // Solo aplica a tickets de Alta con el bloque nuevo; los anteriores nunca quedan pendientes.
 export function revisionLegalPendiente(t: Pick<Ticket, "altaArrendador" | "revisionLegal" | "servicioId">): string[] {
-  return t.altaArrendador && t.servicioId === SERVICIO_ALTA_ARRENDADOR_ID ? faltantesRevisionLegal(t.revisionLegal ?? {}) : [];
+  return t.altaArrendador && usaFormularioAlta(t.servicioId) ? faltantesRevisionLegal(t.revisionLegal ?? {}) : [];
 }
 
 type Sesion = { role: Role | null | undefined; abogadoId: string | null | undefined };
@@ -135,7 +135,7 @@ export function puedeEditarRevisionLegal(
   sesion: Sesion,
   ticket: Pick<Ticket, "servicioId" | "abogadoAsignadoId" | "estatus" | "altaArrendador">
 ): boolean {
-  return ticket.servicioId === SERVICIO_ALTA_ARRENDADOR_ID && etapaPermiteEditar(ticket) && esAdminOAbogadoAsignado(sesion, ticket);
+  return usaFormularioAlta(ticket.servicioId) && etapaPermiteEditar(ticket) && esAdminOAbogadoAsignado(sesion, ticket);
 }
 
 // Completar los datos de alta que el solicitante no capturo (tickets anteriores) o corregirlos despues.

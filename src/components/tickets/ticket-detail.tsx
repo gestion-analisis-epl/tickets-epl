@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, ShieldAlert, FileText, Trash2, Pencil, Download } from "lucide-react";
@@ -8,7 +8,8 @@ import { useAuthStore } from "@/stores/auth";
 import { usePermiso } from "@/hooks/use-permiso";
 import { auth } from "@/lib/firebase";
 import { useTicket } from "@/hooks/use-ticket";
-import { updateTicketAsignacion, updateTicketSolicitud, updateTicketSitio, updateTicketContrato, updateTicketRevisionLegal, updateTicketAltaRetroactiva, submitSatisfaccion, deleteTicket } from "@/lib/tickets";
+import * as ticketsApi from "@/lib/tickets";
+import { crearServicioEjemplo, subirArchivoEjemplo } from "@/domain/tickets/ticket-ejemplo";
 import { findServicio } from "@/lib/catalogo";
 import { ResumenContratoCard } from "./resumen-contrato-card";
 import { HistorialPanel } from "./historial-panel";
@@ -28,9 +29,9 @@ import { SELECCION_VACIA, type SeleccionSitio } from "@/domain/sitios/sitios-rul
 import { puedeActualizarSitio } from "@/domain/tickets/sitio-rules";
 import { ABOGADOS } from "@/lib/data/abogados";
 import { AREAS_EMPRESA } from "@/lib/data/listas";
-import { uploadTicketFile, deleteTicketDocument, deleteTicketDocumentByUrl } from "@/lib/storage";
+import * as storageApi from "@/lib/storage";
 import { FileDropzone, type UploadingFile } from "@/components/ui/file-dropzone";
-import { ESTATUS_VALUES, type Estatus } from "@/types/ticket";
+import { ESTATUS_VALUES, type Estatus, type Ticket } from "@/types/ticket";
 import { EstatusBadge, CategoriaBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -41,7 +42,7 @@ import {
   SERVICIOS_ARRENDAMIENTO_IDS,
   SERVICIOS_CON_DOCUMENTOS_INDIVIDUALES_IDS,
   SERVICIOS_CON_FORMATO_OBLIGATORIO_IDS,
-  SERVICIO_ALTA_ARRENDADOR_ID,
+  usaFormularioAlta,
 } from "@/lib/data/arrendamientos-temporal";
 import { isAdminRole } from "@/types/user";
 import { esUrlStorageSegura } from "@/lib/storage-ruta";
@@ -92,10 +93,24 @@ function datoContrato(valor: string | null | undefined): React.ReactNode {
   return valor ? valor : <span className="font-normal text-muted">Sin capturar</span>;
 }
 
-export function TicketDetail({ id }: { id: string }) {
+// `ejemplo`: ticket ficticio de la guia del abogado. Todo se hace en memoria, sin Firestore ni Storage.
+export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) {
   const router = useRouter();
-  const { uid, nombre, role, abogadoId, permisos } = useAuthStore();
-  const { ticket, loading, forbidden } = useTicket(id);
+  const { uid, nombre, role, abogadoId: abogadoIdSesion, permisos } = useAuthStore();
+  const modoEjemplo = !!ejemplo;
+  const [ticketEjemplo, setTicketEjemplo] = useState<Ticket | null>(ejemplo ?? null);
+  const vivo = useTicket(modoEjemplo ? null : id);
+  const { ticket, loading, forbidden } = modoEjemplo ? { ticket: ticketEjemplo, loading: false, forbidden: false } : vivo;
+  // En el ejemplo, quien simula ser el abogado es el asignado al ticket (si ya hay uno).
+  const abogadoId = modoEjemplo ? ticket?.abogadoAsignadoId ?? null : abogadoIdSesion;
+  const api = useMemo(
+    () => (ejemplo ? crearServicioEjemplo(ejemplo, { findServicio }, setTicketEjemplo) : ticketsApi),
+    [ejemplo]
+  );
+  const { updateTicketAsignacion, updateTicketSolicitud, updateTicketSitio, updateTicketContrato, updateTicketRevisionLegal, updateTicketAltaRetroactiva, submitSatisfaccion, deleteTicket } = api;
+  const uploadTicketFile = modoEjemplo ? subirArchivoEjemplo : storageApi.uploadTicketFile;
+  const deleteTicketDocument = modoEjemplo ? async (_: string) => {} : storageApi.deleteTicketDocument;
+  const deleteTicketDocumentByUrl = modoEjemplo ? async (_: string) => {} : storageApi.deleteTicketDocumentByUrl;
   const puedeEditar = role === "mesa_control" || role === "abogado" || role === "gerente_juridico" || role === "admin";
   const puedeEliminar = usePermiso("eliminar_tickets");
   // Reasignar abogado depende del permiso asignar_tickets (rol + ajustes; ver firestore.rules).
@@ -197,19 +212,19 @@ export function TicketDetail({ id }: { id: string }) {
   const verHistorialCompleto = puedeVerHistorial({ role, abogadoId, permisos }, ticket);
   // El solicitante dueno solo ve lo que hicieron el abogado asignado y el mismo.
   const verHistorialFiltrado = puedeVerHistorialFiltrado({ uid, role, abogadoId, permisos }, ticket);
-  const verHistorial = verHistorialCompleto || verHistorialFiltrado;
+  const verHistorial = !modoEjemplo && (verHistorialCompleto || verHistorialFiltrado);
   const puedeEditarDatosContrato = puedeEditarContrato({ role, abogadoId }, ticket);
   const puedeEditarRevision = puedeEditarRevisionLegal({ role, abogadoId }, ticket);
   // Informacion legal interna: solo la ve quien puede editar (Legal/admin), no el solicitante.
   // Tambien en las Altas anteriores al formulario nuevo (sin datos de alta): el abogado las completa retroactivamente.
-  const verRevisionLegal = ticket.servicioId === SERVICIO_ALTA_ARRENDADOR_ID && puedeEditar;
+  const verRevisionLegal = usaFormularioAlta(ticket.servicioId) && puedeEditar;
   const puedeEditarAlta = puedeEditarAltaRetroactiva({ role, abogadoId }, ticket);
   // Tickets anteriores al formulario de contrato: se muestran los campos vacios y se pueden completar.
   const faltanDatosContrato = !ticket.contratoArrendamiento && requiereDatosContrato(ticket.servicioId);
   const pideFormato = SERVICIOS_CON_FORMATO_OBLIGATORIO_IDS.includes(ticket.servicioId);
   const pideDocumentosIndividuales = SERVICIOS_CON_DOCUMENTOS_INDIVIDUALES_IDS.includes(ticket.servicioId);
   // Participantes del hilo (sin Mesa de Control ni otros abogados), desde que el ticket llego a Pre-Cierre.
-  const verConversacion = hiloVisible(ticket) && esParticipante({ uid, role, abogadoId }, ticket);
+  const verConversacion = !modoEjemplo && hiloVisible(ticket) && esParticipante({ uid, role, abogadoId }, ticket);
 
   function handleEditarContrato() {
     const c = ticket!.contratoArrendamiento;
@@ -406,6 +421,10 @@ export function TicketDetail({ id }: { id: string }) {
   }
 
   async function handleDescargarZip() {
+    if (modoEjemplo) {
+      setZipError("En el ejemplo los archivos no existen, por eso no se descarga nada.");
+      return;
+    }
     setDescargandoZip(true);
     setZipError(null);
     try {
@@ -784,6 +803,7 @@ export function TicketDetail({ id }: { id: string }) {
             ticketId={id}
             revision={ticket.revisionLegal}
             editable={puedeEditarRevision}
+            simulado={modoEjemplo}
             onGuardar={(rev) => updateTicketRevisionLegal(id, rev)}
           />
         </section>
@@ -964,7 +984,7 @@ export function TicketDetail({ id }: { id: string }) {
     </div>
   );
 
-  const mostrarResumen = puedeEditar && Boolean(ticket.contratoArrendamiento || ticket.resumenContrato);
+  const mostrarResumen = !modoEjemplo && puedeEditar && Boolean(ticket.contratoArrendamiento || ticket.resumenContrato);
 
   return (
     <DosColumnas

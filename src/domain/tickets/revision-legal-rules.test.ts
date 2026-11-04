@@ -151,7 +151,7 @@ describe("puedeEditarAltaRetroactiva", () => {
     expect(puedeEditarAltaRetroactiva(abogado, { ...anterior, estatus: "Pre-Cierre" })).toBe(false);
     expect(puedeEditarAltaRetroactiva({ role: "mesa_control", abogadoId: null }, anterior)).toBe(false);
     expect(puedeEditarAltaRetroactiva({ role: "abogado", abogadoId: "a2" }, anterior)).toBe(false);
-    expect(puedeEditarAltaRetroactiva(abogado, { ...anterior, servicioId: "JUR-C072" })).toBe(false);
+    expect(puedeEditarAltaRetroactiva(abogado, { ...anterior, servicioId: "JUR-C073" })).toBe(false);
   });
   it("un ticket con datos de alta del solicitante (no retroactivos) no se puede reescribir", () => {
     expect(puedeEditarAltaRetroactiva(abogado, { ...anterior, altaArrendador: { retroactiva: undefined } as never })).toBe(false);

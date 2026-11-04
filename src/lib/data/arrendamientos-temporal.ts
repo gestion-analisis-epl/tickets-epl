@@ -21,12 +21,19 @@ export const SERVICIOS_CON_DATOS_CONTRATO_IDS = [
   SERVICIO_CONTRATO_ARRENDAMIENTO_ID,
 ];
 
-// Solo Alta pide cada documento por separado; Cambio usa un unico campo de documentacion adjunta.
-export const SERVICIOS_CON_DOCUMENTOS_INDIVIDUALES_IDS = [SERVICIO_ALTA_ARRENDADOR_ID];
+// Alta y Cambio de arrendador usan exactamente el mismo formulario: tipo de alta, cada documento por separado
+// y la revision legal del abogado.
+export const SERVICIOS_CON_FORMULARIO_ALTA_IDS = [SERVICIO_ALTA_ARRENDADOR_ID, SERVICIO_CAMBIO_ARRENDADOR_ID];
+
+export function usaFormularioAlta(servicioId: string): boolean {
+  return SERVICIOS_CON_FORMULARIO_ALTA_IDS.includes(servicioId);
+}
+
+export const SERVICIOS_CON_DOCUMENTOS_INDIVIDUALES_IDS = SERVICIOS_CON_FORMULARIO_ALTA_IDS;
 
 export const URL_FORMATO_SOLICITUD_ARRENDAMIENTO = "/plantillas/formato-solicitud-arrendamiento.docx";
 
-// Alta los pide por separado; en Cambio sirven de guia de lo que debe ir en la documentacion adjunta.
+// Los pide por separado el formulario de Alta/Cambio (y sirven de guia en los demas servicios de arrendamiento).
 export const DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO = [
   { key: "escrituras", label: "Escrituras de la propiedad" },
   { key: "identificacionArrendador", label: "Identificación oficial del arrendador" },

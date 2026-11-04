@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { Role } from "@/types/user";
+import type { Estatus } from "@/types/ticket";
 import type { AjustesPermisos } from "@/domain/users/permisos";
 
 export type { Role };
@@ -41,6 +42,12 @@ interface AuthState {
   // Liga a Abogado.id (data/abogados.ts) cuando role === "abogado" — permite
   // saber si el usuario es el abogado asignado a un ticket (ver ticket-detail.tsx).
   abogadoId: string | null;
+  // "Ver como" Abogado: etapa del ticket de ejemplo que se muestra como guia (ver domain/tickets/ticket-ejemplo.ts).
+  etapaEjemplo: Estatus | null;
+  setEtapaEjemplo: (etapa: Estatus | null) => void;
+  // Servicio del ticket de ejemplo (Alta o Cambio de arrendador).
+  servicioEjemplo: string;
+  setServicioEjemplo: (servicioId: string) => void;
   // Solo gerente_area: usuarios cuyos tickets puede ver.
   supervisaUids: string[];
   // Excepciones a los permisos de su rol (ver domain/users/permisos.ts).
@@ -68,6 +75,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   role: "solicitante",
   roleReal: "solicitante",
   verComo: null,
+  etapaEjemplo: null,
+  setEtapaEjemplo: (etapa) => set({ etapaEjemplo: etapa }),
+  servicioEjemplo: "JUR-C071",
+  setServicioEjemplo: (servicioId) => set({ servicioEjemplo: servicioId }),
   abogadoId: null,
   supervisaUids: [],
   permisos: {},
@@ -93,10 +104,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!puedeVerComo(roleReal)) return;
     const verComo = rol && rol !== "admin" && rol !== roleReal ? rol : null;
     guardarVerComo(verComo);
-    set({ verComo, role: verComo ?? roleReal, permisos: verComo ? {} : permisosReales });
+    set({ verComo, role: verComo ?? roleReal, permisos: verComo ? {} : permisosReales, ...(verComo === "abogado" ? {} : { etapaEjemplo: null }) });
   },
   clearUser: () => {
     guardarVerComo(null);
-    set({ uid: null, nombre: null, email: null, role: "solicitante", roleReal: "solicitante", verComo: null, abogadoId: null, supervisaUids: [], permisos: {}, permisosReales: {}, status: "signed-out" });
+    set({ uid: null, nombre: null, email: null, role: "solicitante", roleReal: "solicitante", verComo: null, etapaEjemplo: null, abogadoId: null, supervisaUids: [], permisos: {}, permisosReales: {}, status: "signed-out" });
   },
 }));

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileDropzone, type UploadingFile } from "@/components/ui/file-dropzone";
 import { uploadTicketFile, deleteTicketDocumentByUrl } from "@/lib/storage";
+import { subirArchivoEjemplo } from "@/domain/tickets/ticket-ejemplo";
 import { faltantesRevisionLegal, normalizarRevisionLegal } from "@/domain/tickets/revision-legal-rules";
 import type { Beneficiario, EscenarioBeneficiario, ModalidadVarios, RevisionLegal, TipoPropietario } from "@/types/ticket";
 
@@ -12,6 +13,8 @@ interface Props {
   revision: RevisionLegal | undefined;
   editable: boolean;
   onGuardar: (revision: RevisionLegal) => Promise<void>;
+  // Guia del abogado: las subidas son simuladas (no tocan Storage).
+  simulado?: boolean;
 }
 
 type CampoDoc =
@@ -43,7 +46,7 @@ function SiNo({ valor, onChange, disabled }: { valor: boolean | undefined; onCha
   );
 }
 
-export function RevisionLegalPanel({ ticketId, revision, editable, onGuardar }: Props) {
+export function RevisionLegalPanel({ ticketId, revision, editable, onGuardar, simulado = false }: Props) {
   const [r, setR] = useState<RevisionLegal>(revision ?? {});
   const [archivos, setArchivos] = useState<Partial<Record<CampoDoc, UploadingFile[]>>>({});
   const [guardando, setGuardando] = useState(false);
@@ -75,7 +78,7 @@ export function RevisionLegalPanel({ ticketId, revision, editable, onGuardar }: 
     const anterior = r[campo];
     const entry: UploadingFile = { id: crypto.randomUUID(), name: file.name, size: file.size, progress: 0, status: "uploading" };
     setArchivos((p) => ({ ...p, [campo]: [entry] }));
-    uploadTicketFile(`tickets/${ticketId}`, file, (pct) =>
+    (simulado ? subirArchivoEjemplo : uploadTicketFile)(`tickets/${ticketId}`, file, (pct) =>
       setArchivos((p) => ({ ...p, [campo]: p[campo]?.map((f) => (f.id === entry.id ? { ...f, progress: pct } : f)) }))
     )
       .then(({ url, path }) => {
@@ -100,7 +103,7 @@ export function RevisionLegalPanel({ ticketId, revision, editable, onGuardar }: 
       const guardada = normalizarRevisionLegal(r);
       await onGuardar(guardada);
       const vigentes = new Set(Object.values(guardada).filter((v): v is string => typeof v === "string"));
-      for (const url of porBorrar) if (!vigentes.has(url)) deleteTicketDocumentByUrl(url).catch(() => {});
+      for (const url of porBorrar) if (!vigentes.has(url)) { if (!simulado) deleteTicketDocumentByUrl(url).catch(() => {}); }
       setPorBorrar([]);
       setArchivos({});
       setR(guardada);

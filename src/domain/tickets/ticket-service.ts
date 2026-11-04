@@ -2,7 +2,7 @@ import { deleteTicketDocuments } from "@/lib/storage";
 import type { Estatus, RevisionLegal, SitioArrendamiento, Ticket } from "@/types/ticket";
 import { etapaPermiteEditar, normalizarRevisionLegal, revisionLegalPendiente, RevisionLegalIncompletaError } from "./revision-legal-rules";
 import { calcularPatchAltaRetroactiva, esAltaRetroactiva, validarAltaRetroactiva, type AltaRetroactivaCapturada } from "./alta-arrendador-rules";
-import { SERVICIO_ALTA_ARRENDADOR_ID } from "@/lib/data/arrendamientos-temporal";
+import { usaFormularioAlta } from "@/lib/data/arrendamientos-temporal";
 import type { ResumenContratoRepository } from "@/domain/contratos/resumen-contrato-repository";
 import { accionResumen, construirResumenContrato, ETAPAS_VISIBLES_JEFE_ZONA, resumenSinCambios } from "@/domain/contratos/contrato-rules";
 import type { ExtraccionContrato, ResumenContratoTicket } from "@/types/resumen-contrato";
@@ -213,7 +213,7 @@ export function createTicketService(
   async function updateTicketRevisionLegal(id: string, revision: RevisionLegal): Promise<void> {
     const current = await repo.getById(id);
     if (!current) throw new Error("Ticket no encontrado.");
-    if (current.servicioId !== SERVICIO_ALTA_ARRENDADOR_ID) throw new Error("El ticket no es una alta de arrendador.");
+    if (!usaFormularioAlta(current.servicioId)) throw new Error("El ticket no es un alta ni un cambio de arrendador.");
     if (!etapaPermiteEditar(current)) {
       throw new Error("La revisión legal ya no se puede editar porque el ticket está en Pre-Cierre o Cierre.");
     }
