@@ -12,7 +12,7 @@ export const firestoreArchivosRepository: ArchivosRepository = {
   subscribe(ticketId, callback, onError) {
     return onSnapshot(
       collection(db, "tickets", ticketId, "archivos"),
-      (snap) => callback(snap.docs.map((d) => ({ ...(d.data() as RegistroArchivo), id: d.id }))),
+      (snap) => callback(snap.docs.map((d) => ({ ...(d.data({ serverTimestamps: "estimate" }) as RegistroArchivo), id: d.id }))),
       onError ? (err) => onError({ code: err.code }) : undefined
     );
   },

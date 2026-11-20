@@ -4,7 +4,8 @@ import { formatFecha } from "@/lib/format-fecha";
 import type { RegistroArchivoGuardado } from "@/types/archivo";
 
 // Una línea con quién subió el archivo, su rol y cuándo. Sin registro (ticket anterior): "Origen no registrado".
-export function AutorArchivo({ url, registros }: { url: string; registros: RegistroArchivoGuardado[] }) {
+export function AutorArchivo({ url, registros }: { url: string; registros: RegistroArchivoGuardado[] | null }) {
+  if (!registros) return null;
   const autor = autorDeArchivo(registros, url);
   return (
     <span className="block w-full text-xs text-muted">

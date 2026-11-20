@@ -130,12 +130,15 @@ export function registrosDeCreacion(grupos: GrupoArchivosCreacion[], actor: Acto
   );
 }
 
-// Quién subió el archivo que hoy está en la URL: el registro de subida más reciente de esa ruta.
+// Quién subió el archivo que hoy está en la URL: el registro de subida más antiguo de esa ruta
+// (la ruta de Storage es única, así que quien la registra primero es quien la subió).
+// Se ordena por creadoEn, que escribe el servidor; la fecha del cliente solo sirve de respaldo.
 // null en tickets anteriores a la trazabilidad (la interfaz muestra "Origen no registrado").
 export function autorDeArchivo(registros: RegistroArchivoGuardado[], url: string): RegistroArchivoGuardado | null {
   const ruta = rutaDeUrlStorage(url);
   if (!ruta) return null;
   const subidas = registros.filter((r) => r.ruta === ruta && r.accion === "subido");
   if (subidas.length === 0) return null;
-  return subidas.reduce((a, b) => (a.fecha >= b.fecha ? a : b));
+  const orden = (r: RegistroArchivoGuardado) => r.creadoEn?.toMillis() ?? Date.parse(r.fecha);
+  return subidas.reduce((a, b) => (orden(a) <= orden(b) ? a : b));
 }

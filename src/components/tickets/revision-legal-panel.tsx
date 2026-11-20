@@ -14,7 +14,7 @@ interface Props {
   ticketId: string;
   revision: RevisionLegal | undefined;
   // Quién subió cada archivo guardado; sin esto (jefe de zona, Sitios) no se muestra el autor.
-  registros?: RegistroArchivoGuardado[];
+  registros?: RegistroArchivoGuardado[] | null;
   editable: boolean;
   onGuardar: (revision: RevisionLegal) => Promise<void>;
   // Guia del abogado: las subidas son simuladas (no tocan Storage).

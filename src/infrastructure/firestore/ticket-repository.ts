@@ -1,5 +1,5 @@
 import {
-  collection, doc, runTransaction, query, where, onSnapshot, getDoc, getDocs, updateDoc, deleteDoc, limit, writeBatch,
+  collection, doc, runTransaction, query, where, onSnapshot, getDoc, getDocs, updateDoc, deleteDoc, limit, writeBatch, serverTimestamp,
   type FirestoreError,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -36,7 +36,7 @@ export const firestoreTicketRepository: TicketRepository = {
 
       tx.set(counterRef, { next: next + 1 }, { merge: true });
       tx.set(ref, ticket);
-      for (const registro of archivos) tx.set(nuevoRegistroArchivoRef(ref.id), registro);
+      for (const registro of archivos) tx.set(nuevoRegistroArchivoRef(ref.id), { ...registro, creadoEn: serverTimestamp() });
       tx.set(doc(collection(db, "notificaciones")), {
         ticketId: ref.id,
         ticketFolio: folio,
@@ -65,7 +65,7 @@ export const firestoreTicketRepository: TicketRepository = {
     const batch = writeBatch(db);
     batch.update(doc(db, "tickets", id), patch);
     for (const entrada of entradas) batch.set(nuevaEntradaHistorialRef(id), entrada);
-    for (const registro of archivos) batch.set(nuevoRegistroArchivoRef(id), registro);
+    for (const registro of archivos) batch.set(nuevoRegistroArchivoRef(id), { ...registro, creadoEn: serverTimestamp() });
     await batch.commit();
   },
 

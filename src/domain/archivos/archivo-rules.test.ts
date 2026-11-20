@@ -152,12 +152,36 @@ describe("registrosDeCreacion", () => {
 });
 
 describe("autorDeArchivo", () => {
-  it("devuelve el registro de subida más reciente de esa ruta", () => {
+  it("gana el registro más antiguo por creadoEn", () => {
     const registros = [
-      guardado({ id: "viejo", fecha: "2026-11-01T10:00:00.000Z", actorNombre: "Ana" }),
-      guardado({ id: "nuevo", fecha: "2026-11-05T10:00:00.000Z", actorNombre: "Luis", actorRol: "gerente_juridico" }),
+      guardado({ id: "nuevo", creadoEn: { toMillis: () => 2000 }, actorNombre: "Luis" }),
+      guardado({ id: "viejo", creadoEn: { toMillis: () => 1000 } }),
     ];
-    expect(autorDeArchivo(registros, url("A.pdf"))?.id).toBe("nuevo");
+    expect(autorDeArchivo(registros, url("A.pdf"))?.id).toBe("viejo");
+  });
+
+  it("un registro posterior con fecha del año 9999 no gana", () => {
+    const registros = [
+      guardado({ id: "primero", creadoEn: { toMillis: () => 1000 } }),
+      guardado({ id: "falso", creadoEn: { toMillis: () => 2000 }, fecha: "9999-01-01T00:00:00.000Z" }),
+    ];
+    expect(autorDeArchivo(registros, url("A.pdf"))?.id).toBe("primero");
+  });
+
+  it("un registro con fecha muy antigua pero creadoEn posterior no gana", () => {
+    const registros = [
+      guardado({ id: "primero", creadoEn: { toMillis: () => 5000 } }),
+      guardado({ id: "falso", creadoEn: { toMillis: () => 9000 }, fecha: "1990-01-01T00:00:00.000Z" }),
+    ];
+    expect(autorDeArchivo(registros, url("A.pdf"))?.id).toBe("primero");
+  });
+
+  it("sin creadoEn usa la fecha como respaldo", () => {
+    const registros = [
+      guardado({ id: "nuevo", fecha: "2026-11-05T10:00:00.000Z" }),
+      guardado({ id: "viejo", fecha: "2026-11-01T10:00:00.000Z" }),
+    ];
+    expect(autorDeArchivo(registros, url("A.pdf"))?.id).toBe("viejo");
   });
 
   it("ignora los borrados y las rutas de otros archivos", () => {

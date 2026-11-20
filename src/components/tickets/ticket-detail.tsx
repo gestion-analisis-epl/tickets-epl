@@ -98,7 +98,7 @@ function datoContrato(valor: string | null | undefined): React.ReactNode {
 // `ejemplo`: ticket ficticio de la guia del abogado. Todo se hace en memoria, sin Firestore ni Storage.
 export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) {
   const router = useRouter();
-  const { uid, nombre, role, abogadoId: abogadoIdSesion, permisos } = useAuthStore();
+  const { uid, nombre, role, roleReal, abogadoId: abogadoIdSesion, permisos } = useAuthStore();
   const modoEjemplo = !!ejemplo;
   const [ticketEjemplo, setTicketEjemplo] = useState<Ticket | null>(ejemplo ?? null);
   const vivo = useTicket(modoEjemplo ? null : id);
@@ -632,10 +632,10 @@ export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) 
                       <li key={url} className="flex flex-wrap items-center gap-2">
                         <EnlaceDocumento url={url} etiqueta={etiqueta} />
                         {etiqueta !== original && original && <span className="text-xs text-muted">({original})</span>}
-                        <AutorArchivo url={url} registros={registrosArchivos} />
                         {puedeEditarEtiquetas(role) && (
                           <EditarEtiquetaAdjunto ticketId={ticket.id} url={url} etiquetaActual={etiqueta} nombreOriginal={original} />
                         )}
+                        <AutorArchivo url={url} registros={registrosArchivos} />
                       </li>
                     );
                   })}
@@ -697,7 +697,7 @@ export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) 
                       <AutorArchivo url={ticket.formatoArrendamientoUrl} registros={registrosArchivos} />
                     </>
                   )
-                  :<p className="text-sm text-muted">Sin adjuntar</p>}
+                  : <p className="text-sm text-muted">Sin adjuntar</p>}
               </div>
             )}
 
@@ -815,7 +815,7 @@ export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) 
           <h2 className="eyebrow">Datos de alta de arrendador</h2>
           <AltaRetroactivaForm ticketId={id} ticket={ticket} onGuardar={async (entrada) => {
             if (!actor) throw new Error("Tu sesión no está disponible. Recarga la página.");
-            await updateTicketAltaRetroactiva(id, actor, entrada);
+            await updateTicketAltaRetroactiva(id, { ...actor, rol: roleReal }, entrada);
           }} />
         </section>
       )}
@@ -831,7 +831,7 @@ export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) 
             simulado={modoEjemplo}
             onGuardar={async (rev) => {
               if (!actor) throw new Error("Tu sesión no está disponible. Recarga la página.");
-              await updateTicketRevisionLegal(id, actor, rev);
+              await updateTicketRevisionLegal(id, { ...actor, rol: roleReal }, rev);
             }}
           />
         </section>

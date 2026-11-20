@@ -30,4 +30,6 @@ export interface RegistroArchivo {
 
 export interface RegistroArchivoGuardado extends RegistroArchivo {
   id: string;
+  // Lo escribe el servidor; sirve para ordenar sin confiar en la fecha del cliente.
+  creadoEn?: { toMillis(): number };
 }
