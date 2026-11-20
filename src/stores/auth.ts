@@ -29,7 +29,37 @@ function guardarVerComo(rol: Role | null) {
   }
 }
 
+const CLAVE_VER_COMO_GERENTE = "ver-como-gerente";
+
+// Gerente concreto cuyo equipo se previsualiza con "Ver como" Gerente de area/sitios.
+export interface GerenteSimulado {
+  uid: string;
+  nombre: string;
+  supervisaUids: string[];
+}
+
+function leerGerenteSimulado(): GerenteSimulado | null {
+  try {
+    const crudo = sessionStorage.getItem(CLAVE_VER_COMO_GERENTE);
+    return crudo ? (JSON.parse(crudo) as GerenteSimulado) : null;
+  } catch {
+    return null;
+  }
+}
+
+function guardarGerenteSimulado(g: GerenteSimulado | null) {
+  try {
+    if (g) sessionStorage.setItem(CLAVE_VER_COMO_GERENTE, JSON.stringify(g));
+    else sessionStorage.removeItem(CLAVE_VER_COMO_GERENTE);
+  } catch {
+    // sessionStorage no disponible: solo dura lo que la pestana.
+  }
+}
+
 interface AuthState {
+  // Solo con "Ver como" gerente: a quien se simula, para filtrar en pantalla los tickets de su equipo.
+  verComoGerente: GerenteSimulado | null;
+  setVerComoGerente: (g: GerenteSimulado | null) => void;
   uid: string | null;
   nombre: string | null;
   email: string | null;
@@ -75,6 +105,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   role: "solicitante",
   roleReal: "solicitante",
   verComo: null,
+  verComoGerente: null,
+  setVerComoGerente: (g) => {
+    if (!puedeVerComo(get().roleReal)) return;
+    guardarGerenteSimulado(g);
+    set({ verComoGerente: g });
+  },
   etapaEjemplo: null,
   setEtapaEjemplo: (etapa) => set({ etapaEjemplo: etapa }),
   servicioEjemplo: "JUR-C071",
@@ -92,6 +128,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       role: verComo ?? role,
       roleReal: role,
       verComo,
+      verComoGerente: verComo === "gerente_area" || verComo === "gerente_sitios" ? leerGerenteSimulado() : null,
       abogadoId: abogadoId ?? null,
       supervisaUids: supervisaUids ?? [],
       permisos: verComo ? {} : permisos ?? {},
@@ -104,10 +141,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!puedeVerComo(roleReal)) return;
     const verComo = rol && rol !== "admin" && rol !== roleReal ? rol : null;
     guardarVerComo(verComo);
-    set({ verComo, role: verComo ?? roleReal, permisos: verComo ? {} : permisosReales, ...(verComo === "abogado" ? {} : { etapaEjemplo: null }) });
+    guardarGerenteSimulado(null);
+    set({ verComo, verComoGerente: null, role: verComo ?? roleReal, permisos: verComo ? {} : permisosReales, ...(verComo === "abogado" ? {} : { etapaEjemplo: null }) });
   },
   clearUser: () => {
     guardarVerComo(null);
-    set({ uid: null, nombre: null, email: null, role: "solicitante", roleReal: "solicitante", verComo: null, etapaEjemplo: null, abogadoId: null, supervisaUids: [], permisos: {}, permisosReales: {}, status: "signed-out" });
+    guardarGerenteSimulado(null);
+    set({ verComoGerente: null, uid: null, nombre: null, email: null, role: "solicitante", roleReal: "solicitante", verComo: null, etapaEjemplo: null, abogadoId: null, supervisaUids: [], permisos: {}, permisosReales: {}, status: "signed-out" });
   },
 }));

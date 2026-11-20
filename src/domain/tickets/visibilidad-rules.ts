@@ -11,6 +11,12 @@ export function uidsConsultaTickets(filtro: { uid: string; role: Role; supervisa
   return Array.from(new Set([filtro.uid, ...supervisados].filter(Boolean)));
 }
 
+// "Ver como" gerente: del total que ve el admin, deja los tickets del gerente y los de su equipo.
+export function ticketsDeEquipo(tickets: Ticket[], gerente: { uid: string; supervisaUids?: string[] }): Ticket[] {
+  const uids = new Set([gerente.uid, ...(gerente.supervisaUids ?? [])].filter(Boolean));
+  return tickets.filter((t) => uids.has(t.solicitanteId));
+}
+
 // Junta los resultados de varias consultas: sin repetidos, del mas reciente al mas antiguo.
 export function combinarTickets(listas: Ticket[][]): Ticket[] {
   const porId = new Map<string, Ticket>();

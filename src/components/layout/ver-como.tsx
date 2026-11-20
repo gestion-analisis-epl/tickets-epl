@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Eye, X } from "lucide-react";
+import { listUsers, type UserRow } from "@/lib/users";
 import { useRouter } from "next/navigation";
 import { ETAPAS_EJEMPLO, SERVICIOS_EJEMPLO } from "@/domain/tickets/ticket-ejemplo";
 import type { Estatus } from "@/types/ticket";
@@ -19,6 +21,46 @@ const ROLES_SIMULABLES: { rol: Role; etiqueta: string }[] = [
 
 export function etiquetaRol(rol: Role): string {
   return ROLES_SIMULABLES.find((r) => r.rol === rol)?.etiqueta ?? rol;
+}
+
+// Elige a que gerente se simula: se muestran los tickets de su equipo (filtrados en pantalla).
+function SelectorGerente({ rol }: { rol: "gerente_area" | "gerente_sitios" }) {
+  const verComoGerente = useAuthStore((s) => s.verComoGerente);
+  const setVerComoGerente = useAuthStore((s) => s.setVerComoGerente);
+  const [gerentes, setGerentes] = useState<UserRow[]>([]);
+
+  useEffect(() => {
+    let vigente = true;
+    listUsers()
+      .then((usuarios) => {
+        if (vigente) setGerentes(usuarios.filter((u) => u.role === rol && u.activo));
+      })
+      .catch(() => {
+        if (vigente) setGerentes([]);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [rol]);
+
+  return (
+    <label className="flex items-center gap-2 text-xs text-muted">
+      <span className="hidden sm:inline">Gerente</span>
+      <select
+        value={verComoGerente?.uid ?? ""}
+        onChange={(e) => {
+          const g = gerentes.find((u) => u.uid === e.target.value);
+          setVerComoGerente(g ? { uid: g.uid, nombre: g.nombre, supervisaUids: g.supervisaUids ?? [] } : null);
+        }}
+        className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground"
+      >
+        <option value="">Elige un gerente</option>
+        {gerentes.map((g) => (
+          <option key={g.uid} value={g.uid}>{g.nombre}</option>
+        ))}
+      </select>
+    </label>
+  );
 }
 
 // Solo UI: las consultas y las reglas de Firestore siguen usando la cuenta real del admin.
@@ -56,6 +98,7 @@ export function VerComoSelector() {
         ))}
       </select>
     </label>
+    {(verComo === "gerente_area" || verComo === "gerente_sitios") && <SelectorGerente rol={verComo} />}
     {verComo === "abogado" && (
       <>
       <label className="flex items-center gap-2 text-xs text-muted">
@@ -92,12 +135,17 @@ export function VerComoSelector() {
 export function VerComoBanner() {
   const verComo = useAuthStore((s) => s.verComo);
   const setVerComo = useAuthStore((s) => s.setVerComo);
+  const verComoGerente = useAuthStore((s) => s.verComoGerente);
 
   if (!verComo) return null;
+  const esGerente = verComo === "gerente_area" || verComo === "gerente_sitios";
 
   return (
     <div className="flex items-center justify-center gap-3 bg-warning px-4 py-1.5 text-xs font-medium text-black">
-      <span>Simulando la vista de: {etiquetaRol(verComo)}. Tu cuenta y tus permisos reales no cambian.</span>
+      <span>
+        Simulando la vista de: {etiquetaRol(verComo)}
+        {esGerente && (verComoGerente ? ` (${verComoGerente.nombre})` : ". Elige un gerente arriba para ver los tickets de su equipo")}. Tu cuenta y tus permisos reales no cambian.
+      </span>
       <button
         type="button"
         onClick={() => setVerComo(null)}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { combinarTickets, uidsConsultaTickets } from "./visibilidad-rules";
+import { combinarTickets, ticketsDeEquipo, uidsConsultaTickets } from "./visibilidad-rules";
 import { buildTicket } from "@/test/ticket-fixture";
 
 describe("uidsConsultaTickets", () => {
@@ -39,6 +39,22 @@ describe("uidsConsultaTickets", () => {
       expect(uidsConsultaTickets({ uid: "x", role, supervisaUids: ["a"] })).toBeNull();
     }
   );
+});
+
+describe("ticketsDeEquipo", () => {
+  const tickets = [
+    buildTicket({ id: "1", solicitanteId: "g1" }),
+    buildTicket({ id: "2", solicitanteId: "a" }),
+    buildTicket({ id: "3", solicitanteId: "otro" }),
+  ];
+
+  it("deja los del gerente y los de su equipo", () => {
+    expect(ticketsDeEquipo(tickets, { uid: "g1", supervisaUids: ["a"] }).map((t) => t.id)).toEqual(["1", "2"]);
+  });
+
+  it("sin equipo solo deja los propios", () => {
+    expect(ticketsDeEquipo(tickets, { uid: "g1" }).map((t) => t.id)).toEqual(["1"]);
+  });
 });
 
 describe("combinarTickets", () => {
