@@ -20,6 +20,10 @@ describe("uidsConsultaTickets", () => {
     expect(uidsConsultaTickets({ uid: "g1", role: "gerente_area", supervisaUids: ["a", "a", "g1", ""] })).toEqual(["g1", "a"]);
   });
 
+  it("el gerente de sitios consulta sus tickets y los de sus supervisados", () => {
+    expect(uidsConsultaTickets({ uid: "g1", role: "gerente_sitios", supervisaUids: ["a", "b"] })).toEqual(["g1", "a", "b"]);
+  });
+
   it("un solicitante ignora supervisaUids aunque el documento los traiga", () => {
     expect(uidsConsultaTickets({ uid: "u1", role: "solicitante", supervisaUids: ["a"] })).toEqual(["u1"]);
   });

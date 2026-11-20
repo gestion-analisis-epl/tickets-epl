@@ -19,6 +19,7 @@ const CORREOS_POR_ROL: Record<Role, TipoNotificacion[]> = {
   solicitante: SOLICITANTE,
   // Como solicitante + el cierre de los tickets que supervisa.
   gerente_area: [...SOLICITANTE, "cierre"],
+  gerente_sitios: [...SOLICITANTE, "cierre"],
   jefe_zona: ["pre_cierre", "comentario_ticket"],
   // Rol Sitios: solo el aviso de Pre-Cierre; no participa en la conversacion.
   sitios: ["pre_cierre"],
@@ -45,7 +46,7 @@ export function tiposCorreoEditables(role: Role): TipoNotificacion[] {
 // Avisos de gestion que un usuario puede recibir aunque su rol no los incluya (p.ej. quien cubre al
 // gerente juridico). Es una lista manual por usuario: complementa a correosDesactivados.
 const ADICIONALES_OFRECIDOS: TipoNotificacion[] = ["nuevo_ticket", "cambio_estatus", "cierre"];
-const ROLES_SIN_ADICIONALES: Role[] = ["solicitante", "gerente_area"];
+const ROLES_SIN_ADICIONALES: Role[] = ["solicitante", "gerente_area", "gerente_sitios"];
 
 export function tiposCorreoAdicionales(role: Role): TipoNotificacion[] {
   if (ROLES_SIN_ADICIONALES.includes(role)) return [];

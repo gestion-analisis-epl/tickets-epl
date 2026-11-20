@@ -27,5 +27,5 @@ interface UsuarioSupervisor {
 // Gerentes de area activos con correo que supervisan al solicitante de un ticket.
 // Las preferencias de correo se aplican despues (notificaciones/preferencias-rules.ts).
 export function gerentesQueSupervisan<T extends UsuarioSupervisor>(usuarios: T[], solicitanteId: string): T[] {
-  return usuarios.filter((u) => u.role === "gerente_area" && u.activo && u.email && u.supervisaUids?.includes(solicitanteId));
+  return usuarios.filter((u) => (u.role === "gerente_area" || u.role === "gerente_sitios") && u.activo && u.email && u.supervisaUids?.includes(solicitanteId));
 }

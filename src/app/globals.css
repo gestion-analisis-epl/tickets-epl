@@ -89,6 +89,7 @@ html {
     /* Color por rol en el historial (texto y filetes sobre fondo claro) */
     --rol-solicitante:      175 75% 23%;
     --rol-gerente-area:      80 55% 26%;
+    --rol-gerente-sitios:   190 70% 28%;
     --rol-mesa-control:     262 50% 42%;
     --rol-abogado:          217 80% 36%;
     --rol-gerente-juridico: 300 45% 36%;
@@ -101,6 +102,7 @@ html {
   .dark {
     --rol-solicitante:      175 60% 62%;
     --rol-gerente-area:      80 50% 62%;
+    --rol-gerente-sitios:   190 65% 64%;
     --rol-mesa-control:     262 80% 78%;
     --rol-abogado:          217 90% 72%;
     --rol-gerente-juridico: 300 60% 76%;

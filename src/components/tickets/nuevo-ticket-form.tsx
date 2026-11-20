@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CategoriaBadge } from "@/components/ui/badge";
 import { FileDropzone, type UploadingFile } from "@/components/ui/file-dropzone";
 import { useAuthStore } from "@/stores/auth";
+import { ocultaSla } from "@/types/user";
 import { AREAS_EMPRESA } from "@/lib/data/listas";
 import { findServicio } from "@/lib/catalogo";
 import {
@@ -65,7 +66,8 @@ const CLAVES_CONTRATO = ["domicilio", "altaArrendador", "periodoInicio", "period
 
 export function NuevoTicketForm() {
   const router = useRouter();
-  const { uid, nombre } = useAuthStore();
+  const { uid, nombre, role } = useAuthStore();
+  const sinSla = ocultaSla(role);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [contrato, setContratoState] = useState<ContratoCapturado>(EMPTY_CONTRATO);
   const [sitio, setSitio] = useState<SeleccionSitio>(SELECCION_VACIA);
@@ -456,7 +458,7 @@ export function NuevoTicketForm() {
                 <div className="flex flex-wrap items-center gap-3 rounded-md bg-surface px-3 py-2 text-sm">
                   <CategoriaBadge categoria={servicioSeleccionado.categoria} />
                   <span className="text-muted">Puesto responsable: <span className="font-medium opacity-100">{servicioSeleccionado.puestoResponsable}</span></span>
-                  <span className="text-muted">SLA interno: <span className="font-medium opacity-100">{servicioSeleccionado.slaInterno} días hábiles</span></span>
+                  {!sinSla && <span className="text-muted">SLA interno: <span className="font-medium opacity-100">{servicioSeleccionado.slaInterno} días hábiles</span></span>}
                 </div>
               )}
 

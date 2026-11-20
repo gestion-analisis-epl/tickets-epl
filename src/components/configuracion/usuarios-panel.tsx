@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 const ROLE_LABEL: Record<Role, string> = {
   solicitante: "Solicitante",
   gerente_area: "Gerente de Area",
+  gerente_sitios: "Gerente de Sitios",
   mesa_control: "Mesa de Control",
   abogado: "Abogado",
   gerente_juridico: "Gerente Juridico",
@@ -30,7 +31,7 @@ const ROLE_LABEL: Record<Role, string> = {
   sitios: "Sitios",
 };
 
-const ROLE_OPTIONS: Role[] = ["solicitante", "gerente_area", "mesa_control", "abogado", "gerente_juridico", "admin", "jefe_zona", "sitios"];
+const ROLE_OPTIONS: Role[] = ["solicitante", "gerente_area", "gerente_sitios", "mesa_control", "abogado", "gerente_juridico", "admin", "jefe_zona", "sitios"];
 
 type Panel = { mode: "crear" } | { mode: "editar"; user: UserRow } | null;
 
@@ -50,7 +51,7 @@ const COLUMNS: { key: ColumnKey; label: string }[] = [
 
 // En gerente_area "cierre" es el de los tickets que supervisa; en admin/legal, el de todos.
 function etiquetaCorreo(role: Role, tipo: TipoNotificacion): string {
-  if (role === "gerente_area" && tipo === "cierre") return "Cierre de tickets de sus supervisados";
+  if (puedeSupervisar(role) && tipo === "cierre") return "Cierre de tickets de sus supervisados";
   return ETIQUETA_CORREO[tipo];
 }
 

@@ -9,6 +9,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Loader2, Search } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
+import { ocultaSla } from "@/types/user";
 import { actorDesdeSesion } from "@/domain/tickets/historial-rules";
 import { updateTicketAsignacion } from "@/lib/tickets";
 import { RevisionLegalIncompletaError } from "@/domain/tickets/revision-legal-rules";
@@ -22,6 +23,7 @@ import { partesAbogado } from "@/lib/data/abogados";
 import { useSessionStorage } from "@/hooks/use-session-storage";
 
 function TicketCardBody({ ticket }: { ticket: Ticket }) {
+  const sinSla = ocultaSla(useAuthStore((s) => s.role));
   const servicio = findServicio(ticket.servicioId);
   const { clave, alias } = partesSitio(ticket);
   const abogado = partesAbogado(ticket.abogadoAsignadoId);
@@ -48,7 +50,7 @@ function TicketCardBody({ ticket }: { ticket: Ticket }) {
             <span className="opacity-80"> · {[abogado.puesto, abogado.zona].filter(Boolean).join(" · ")}</span>
           )}
         </span>
-        {ticket.nivelServicio != null && (
+        {!sinSla && ticket.nivelServicio != null && (
           <span className={cn("font-medium tabular-nums shrink-0", ticket.nivelServicio < 0 ? "text-danger" : "text-success")}>
             {ticket.nivelServicio > 0 ? `+${ticket.nivelServicio}` : ticket.nivelServicio}
           </span>

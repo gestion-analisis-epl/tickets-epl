@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { esJefeZona, esRolSoloResumen, esSitios, puedeDarVistoBueno, ROLES_SOLO_RESUMEN, isAdminRole, isSolicitanteRole, LEGAL_STAFF_ROLES, puedeSupervisar, puedeVerDashboard, STAFF_ROLES, type Role } from "./user";
+import { esJefeZona, esRolSoloResumen, esSitios, puedeDarVistoBueno, ROLES_SOLO_RESUMEN, isAdminRole, isSolicitanteRole, LEGAL_STAFF_ROLES, puedeSupervisar, puedeVerDashboard, ocultaSla, STAFF_ROLES, type Role } from "./user";
 
 describe("isSolicitanteRole", () => {
   it.each<[Role, boolean]>([
     ["solicitante", true],
     ["gerente_area", true],
+    ["gerente_sitios", true],
     ["mesa_control", false],
     ["abogado", false],
     ["gerente_juridico", false],
@@ -22,8 +23,9 @@ describe("isSolicitanteRole", () => {
 });
 
 describe("puedeSupervisar", () => {
-  it("solo el gerente de area supervisa a otros usuarios", () => {
+  it("solo el gerente de area y el de sitios supervisan a otros usuarios", () => {
     expect(puedeSupervisar("gerente_area")).toBe(true);
+    expect(puedeSupervisar("gerente_sitios")).toBe(true);
     expect(puedeSupervisar("solicitante")).toBe(false);
     expect(puedeSupervisar("admin")).toBe(false);
     expect(puedeSupervisar("gerente_juridico")).toBe(false);
@@ -42,6 +44,25 @@ describe("gerente_area no cambia otros grupos de roles", () => {
 
   it("no tiene permisos de admin", () => {
     expect(isAdminRole("gerente_area")).toBe(false);
+  });
+});
+
+describe("gerente_sitios", () => {
+  it("no ve SLA; ningun otro rol lo oculta", () => {
+    expect(ocultaSla("gerente_sitios")).toBe(true);
+    for (const rol of ["solicitante", "gerente_area", "mesa_control", "abogado", "gerente_juridico", "admin", "jefe_zona", "sitios"] as const) {
+      expect(ocultaSla(rol)).toBe(false);
+    }
+    expect(ocultaSla(null)).toBe(false);
+  });
+
+  it("no cambia otros grupos de roles", () => {
+    expect(LEGAL_STAFF_ROLES).not.toContain("gerente_sitios");
+    expect(STAFF_ROLES).not.toContain("gerente_sitios");
+    expect(isAdminRole("gerente_sitios")).toBe(false);
+    expect(esRolSoloResumen("gerente_sitios")).toBe(false);
+    expect(puedeVerDashboard("gerente_sitios")).toBe(false);
+    expect(puedeDarVistoBueno("gerente_sitios")).toBe(false);
   });
 });
 

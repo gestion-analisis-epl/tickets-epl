@@ -23,7 +23,7 @@ interface NavItem {
   roles?: Role[]; // undefined = visible para todos los roles
 }
 
-const ROLES_SIN_SOLO_RESUMEN: Role[] = ["solicitante", "gerente_area", "mesa_control", "abogado", "gerente_juridico", "admin"];
+const ROLES_SIN_SOLO_RESUMEN: Role[] = ["solicitante", "gerente_area", "gerente_sitios", "mesa_control", "abogado", "gerente_juridico", "admin"];
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Inicio",              href: "/",              icon: Home,          exact: true, roles: ROLES_SIN_SOLO_RESUMEN },

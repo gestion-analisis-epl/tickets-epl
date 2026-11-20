@@ -34,6 +34,10 @@ import { multiSelectColumn, FILTRO_VACIO } from "@/lib/table-filter";
 import { SortIcon, FilterDropdown, ColumnVisibilityMenu } from "@/components/ui/tabla-controles";
 import { EstatusBadge, CategoriaBadge } from "@/components/ui/badge";
 import { slaEnPausa } from "@/domain/tickets/sla-pausa-rules";
+import { useAuthStore } from "@/stores/auth";
+import { ocultaSla } from "@/types/user";
+
+const COLUMNAS_SLA = ["slaInterno", "diasHabilesTranscurridos", "nivelServicio"];
 
 // ── Filters ───────────────────────────────────────────────────────────────────
 
@@ -82,7 +86,10 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
   useEffect(() => { setPageSizeGuardado(pagination.pageSize); }, [pagination.pageSize, setPageSizeGuardado]);
   const [columnVisibility, setColumnVisibility] = useLocalStorage<VisibilityState>("tickets-table:visibility", {});
 
-  const columns = useMemo(() => [
+  const role = useAuthStore((s) => s.role);
+  const sinSla = ocultaSla(role);
+
+  const todasLasColumnas = useMemo(() => [
     columnHelper.accessor("folio", {
       ...multiSelect(),
       header: "Folio",
@@ -221,6 +228,11 @@ export function TicketsTable({ tickets }: { tickets: Ticket[] }) {
       cell: (info) => <span className="tabular-nums">{formatFecha(info.getValue(), { conHora: true })}</span>,
     }),
   ], []);
+
+  const columns = useMemo(
+    () => (sinSla ? todasLasColumnas.filter((c) => !COLUMNAS_SLA.includes(String((c as { id?: string; accessorKey?: string }).id ?? (c as { accessorKey?: string }).accessorKey))) : todasLasColumnas),
+    [todasLasColumnas, sinSla],
+  );
 
   const table = useReactTable({
     data: tickets,

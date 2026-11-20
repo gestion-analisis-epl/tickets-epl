@@ -17,6 +17,7 @@ import type { Role } from "@/types/user";
 const ETIQUETA_ROL: Record<Role, string> = {
   solicitante: "Solicitante",
   gerente_area: "Solicitante",
+  gerente_sitios: "Solicitante",
   mesa_control: "Mesa de Control",
   abogado: "Abogado",
   gerente_juridico: "Gerente Juridico",

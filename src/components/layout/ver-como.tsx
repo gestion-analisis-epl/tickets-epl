@@ -9,6 +9,7 @@ import { useAuthStore, puedeVerComo, type Role } from "@/stores/auth";
 const ROLES_SIMULABLES: { rol: Role; etiqueta: string }[] = [
   { rol: "solicitante", etiqueta: "Solicitante" },
   { rol: "gerente_area", etiqueta: "Gerente de area" },
+  { rol: "gerente_sitios", etiqueta: "Gerente de sitios" },
   { rol: "mesa_control", etiqueta: "Mesa de control" },
   { rol: "abogado", etiqueta: "Abogado" },
   { rol: "gerente_juridico", etiqueta: "Gerente juridico" },

@@ -73,7 +73,7 @@ async function gerenteJuridicoYAdminDestino(tipo: TipoNotificacion): Promise<Des
 
 async function gerentesAreaDestino(solicitanteId: string): Promise<Destino> {
   const db = getAdminDb();
-  const snap = await db.collection("users").where("role", "==", "gerente_area").get();
+  const snap = await db.collection("users").where("role", "in", ["gerente_area", "gerente_sitios"]).get();
   return filtrarDestinatarios(gerentesQueSupervisan(snap.docs.map((d) => d.data()), solicitanteId), "cierre");
 }
 

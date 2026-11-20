@@ -44,7 +44,7 @@ import {
   SERVICIOS_CON_FORMATO_OBLIGATORIO_IDS,
   usaFormularioAlta,
 } from "@/lib/data/arrendamientos-temporal";
-import { isAdminRole } from "@/types/user";
+import { isAdminRole, ocultaSla } from "@/types/user";
 import { esUrlStorageSegura } from "@/lib/storage-ruta";
 import { slaEnPausa } from "@/domain/tickets/sla-pausa-rules";
 import { bloqueadoPorPreCierre, solicitudEditable } from "@/domain/tickets/etapa-permisos-rules";
@@ -586,10 +586,10 @@ export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) 
               <div><dt className="text-muted">Servicio</dt><dd className="font-medium">{servicio?.servicio ?? ticket.servicioId}</dd></div>
               <div><dt className="text-muted">Fecha de solicitud</dt><dd className="font-medium">{formatFecha(ticket.fechaSolicitud)}</dd></div>
               <div><dt className="text-muted">Puesto responsable</dt><dd className="font-medium">{ticket.puestoResponsableSugerido}</dd></div>
-              <div><dt className="text-muted">SLA interno</dt><dd className="font-medium">{ticket.slaInterno} días hábiles</dd></div>
+              {!ocultaSla(role) && <div><dt className="text-muted">SLA interno</dt><dd className="font-medium">{ticket.slaInterno} días hábiles</dd></div>}
               <div><dt className="text-muted">Días de gestión total</dt><dd className="font-medium tabular-nums">{ticket.diasPipeline ?? 0}</dd></div>
-              <div><dt className="text-muted">Fecha compromiso</dt><dd className="font-medium">{formatFecha(ticket.fechaCompromiso)}</dd></div>
-              <div>
+              {!ocultaSla(role) && <div><dt className="text-muted">Fecha compromiso</dt><dd className="font-medium">{formatFecha(ticket.fechaCompromiso)}</dd></div>}
+              {!ocultaSla(role) && <div>
                 <dt className="text-muted">Nivel de servicio</dt>
                 {ticket.nivelServicio == null ? (
                   <dd className="font-medium text-muted">SLA aún no inicia (pendiente de asignar abogado)</dd>
@@ -600,7 +600,7 @@ export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) 
                     {slaEnPausa(ticket) && <span className="text-muted font-normal"> (SLA en pausa)</span>}
                   </dd>
                 )}
-              </div>
+              </div>}
             </dl>
 
             <div>

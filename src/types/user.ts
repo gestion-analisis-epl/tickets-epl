@@ -1,4 +1,4 @@
-export type Role = "solicitante" | "gerente_area" | "mesa_control" | "abogado" | "gerente_juridico" | "admin" | "jefe_zona" | "sitios";
+export type Role = "solicitante" | "gerente_area" | "gerente_sitios" | "mesa_control" | "abogado" | "gerente_juridico" | "admin" | "jefe_zona" | "sitios";
 
 // Roles con cuenta de correo+contrasena, creables desde el panel de Usuarios.
 // "solicitante" no entra aqui: se autoregistra por Google (ver
@@ -19,14 +19,20 @@ export function isAdminRole(role: Role | null | undefined): boolean {
 }
 
 // Roles que entran con su cuenta de Google y crean tickets propios (no son staff de Legal).
-// gerente_area ademas ve, sin poder editarlos, los tickets de los usuarios de su supervisaUids.
-export const SOLICITANTE_ROLES: Role[] = ["solicitante", "gerente_area"];
+// gerente_area y gerente_sitios ademas ven, sin poder editarlos, los tickets de los usuarios de su supervisaUids.
+export const SOLICITANTE_ROLES: Role[] = ["solicitante", "gerente_area", "gerente_sitios"];
 export function isSolicitanteRole(role: Role | null | undefined): boolean {
   return !!role && SOLICITANTE_ROLES.includes(role);
 }
 
+// Sincronizar a mano con firestore.rules supervisaA().
 export function puedeSupervisar(role: Role | null | undefined): boolean {
-  return role === "gerente_area";
+  return role === "gerente_area" || role === "gerente_sitios";
+}
+
+// El gerente de sitios no ve nada de SLA (ni dias, ni nivel de servicio, ni fecha compromiso).
+export function ocultaSla(role: Role | null | undefined): boolean {
+  return role === "gerente_sitios";
 }
 
 // Solo consulta tickets en Pre-Cierre/Cierre, a traves de resumenesContrato (ver firestore.rules).

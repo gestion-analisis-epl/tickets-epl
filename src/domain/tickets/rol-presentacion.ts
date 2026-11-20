@@ -4,6 +4,7 @@ import type { Role } from "@/types/user";
 export const ETIQUETA_ROL: Record<Role, string> = {
   solicitante: "Solicitante",
   gerente_area: "Gerente de área",
+  gerente_sitios: "Gerente de sitios",
   mesa_control: "Mesa de Control",
   abogado: "Abogado",
   gerente_juridico: "Gerente Jurídico",
