@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, ShieldAlert, FileText, Trash2, Pencil, Download } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
+import { AutorArchivo } from "./autor-archivo";
+import { useArchivosTicket } from "@/hooks/use-archivos-ticket";
 import { usePermiso } from "@/hooks/use-permiso";
 import { auth } from "@/lib/firebase";
 import { useTicket } from "@/hooks/use-ticket";
@@ -116,6 +118,7 @@ export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) 
   // Reasignar abogado depende del permiso asignar_tickets (rol + ajustes; ver firestore.rules).
   const puedeAsignarAbogado = usePermiso("asignar_tickets");
   const actor = actorDesdeSesion({ uid, nombre, role, abogadoId });
+  const registrosArchivos = useArchivosTicket(id, !modoEjemplo);
 
   const [estatusForm, setEstatusForm] = useState<Estatus>("Recepcion de solicitud");
   const [abogadoForm, setAbogadoForm] = useState("");
@@ -629,6 +632,7 @@ export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) 
                       <li key={url} className="flex flex-wrap items-center gap-2">
                         <EnlaceDocumento url={url} etiqueta={etiqueta} />
                         {etiqueta !== original && original && <span className="text-xs text-muted">({original})</span>}
+                        <AutorArchivo url={url} registros={registrosArchivos} />
                         {puedeEditarEtiquetas(role) && (
                           <EditarEtiquetaAdjunto ticketId={ticket.id} url={url} etiquetaActual={etiqueta} nombreOriginal={original} />
                         )}
@@ -687,8 +691,13 @@ export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) 
               <div>
                 <p className="text-muted text-sm mb-1.5">Formato de solicitud de arrendamiento</p>
                 {ticket.formatoArrendamientoUrl
-                  ? <EnlaceDocumento url={ticket.formatoArrendamientoUrl} etiqueta={nombreArchivo(ticket.formatoArrendamientoUrl)} />
-                  : <p className="text-sm text-muted">Sin adjuntar</p>}
+                  ? (
+                    <>
+                      <EnlaceDocumento url={ticket.formatoArrendamientoUrl} etiqueta={nombreArchivo(ticket.formatoArrendamientoUrl)} />
+                      <AutorArchivo url={ticket.formatoArrendamientoUrl} registros={registrosArchivos} />
+                    </>
+                  )
+                  :<p className="text-sm text-muted">Sin adjuntar</p>}
               </div>
             )}
 
@@ -701,7 +710,12 @@ export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) 
                     return (
                       <li key={doc.key}>
                         {url
-                          ? <EnlaceDocumento url={url} etiqueta={doc.label} />
+                          ? (
+                            <>
+                              <EnlaceDocumento url={url} etiqueta={doc.label} />
+                              <AutorArchivo url={url} registros={registrosArchivos} />
+                            </>
+                          )
                           : <span className="text-sm text-muted">{doc.label}: sin adjuntar</span>}
                       </li>
                     );
@@ -729,7 +743,12 @@ export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) 
                       return (
                         <li key={doc.key}>
                           {url
-                            ? <EnlaceDocumento url={url} etiqueta={doc.label} />
+                            ? (
+                              <>
+                                <EnlaceDocumento url={url} etiqueta={doc.label} />
+                                <AutorArchivo url={url} registros={registrosArchivos} />
+                              </>
+                            )
                             : <span className="text-sm text-muted">{doc.label}: sin adjuntar</span>}
                         </li>
                       );
@@ -807,6 +826,7 @@ export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) 
           <RevisionLegalPanel
             ticketId={id}
             revision={ticket.revisionLegal}
+            registros={registrosArchivos}
             editable={puedeEditarRevision}
             simulado={modoEjemplo}
             onGuardar={async (rev) => {

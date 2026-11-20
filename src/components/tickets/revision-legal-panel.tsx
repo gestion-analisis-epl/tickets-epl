@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { AutorArchivo } from "./autor-archivo";
+import type { RegistroArchivoGuardado } from "@/types/archivo";
 import { Button } from "@/components/ui/button";
 import { FileDropzone, type UploadingFile } from "@/components/ui/file-dropzone";
 import { uploadTicketFile, deleteTicketDocumentByUrl } from "@/lib/storage";
@@ -11,6 +13,8 @@ import type { Beneficiario, EscenarioBeneficiario, ModalidadVarios, RevisionLega
 interface Props {
   ticketId: string;
   revision: RevisionLegal | undefined;
+  // Quién subió cada archivo guardado; sin esto (jefe de zona, Sitios) no se muestra el autor.
+  registros?: RegistroArchivoGuardado[];
   editable: boolean;
   onGuardar: (revision: RevisionLegal) => Promise<void>;
   // Guia del abogado: las subidas son simuladas (no tocan Storage).
@@ -46,7 +50,7 @@ function SiNo({ valor, onChange, disabled }: { valor: boolean | undefined; onCha
   );
 }
 
-export function RevisionLegalPanel({ ticketId, revision, editable, onGuardar, simulado = false }: Props) {
+export function RevisionLegalPanel({ ticketId, revision, registros, editable, onGuardar, simulado = false }: Props) {
   const [r, setR] = useState<RevisionLegal>(revision ?? {});
   const [archivos, setArchivos] = useState<Partial<Record<CampoDoc, UploadingFile[]>>>({});
   const [guardando, setGuardando] = useState(false);
@@ -121,6 +125,7 @@ export function RevisionLegalPanel({ ticketId, revision, editable, onGuardar, si
       {r[campo] && (
         <a href={r[campo]} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">Ver documento subido</a>
       )}
+      {r[campo] && registros && revision?.[campo] === r[campo] && <AutorArchivo url={r[campo]!} registros={registros} />}
       {!r[campo] && !editable && <p className="text-sm text-muted">Sin adjuntar</p>}
     </div>
   );
