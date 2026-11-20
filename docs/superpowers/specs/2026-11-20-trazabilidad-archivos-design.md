@@ -27,7 +27,7 @@ Documento `tickets/{ticketId}/archivos/{archivoId}`:
 |---|---|
 | `nombre` | Nombre original del archivo. |
 | `ruta` | Ruta en Storage (`tickets/{id}/...`). Llave para unir con la URL (`rutaDeUrlStorage`). |
-| `origen` | De dónde viene: `documentacion`, `documento_arrendamiento`, `contrato`, `revision_legal`. |
+| `origen` | De dónde viene: `documentacion`, `formato_arrendamiento`, `documento_arrendamiento`, `alta`, `revision_legal`. |
 | `campo` | Campo concreto cuando aplica (p. ej. la clave del documento de Alta). Se omite si no aplica. |
 | `accion` | `subido` o `eliminado`. |
 | `fecha` | ISO. |
@@ -47,9 +47,14 @@ repiten la lógica.
 | Camino | Componente | Momento |
 |---|---|---|
 | Nuevo ticket y Alta | `nuevo-ticket-form.tsx` | Los archivos suben primero a `tickets-drafts/`. Los registros se escriben en el mismo lote que crea el ticket, con la ruta ya conocida. |
-| Alta retroactiva | `alta-retroactiva-form.tsx` | Mismo lote que crea el ticket. |
+| Alta retroactiva | `alta-retroactiva-form.tsx` | Actualiza un ticket que ya existe: los registros van en el mismo lote que guarda los datos de alta. |
 | Detalle del ticket | `ticket-detail.tsx` | Al agregar o quitar documentación, junto con el cambio que ya se guarda. |
 | Revisión legal | `revision-legal-panel.tsx` | Al subir o quitar un anexo del abogado. |
+
+El contrato no tiene un camino de subida propio: es un archivo más de `documentacion`, por eso no hay origen `contrato`.
+Las entradas del Historial de los archivos subidos al crear el ticket se escriben justo después de crearlo (las reglas
+necesitan que el ticket exista); el registro de cada archivo sí se guarda atómicamente con el ticket.
+Los dos tipos de historial nuevos son "de proceso": el solicitante y los abogados ven todas las subidas, sin importar quién las haga.
 
 Los archivos en `tickets-drafts/` conservan su ruta de borrador; el registro guarda esa ruta real.
 
