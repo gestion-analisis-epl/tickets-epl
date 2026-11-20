@@ -282,6 +282,8 @@ export const ETIQUETA_TIPO_HISTORIAL: Record<TipoHistorial, string> = {
   cambios_solicitados: "Cambios solicitados",
   comentario_editado: "Comentario editado",
   comentario_eliminado: "Comentario eliminado",
+  archivo_subido: "Archivo subido",
+  archivo_eliminado: "Archivo eliminado",
 };
 
 export type ItemLineaTiempo =

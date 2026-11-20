@@ -13,6 +13,8 @@ export const TIPOS_HISTORIAL = [
   "cambios_solicitados",
   "comentario_editado",
   "comentario_eliminado",
+  "archivo_subido",
+  "archivo_eliminado",
 ] as const;
 
 export type TipoHistorial = (typeof TIPOS_HISTORIAL)[number];
@@ -25,6 +27,8 @@ export const TIPOS_HISTORIAL_PROCESO: readonly TipoHistorial[] = [
   "notas_cierre",
   "visto_bueno",
   "cambios_solicitados",
+  "archivo_subido",
+  "archivo_eliminado",
 ];
 
 export function esTipoDeProceso(tipo: TipoHistorial): boolean {
