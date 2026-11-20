@@ -19,6 +19,7 @@ import { parseMontoInput } from "@/lib/text-format";
 import { validarFormatoArrendamiento } from "@/lib/validar-formato";
 import { validarSolicitud, type ContratoCapturado, type SolicitudCapturada } from "@/domain/tickets/nuevo-ticket-validacion";
 import { faltantesPorSeccion, textoFaltan, totalFaltantes } from "@/domain/tickets/avance-formulario";
+import { registrosDeCreacion } from "@/domain/archivos/archivo-rules";
 import { Campo } from "@/components/forms/campo";
 import { SeccionFormulario } from "@/components/forms/seccion-formulario";
 import { ResumenErrores } from "@/components/forms/resumen-errores";
@@ -66,7 +67,7 @@ const CLAVES_CONTRATO = ["domicilio", "altaArrendador", "periodoInicio", "period
 
 export function NuevoTicketForm() {
   const router = useRouter();
-  const { uid, nombre, role } = useAuthStore();
+  const { uid, nombre, role, roleReal } = useAuthStore();
   const sinSla = ocultaSla(role);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [contrato, setContratoState] = useState<ContratoCapturado>(EMPTY_CONTRATO);
@@ -343,19 +344,39 @@ export function NuevoTicketForm() {
 
       const documentacion = files.filter((f) => f.status === "done" && f.url).map((f) => f.url!);
 
-      const { id, folio } = await createTicket({
-        solicitanteId: uid,
-        solicitanteNombre: nombre,
-        areaEmpresa: form.areaEmpresa,
-        servicioId: form.servicioId,
-        descripcion: form.descripcion,
-        documentacion,
-        formatoArrendamientoUrl: requiereFormato ? formatoFiles[0]?.url : undefined,
-        documentosArrendamiento,
-        contratoArrendamiento,
-        ...(altaArrendador ? { altaArrendador } : {}),
-        sitioArrendamiento: { clave: sitio.clave, alias: sitio.alias },
-      });
+      const archivos = registrosDeCreacion(
+        [
+          { origen: "documentacion", archivos: files },
+          ...(requiereFormato ? [{ origen: "formato_arrendamiento" as const, archivos: formatoFiles }] : []),
+          ...(requiereDocumentosIndividuales
+            ? DOCUMENTOS_REQUERIDOS_ARRENDAMIENTO.map((d) => ({
+                origen: "documento_arrendamiento" as const, campo: d.key, archivos: documentosFiles[d.key],
+              }))
+            : []),
+          ...(esAlta
+            ? docsAlta.map((d) => ({ origen: "alta" as const, campo: d.key, archivos: altaDocsFiles[d.key] ?? [] }))
+            : []),
+        ],
+        { uid, nombre, rol: roleReal },
+        new Date()
+      );
+
+      const { id, folio } = await createTicket(
+        {
+          solicitanteId: uid,
+          solicitanteNombre: nombre,
+          areaEmpresa: form.areaEmpresa,
+          servicioId: form.servicioId,
+          descripcion: form.descripcion,
+          documentacion,
+          formatoArrendamientoUrl: requiereFormato ? formatoFiles[0]?.url : undefined,
+          documentosArrendamiento,
+          contratoArrendamiento,
+          ...(altaArrendador ? { altaArrendador } : {}),
+          sitioArrendamiento: { clave: sitio.clave, alias: sitio.alias },
+        },
+        archivos
+      );
       setFolioCreado(folio);
       // Best-effort (con contrato o documentos de Alta): si falla, el ticket ya existe y Legal puede regenerar el resumen.
       if (encontrarContrato(documentacion) || altaArrendador) void solicitarResumenContrato(id).catch(() => {});
