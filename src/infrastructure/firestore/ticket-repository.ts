@@ -7,6 +7,7 @@ import { LEGAL_STAFF_ROLES } from "@/types/user";
 import type { Ticket } from "@/types/ticket";
 import type { TicketRepository, RepositoryError } from "@/domain/tickets/ticket-repository";
 import { nuevaEntradaHistorialRef } from "./historial-repository";
+import { nuevoRegistroArchivoRef } from "./archivos-repository";
 import { combinarTickets, uidsConsultaTickets } from "@/domain/tickets/visibilidad-rules";
 
 function toRepositoryError(err: FirestoreError): RepositoryError {
@@ -22,7 +23,7 @@ function esTicketDePrueba(t: Ticket): boolean {
 
 export const firestoreTicketRepository: TicketRepository = {
   // Folio, ticket y notificacion en una sola transaccion: ningun folio queda "gastado" sin ticket.
-  async create(build) {
+  async create(build, archivos = []) {
     const counterRef = doc(db, "meta", "ticketCounter");
     const ref = doc(collection(db, "tickets"));
 
@@ -35,6 +36,7 @@ export const firestoreTicketRepository: TicketRepository = {
 
       tx.set(counterRef, { next: next + 1 }, { merge: true });
       tx.set(ref, ticket);
+      for (const registro of archivos) tx.set(nuevoRegistroArchivoRef(ref.id), registro);
       tx.set(doc(collection(db, "notificaciones")), {
         ticketId: ref.id,
         ticketFolio: folio,
@@ -59,9 +61,16 @@ export const firestoreTicketRepository: TicketRepository = {
     await updateDoc(doc(db, "tickets", id), patch);
   },
 
-  async updateConHistorial(id, patch, entradas) {
+  async updateConHistorial(id, patch, entradas, archivos = []) {
     const batch = writeBatch(db);
     batch.update(doc(db, "tickets", id), patch);
+    for (const entrada of entradas) batch.set(nuevaEntradaHistorialRef(id), entrada);
+    for (const registro of archivos) batch.set(nuevoRegistroArchivoRef(id), registro);
+    await batch.commit();
+  },
+
+  async agregarHistorial(id, entradas) {
+    const batch = writeBatch(db);
     for (const entrada of entradas) batch.set(nuevaEntradaHistorialRef(id), entrada);
     await batch.commit();
   },

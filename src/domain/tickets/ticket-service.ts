@@ -1,7 +1,17 @@
 import { deleteTicketDocuments } from "@/lib/storage";
 import type { Estatus, RevisionLegal, SitioArrendamiento, Ticket } from "@/types/ticket";
 import { etapaPermiteEditar, normalizarRevisionLegal, revisionLegalPendiente, RevisionLegalIncompletaError } from "./revision-legal-rules";
-import { calcularPatchAltaRetroactiva, esAltaRetroactiva, validarAltaRetroactiva, type AltaRetroactivaCapturada } from "./alta-arrendador-rules";
+import {
+  calcularPatchAltaRetroactiva, DOCUMENTOS_ALTA, documentosAltaIniciales, esAltaRetroactiva, validarAltaRetroactiva,
+  type AltaRetroactivaCapturada,
+} from "./alta-arrendador-rules";
+import type { RegistroArchivo } from "@/types/archivo";
+import {
+  CAMPOS_DOCUMENTO_REVISION,
+  entradaArchivo,
+  registrosPorCambioDeSlots,
+  registrosPorCambioDeUrls,
+} from "@/domain/archivos/archivo-rules";
 import { usaFormularioAlta } from "@/lib/data/arrendamientos-temporal";
 import type { ResumenContratoRepository } from "@/domain/contratos/resumen-contrato-repository";
 import { accionResumen, construirResumenContrato, ETAPAS_VISIBLES_JEFE_ZONA, resumenSinCambios } from "@/domain/contratos/contrato-rules";
@@ -41,7 +51,7 @@ export function createTicketService(
   catalogo: CatalogoLookup,
   resumenes: ResumenContratoRepository
 ) {
-  async function createTicket(input: NuevoTicketInput): Promise<{ id: string; folio: string }> {
+  async function createTicket(input: NuevoTicketInput, archivos: RegistroArchivo[] = []): Promise<{ id: string; folio: string }> {
     const servicio = catalogo.findServicio(input.servicioId);
     if (!servicio) throw new Error("Servicio no encontrado en el catalogo.");
 
@@ -49,7 +59,15 @@ export function createTicketService(
     const resultado = await repo.create(({ id, folio }) => {
       mensaje = `Nueva solicitud ${folio}: ${servicio.servicio}`;
       return { ticket: buildNuevoTicket(input, servicio, { id, folio }, new Date()), notificacionMensaje: mensaje };
-    });
+    }, archivos);
+
+    // Los registros ya quedaron guardados con el ticket. Las entradas del historial van aparte porque
+    // las reglas necesitan que el ticket exista; si fallan, el registro de quien subio cada archivo se conserva.
+    if (archivos.length > 0) {
+      await repo
+        .agregarHistorial(resultado.id, archivos.map(entradaArchivo))
+        .catch((err) => console.error("No se pudo agregar el historial de archivos:", err));
+    }
 
     await notifier
       .ticketCreado({ ticketId: resultado.id, folio: resultado.folio, mensaje, solicitanteId: input.solicitanteId })
@@ -165,7 +183,14 @@ export function createTicketService(
     const ahora = new Date();
     const patch = calcularPatchSolicitud(current, input, servicio);
     const nombreServicio = (servicioId: string) => catalogo.findServicio(servicioId)?.servicio ?? null;
-    await repo.updateConHistorial(id, patch, conVisibilidad(entradasSolicitud(current, patch, actor, ahora, nombreServicio), current, actor));
+    const registros = registrosPorCambioDeUrls(
+      current.documentacion, patch.documentacion ?? current.documentacion, "documentacion", actor, ahora
+    );
+    const entradas = [
+      ...conVisibilidad(entradasSolicitud(current, patch, actor, ahora, nombreServicio), current, actor),
+      ...registros.map(entradaArchivo),
+    ];
+    await repo.updateConHistorial(id, patch, entradas, registros);
     await refrescarResumenSiVisible({ ...current, ...patch } as Ticket);
   }
 
@@ -210,7 +235,7 @@ export function createTicketService(
     await refrescarResumenSiVisible({ ...current, resumenContrato: resumen } as Ticket);
   }
 
-  async function updateTicketRevisionLegal(id: string, revision: RevisionLegal): Promise<void> {
+  async function updateTicketRevisionLegal(id: string, actor: ActorHistorial, revision: RevisionLegal): Promise<void> {
     const current = await repo.getById(id);
     if (!current) throw new Error("Ticket no encontrado.");
     if (!usaFormularioAlta(current.servicioId)) throw new Error("El ticket no es un alta ni un cambio de arrendador.");
@@ -218,13 +243,16 @@ export function createTicketService(
       throw new Error("La revisión legal ya no se puede editar porque el ticket está en Pre-Cierre o Cierre.");
     }
     const normalizada = normalizarRevisionLegal(revision);
-    await repo.update(id, { revisionLegal: normalizada });
+    const registros = registrosPorCambioDeSlots(
+      current.revisionLegal, normalizada, CAMPOS_DOCUMENTO_REVISION, "revision_legal", actor, new Date()
+    );
+    await repo.updateConHistorial(id, { revisionLegal: normalizada }, registros.map(entradaArchivo), registros);
     await refrescarResumenSiVisible({ ...current, revisionLegal: normalizada } as Ticket);
   }
 
   // Tickets de Alta anteriores al formulario nuevo: el abogado completa lo que el solicitante no capturo,
   // en cualquier etapa menos Pre-Cierre (incluido Cierre).
-  async function updateTicketAltaRetroactiva(id: string, entrada: AltaRetroactivaCapturada): Promise<void> {
+  async function updateTicketAltaRetroactiva(id: string, actor: ActorHistorial, entrada: AltaRetroactivaCapturada): Promise<void> {
     const errores = validarAltaRetroactiva(entrada);
     const primero = Object.values(errores)[0];
     if (primero) throw new Error(primero);
@@ -235,7 +263,17 @@ export function createTicketService(
     if (bloqueadoPorPreCierre(current.estatus)) throw new Error(MENSAJE_BLOQUEO_PRE_CIERRE);
 
     const patch = calcularPatchAltaRetroactiva(entrada);
-    await repo.update(id, patch);
+    // "Antes" es lo que el formulario mostro al abogado: incluye los documentos que el solicitante subio en el
+    // formulario anterior, que no se le atribuyen al abogado.
+    const registros = registrosPorCambioDeSlots(
+      documentosAltaIniciales(current),
+      patch.altaArrendador?.documentos,
+      DOCUMENTOS_ALTA.map((d) => d.key),
+      "alta",
+      actor,
+      new Date()
+    );
+    await repo.updateConHistorial(id, patch, registros.map(entradaArchivo), registros);
     await refrescarResumenSiVisible({ ...current, ...patch } as Ticket);
   }
 

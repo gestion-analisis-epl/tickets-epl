@@ -346,7 +346,7 @@ describe("revision legal", () => {
     // El fake aplica el patch de repo.update directamente sobre el ticket que se le pasa.
     const t = buildTicket({ id: "t1", servicioId: "JUR-C071", altaArrendador: alta, estatus: "Proceso en tramite" });
     const { service } = montar(t);
-    await service.updateTicketRevisionLegal("t1", { ...COMPLETA, tipoLimitacion: "sobra" });
+    await service.updateTicketRevisionLegal("t1", actor, { ...COMPLETA, tipoLimitacion: "sobra" });
     expect(t.revisionLegal?.tipoLimitacion).toBeUndefined();
     expect(Object.values(t.revisionLegal ?? {}).includes(undefined)).toBe(false);
   });
@@ -354,7 +354,7 @@ describe("revision legal", () => {
   it("no guarda la revision en Pre-Cierre ni en Cierre", async () => {
     for (const estatus of ["Pre-Cierre", "Cierre"] as const) {
       const { service } = montar(buildTicket({ id: "t2", servicioId: "JUR-C071", altaArrendador: alta, estatus }));
-      await expect(service.updateTicketRevisionLegal("t2", COMPLETA)).rejects.toThrow(/Pre-Cierre o Cierre/);
+      await expect(service.updateTicketRevisionLegal("t2", actor, COMPLETA)).rejects.toThrow(/Pre-Cierre o Cierre/);
     }
   });
 });
@@ -372,7 +372,7 @@ describe("edicion retroactiva de un ticket de Alta anterior", () => {
   it("guarda los datos de alta con la marca retroactiva aunque el ticket este en Cierre", async () => {
     const t = anterior();
     const { service } = montar(t);
-    await service.updateTicketAltaRetroactiva("t1", captura);
+    await service.updateTicketAltaRetroactiva("t1", actor, captura);
     expect(t.altaArrendador?.retroactiva).toBe(true);
     expect(t.altaArrendador?.documentos).toEqual({ predial: "https://x/p.pdf" });
     expect(t.contratoArrendamiento?.domicilio).toBe("viejo");
@@ -380,32 +380,32 @@ describe("edicion retroactiva de un ticket de Alta anterior", () => {
 
   it("refresca el resumen cuando el ticket esta en Cierre", async () => {
     const { service, resumenes } = montar(anterior());
-    await service.updateTicketAltaRetroactiva("t1", captura);
+    await service.updateTicketAltaRetroactiva("t1", actor, captura);
     expect(resumenes.has("t1")).toBe(true);
   });
 
   it("no guarda en Pre-Cierre, en otro servicio, ni sobre datos que capturo el solicitante", async () => {
-    await expect(montar(anterior({ estatus: "Pre-Cierre" })).service.updateTicketAltaRetroactiva("t1", captura)).rejects.toThrow();
-    await expect(montar(anterior({ servicioId: "JUR-C073" })).service.updateTicketAltaRetroactiva("t1", captura)).rejects.toThrow();
+    await expect(montar(anterior({ estatus: "Pre-Cierre" })).service.updateTicketAltaRetroactiva("t1", actor, captura)).rejects.toThrow();
+    await expect(montar(anterior({ servicioId: "JUR-C073" })).service.updateTicketAltaRetroactiva("t1", actor, captura)).rejects.toThrow();
     const delSolicitante = anterior({ altaArrendador: { tipoAlta: "nuevo", documentos: {} } });
-    await expect(montar(delSolicitante).service.updateTicketAltaRetroactiva("t1", captura)).rejects.toThrow();
+    await expect(montar(delSolicitante).service.updateTicketAltaRetroactiva("t1", actor, captura)).rejects.toThrow();
   });
 
   it("exige el tipo de alta", async () => {
-    await expect(montar(anterior()).service.updateTicketAltaRetroactiva("t1", { ...captura, tipoAlta: "" })).rejects.toThrow(/tipo de alta/i);
+    await expect(montar(anterior()).service.updateTicketAltaRetroactiva("t1", actor, { ...captura, tipoAlta: "" })).rejects.toThrow(/tipo de alta/i);
   });
 
   it("la revision legal se guarda en un ticket anterior en Cierre, incluso sin datos de alta", async () => {
     const t = anterior();
     const { service } = montar(t);
-    await service.updateTicketRevisionLegal("t1", COMPLETA);
+    await service.updateTicketRevisionLegal("t1", actor, COMPLETA);
     expect(t.revisionLegal?.nombrePropietario).toBe("Juan");
   });
 
   it("la revision legal de un ticket con datos del solicitante sigue bloqueada en Cierre, y en otros servicios", async () => {
     const delSolicitante = anterior({ altaArrendador: { tipoAlta: "nuevo", documentos: {} } });
-    await expect(montar(delSolicitante).service.updateTicketRevisionLegal("t1", COMPLETA)).rejects.toThrow();
-    await expect(montar(anterior({ servicioId: "JUR-C073" })).service.updateTicketRevisionLegal("t1", COMPLETA)).rejects.toThrow();
+    await expect(montar(delSolicitante).service.updateTicketRevisionLegal("t1", actor, COMPLETA)).rejects.toThrow();
+    await expect(montar(anterior({ servicioId: "JUR-C073" })).service.updateTicketRevisionLegal("t1", actor, COMPLETA)).rejects.toThrow();
   });
 
   it("un ticket anterior en Cierre sin datos de alta no se bloquea al reabrirse ni al volver a Cierre", async () => {

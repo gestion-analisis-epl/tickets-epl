@@ -44,7 +44,7 @@ describe("ticket de ejemplo", () => {
 
     await expect(pasar()).rejects.toBeInstanceOf(RevisionLegalIncompletaError);
 
-    await service.updateTicketRevisionLegal(base.id, ticketEjemplo("Pre-Cierre").revisionLegal!);
+    await service.updateTicketRevisionLegal(base.id, actor, ticketEjemplo("Pre-Cierre").revisionLegal!);
     await pasar();
     expect(ultimo!.estatus).toBe("Pre-Cierre");
   });

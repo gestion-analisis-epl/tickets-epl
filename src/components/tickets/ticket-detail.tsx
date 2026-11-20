@@ -794,7 +794,10 @@ export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) 
       {puedeEditarAlta && (
         <section className="section-card p-6 space-y-4">
           <h2 className="eyebrow">Datos de alta de arrendador</h2>
-          <AltaRetroactivaForm ticketId={id} ticket={ticket} onGuardar={(entrada) => updateTicketAltaRetroactiva(id, entrada)} />
+          <AltaRetroactivaForm ticketId={id} ticket={ticket} onGuardar={async (entrada) => {
+            if (!actor) throw new Error("Tu sesión no está disponible. Recarga la página.");
+            await updateTicketAltaRetroactiva(id, actor, entrada);
+          }} />
         </section>
       )}
 
@@ -806,7 +809,10 @@ export function TicketDetail({ id, ejemplo }: { id: string; ejemplo?: Ticket }) 
             revision={ticket.revisionLegal}
             editable={puedeEditarRevision}
             simulado={modoEjemplo}
-            onGuardar={(rev) => updateTicketRevisionLegal(id, rev)}
+            onGuardar={async (rev) => {
+              if (!actor) throw new Error("Tu sesión no está disponible. Recarga la página.");
+              await updateTicketRevisionLegal(id, actor, rev);
+            }}
           />
         </section>
       )}
